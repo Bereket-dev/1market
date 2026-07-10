@@ -1,0 +1,6 @@
+{
+  "name": "Koolan",
+  "description": "A premium local marketplace classifieds app for cars, houses, land, and skills in Jigjiga, Somali Region.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
