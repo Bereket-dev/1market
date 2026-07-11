@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../shared/models/chat.dart';
 import '../../../../shared/services/app_state.dart';
 
@@ -12,118 +11,114 @@ class ActiveChatScreen extends StatefulWidget {
 }
 
 class _ActiveChatScreenState extends State<ActiveChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _ctrl = TextEditingController();
 
   @override
   void dispose() {
-    _messageController.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
+    final cs = Theme.of(context).colorScheme;
     final session = state.chatSessions[widget.sessionIndex];
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kPrimary),
+          icon: Icon(Icons.arrow_back, color: cs.primary),
           onPressed: () => state.popScreen(),
         ),
-        title: Row(
-          children: [
-            CircleAvatar(
+        title: Row(children: [
+          CircleAvatar(
               radius: 18,
-              backgroundImage: NetworkImage(session.partnerAvatar),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session.partnerName,
-                    style: const TextStyle(
+              backgroundImage: NetworkImage(session.partnerAvatar)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(session.partnerName,
+                  style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                    ),
-                  ),
-                  Text(
-                    session.listingTitle,
-                    style: const TextStyle(fontSize: 10, color: kPrimary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
+                      color: cs.onSurface)),
+              Text(session.listingTitle,
+                  style: TextStyle(fontSize: 10, color: cs.primary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ]),
+          ),
+        ]),
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+              height: 1, color: cs.outlineVariant.withValues(alpha: 0.4)),
         ),
-        backgroundColor: kSurfaceContainerLowest,
-        elevation: 1,
       ),
-      body: Column(
-        children: [
-          // ── Message stream ────────────────────────────────────────────────
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: session.messages.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                return _ChatBubble(msg: session.messages[index]);
-              },
-            ),
+      body: Column(children: [
+        // ── Message stream ──────────────────────────────────────────────────
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: session.messages.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => _ChatBubble(msg: session.messages[i]),
           ),
+        ),
 
-          // ── Input panel ───────────────────────────────────────────────────
-          Container(
-            color: kSurfaceContainerLowest,
-            padding: const EdgeInsets.all(12),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: kSurfaceContainerLow,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: state.s.chatInputHint,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  CircleAvatar(
-                    backgroundColor: kPrimary,
-                    radius: 24,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white),
-                      onPressed: () {
-                        if (_messageController.text.trim().isNotEmpty) {
-                          state.sendChatMessage(
-                            widget.sessionIndex,
-                            _messageController.text,
-                          );
-                          _messageController.clear();
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        // ── Input bar ───────────────────────────────────────────────────────
+        Container(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border(
+                top: BorderSide(
+                    color: cs.outlineVariant.withValues(alpha: 0.35))),
           ),
-        ],
-      ),
+          padding: const EdgeInsets.all(12),
+          child: SafeArea(
+            child: Row(children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                        color: cs.outlineVariant.withValues(alpha: 0.4)),
+                  ),
+                  child: TextField(
+                    controller: _ctrl,
+                    style: TextStyle(fontSize: 14, color: cs.onSurface),
+                    decoration: InputDecoration(
+                      hintText: state.s.chatInputHint,
+                      hintStyle: TextStyle(
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.55)),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              CircleAvatar(
+                backgroundColor: cs.primary,
+                radius: 24,
+                child: IconButton(
+                  icon: Icon(Icons.send, color: cs.onPrimary),
+                  onPressed: () {
+                    if (_ctrl.text.trim().isNotEmpty) {
+                      state.sendChatMessage(widget.sessionIndex, _ctrl.text);
+                      _ctrl.clear();
+                    }
+                  },
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -134,23 +129,24 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor = msg.isMe ? kPrimaryContainer : kSurfaceContainerHigh;
-    final textColor = msg.isMe ? Colors.white : kOnSurface;
-    final alignment =
-        msg.isMe ? Alignment.centerRight : Alignment.centerLeft;
-    final textAlignment =
-        msg.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final cs = Theme.of(context).colorScheme;
+
+    // My bubbles: primaryContainer bg, onPrimaryContainer text — guaranteed contrast.
+    // Incoming: surfaceContainerHighest bg, onSurface text.
+    final bg = msg.isMe ? cs.primaryContainer : cs.surfaceContainerHighest;
+    final fg = msg.isMe ? cs.onPrimaryContainer : cs.onSurface;
 
     return Align(
-      alignment: alignment,
+      alignment: msg.isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
-        crossAxisAlignment: textAlignment,
+        crossAxisAlignment:
+            msg.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Container(
             constraints: const BoxConstraints(maxWidth: 280),
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: bubbleColor,
+              color: bg,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(16),
                 topRight: const Radius.circular(16),
@@ -158,15 +154,13 @@ class _ChatBubble extends StatelessWidget {
                 bottomRight: Radius.circular(msg.isMe ? 4 : 16),
               ),
             ),
-            child:
-                Text(msg.text, style: TextStyle(color: textColor, fontSize: 14)),
+            child: Text(msg.text, style: TextStyle(color: fg, fontSize: 14)),
           ),
           const SizedBox(height: 2),
-          Text(
-            msg.timestamp,
-            style: TextStyle(
-                fontSize: 10, color: kOnSurfaceVariant.withOpacity(0.5)),
-          ),
+          Text(msg.timestamp,
+              style: TextStyle(
+                  fontSize: 10,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.5))),
         ],
       ),
     );

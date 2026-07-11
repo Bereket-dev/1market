@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../shared/services/app_state.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -10,37 +9,36 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _darkModeEnabled = false;
   bool _notificationEnabled = true;
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
-    final s = state.s;
+    final appState = KoolanAppStateScope.of(context);
+    final s = appState.s;
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kPrimary),
-          onPressed: () => state.popScreen(),
+          icon: Icon(Icons.arrow_back, color: cs.primary),
+          onPressed: () => appState.popScreen(),
         ),
         title: Text(
           s.settingsTitle,
           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
         ),
-        backgroundColor: kBackground,
-        elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          // ── Account ────────────────────────────────────────────────────────
+          // ── Account ──────────────────────────────────────────────────────
           _sectionLabel(
             s.isAmharic
                 ? 'የሂሳብ ቅንብሮች'
                 : s.isSomali
                     ? 'Dejinta xisaabta'
                     : 'Account settings',
+            cs,
           ),
           const SizedBox(height: 10),
           _SettingsRow(
@@ -83,13 +81,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
-          // ── Trust & Escrow ─────────────────────────────────────────────────
+          // ── Trust & Escrow ────────────────────────────────────────────────
           _sectionLabel(
             s.isAmharic
                 ? 'ደህንነት እና ኤስክሮ'
                 : s.isSomali
                     ? 'Ammaan & Escrow'
                     : 'Trust & Escrow Safety',
+            cs,
           ),
           const SizedBox(height: 10),
           _SettingsRow(
@@ -126,13 +125,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
-          // ── System preferences ─────────────────────────────────────────────
+          // ── System preferences ────────────────────────────────────────────
           _sectionLabel(
             s.isAmharic
                 ? 'የስርዓት ቅንብሮች'
                 : s.isSomali
                     ? 'Doorashada nidaamka'
                     : 'System preferences',
+            cs,
           ),
           const SizedBox(height: 10),
           _SettingsToggleRow(
@@ -143,17 +143,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 10),
           _SettingsToggleRow(
-            icon: Icons.light_mode,
+            icon: appState.isDarkMode
+                ? Icons.dark_mode_rounded
+                : Icons.light_mode_rounded,
             title: s.settingsDarkMode,
-            value: _darkModeEnabled,
-            onChanged: (val) => setState(() => _darkModeEnabled = val),
+            value: appState.isDarkMode,
+            // Calls toggleDarkMode() on KoolanAppState — rebuilds entire tree.
+            onChanged: (_) => appState.toggleDarkMode(),
           ),
           const SizedBox(height: 32),
 
           ElevatedButton(
-            onPressed: () => state.popScreen(),
+            onPressed: () => appState.popScreen(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFEE2E2),
+              backgroundColor: cs.errorContainer,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -165,8 +168,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : s.isSomali
                       ? 'Ka bax xisaabta'
                       : 'Log Out Account',
-              style: const TextStyle(
-                  color: Color(0xFF991B1B), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: cs.onErrorContainer, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -174,14 +177,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _sectionLabel(String label) {
+  Widget _sectionLabel(String label, ColorScheme cs) {
     return Text(
       label,
-      style: const TextStyle(
-          fontWeight: FontWeight.bold, color: kPrimary, fontSize: 12),
+      style: TextStyle(
+          fontWeight: FontWeight.bold, color: cs.primary, fontSize: 12),
     );
   }
 }
+
+// ── Reusable settings row widgets ─────────────────────────────────────────────
 
 class _SettingsRow extends StatelessWidget {
   final IconData icon;
@@ -198,20 +203,15 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      color: kSurfaceContainerLowest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
-      ),
-      elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: kPrimary.withOpacity(0.08),
-              child: Icon(icon, color: kPrimary),
+              backgroundColor: cs.primary.withOpacity(0.1),
+              child: Icon(icon, color: cs.primary),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -225,29 +225,30 @@ class _SettingsRow extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                         fontSize: 11,
-                        color: kOnSurfaceVariant.withOpacity(0.7)),
+                        color: cs.onSurfaceVariant.withOpacity(0.7)),
                   ),
                 ],
               ),
             ),
             if (trailingText != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: kVerifiedColor.withOpacity(0.08),
+                  color: cs.primaryContainer.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   trailingText!,
-                  style: const TextStyle(
-                    color: kVerifiedColor,
+                  style: TextStyle(
+                    color: cs.primary,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               )
             else
-              const Icon(Icons.chevron_right, color: kOnSurfaceVariant),
+              Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
           ],
         ),
       ),
@@ -270,20 +271,15 @@ class _SettingsToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      color: kSurfaceContainerLowest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
-      ),
-      elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: kPrimary.withOpacity(0.08),
-              child: Icon(icon, color: kPrimary),
+              backgroundColor: cs.primary.withOpacity(0.1),
+              child: Icon(icon, color: cs.primary),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -295,7 +291,6 @@ class _SettingsToggleRow extends StatelessWidget {
             ),
             Switch(
               value: value,
-              activeColor: kPrimary,
               onChanged: onChanged,
             ),
           ],

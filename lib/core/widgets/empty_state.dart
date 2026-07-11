@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
 
-/// Generic empty-state illustration with icon, title, and subtitle.
+/// Generic empty-state with icon, title, and subtitle.
 class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -16,6 +15,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -24,23 +24,23 @@ class EmptyState extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 48,
-              backgroundColor: kSurfaceContainerLow,
-              child: Icon(icon, size: 48, color: kOnSurfaceVariant.withOpacity(0.4)),
+              backgroundColor: cs.surfaceContainerHighest,
+              child: Icon(icon,
+                  size: 48,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.45)),
             ),
             const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface)),
             const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: kOnSurfaceVariant.withOpacity(0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(subtitle,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.65)),
+                textAlign: TextAlign.center),
           ],
         ),
       ),

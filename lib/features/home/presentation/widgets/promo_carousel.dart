@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
@@ -122,21 +121,24 @@ class _PromoCarouselState extends State<PromoCarousel> {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(_slides.length, (i) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: _page == i ? 20 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: _page == i ? kPrimary : kOutlineVariant,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            );
-          }),
-        ),
+        Builder(builder: (context) {
+          final cs = Theme.of(context).colorScheme;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_slides.length, (i) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: _page == i ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _page == i ? cs.primary : cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          );
+        }),
       ],
     );
   }

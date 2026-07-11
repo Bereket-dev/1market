@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/utils/icon_for_spec.dart';
 import '../../../../shared/services/app_state.dart';
@@ -19,6 +18,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
+    final cs = Theme.of(context).colorScheme;
     final listing =
         state.allListings.firstWhere((l) => l.id == widget.listingId);
 
@@ -39,7 +39,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     children: [
                       Image.network(listing.imageUrl, fit: BoxFit.cover),
 
-                      // Photo counter
+                      // Photo counter pill – bottom left
                       Positioned(
                         left: 24,
                         bottom: 24,
@@ -47,7 +47,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
+                            color: Colors.black.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -72,6 +72,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           ),
                         ),
                       ),
+
+                      // Page count pill – bottom right
                       Positioned(
                         right: 24,
                         bottom: 24,
@@ -79,17 +81,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
+                            color: Colors.black.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Text(
                             '1 / 3',
-                            style: TextStyle(color: Colors.white, fontSize: 11),
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 11),
                           ),
                         ),
                       ),
 
-                      // Header actions
+                      // Back / Share / Save buttons overlay
                       Positioned(
                         top: 16,
                         left: 16,
@@ -97,45 +100,33 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.white.withOpacity(0.9),
-                              child: IconButton(
-                                icon: const Icon(Icons.arrow_back,
-                                    color: kPrimary),
-                                onPressed: () => state.popScreen(),
-                              ),
+                            _OverlayCircleButton(
+                              icon: Icons.arrow_back,
+                              cs: cs,
+                              onPressed: () => state.popScreen(),
                             ),
                             Row(
                               children: [
-                                CircleAvatar(
-                                  backgroundColor:
-                                      Colors.white.withOpacity(0.9),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.share,
-                                        color: kPrimary),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text('Link shared!')));
-                                    },
-                                  ),
+                                _OverlayCircleButton(
+                                  icon: Icons.share,
+                                  cs: cs,
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Link shared!')));
+                                  },
                                 ),
                                 const SizedBox(width: 8),
-                                CircleAvatar(
-                                  backgroundColor:
-                                      Colors.white.withOpacity(0.9),
-                                  child: IconButton(
-                                    icon: Icon(
-                                      listing.isSaved
-                                          ? Icons.bookmark
-                                          : Icons.bookmark_border,
-                                      color: listing.isSaved
-                                          ? Colors.red
-                                          : kPrimary,
-                                    ),
-                                    onPressed: () =>
-                                        state.toggleSaveListing(listing.id),
-                                  ),
+                                _OverlayCircleButton(
+                                  icon: listing.isSaved
+                                      ? Icons.bookmark
+                                      : Icons.bookmark_border,
+                                  cs: cs,
+                                  iconColor: listing.isSaved
+                                      ? Colors.redAccent
+                                      : null,
+                                  onPressed: () =>
+                                      state.toggleSaveListing(listing.id),
                                 ),
                               ],
                             ),
@@ -159,26 +150,26 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: kPrimary.withOpacity(0.1),
+                              color: cs.primaryContainer.withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
                               listing.category == 'SKILLS'
                                   ? 'Verified Skilled Professional'
                                   : 'Verified Listing',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: kPrimary,
+                                color: cs.primary,
                               ),
                             ),
                           ),
                           Text(
                             listing.price,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w900,
-                              color: kPrimary,
+                              color: cs.primary,
                             ),
                           ),
                         ],
@@ -186,22 +177,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       const SizedBox(height: 12),
                       Text(
                         listing.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: kOnSurface,
+                          color: cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.location_on,
-                              color: kOutline, size: 16),
+                          Icon(Icons.location_on,
+                              color: cs.outline, size: 16),
                           const SizedBox(width: 4),
                           Text(
                             listing.location,
-                            style:
-                                const TextStyle(color: kOnSurfaceVariant),
+                            style: TextStyle(color: cs.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -268,27 +258,31 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       // Description
                       Text(
                         state.s.detailDescription,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: cs.onSurface),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         listing.description.isEmpty
                             ? 'Dedicated listing in Jigjiga. Authentic and ready for immediate transition.'
                             : listing.description,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: kOnSurfaceVariant,
+                          color: cs.onSurfaceVariant,
                           height: 1.5,
                         ),
                       ),
                       const SizedBox(height: 24),
 
                       // Map widget
-                      const Text(
+                      Text(
                         'Location',
                         style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: cs.onSurface),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -297,13 +291,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: kOutlineVariant.withOpacity(0.4)),
+                              color: cs.outlineVariant.withValues(alpha: 0.4)),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Stack(
                           children: [
                             CustomPaint(
-                              painter: _MapPainter(kPrimary),
+                              painter: _MapPainter(cs),
                               child: const SizedBox.expand(),
                             ),
                             Positioned(
@@ -311,18 +305,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                               right: 0,
                               bottom: 0,
                               child: Container(
-                                color: Colors.white.withOpacity(0.9),
+                                color: cs.surfaceContainerHighest
+                                    .withValues(alpha: 0.95),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Kebele 06, Jigjiga Central',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 13),
+                                          fontSize: 13,
+                                          color: cs.onSurface),
                                     ),
                                     TextButton(
                                       onPressed: () {
@@ -332,13 +328,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                               'Opening Google Maps...'),
                                         ));
                                       },
-                                      child: const Row(
+                                      child: Row(
                                         children: [
                                           Text('Open in Maps',
-                                              style:
-                                                  TextStyle(fontSize: 12)),
-                                          SizedBox(width: 4),
-                                          Icon(Icons.open_in_new, size: 12),
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: cs.primary)),
+                                          const SizedBox(width: 4),
+                                          Icon(Icons.open_in_new,
+                                              size: 12, color: cs.primary),
                                         ],
                                       ),
                                     ),
@@ -375,7 +373,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             right: 0,
             bottom: 0,
             child: Container(
-              color: Colors.white.withOpacity(0.95),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                border: Border(
+                  top: BorderSide(
+                      color: cs.outlineVariant.withValues(alpha: 0.3)),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
@@ -387,17 +398,17 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
-                        side: const BorderSide(color: kPrimary),
+                        side: BorderSide(color: cs.primary),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.chat, color: kPrimary),
+                          Icon(Icons.chat, color: cs.primary),
                           const SizedBox(width: 8),
                           Text(
                             state.s.detailChat,
-                            style: const TextStyle(
-                              color: kPrimary,
+                            style: TextStyle(
+                              color: cs.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -417,21 +428,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
-                        backgroundColor: kPrimary,
+                        backgroundColor: cs.primary,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.event, color: Colors.white),
+                          Icon(Icons.event, color: cs.onPrimary),
                           const SizedBox(width: 8),
                           Text(
                             listing.category == 'SKILLS'
                                 ? state.s.detailRequestHire
                                 : state.s.detailViewProperty,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: cs.onPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -444,6 +455,33 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Photo overlay circular button ─────────────────────────────────────────────
+
+class _OverlayCircleButton extends StatelessWidget {
+  final IconData icon;
+  final ColorScheme cs;
+  final VoidCallback onPressed;
+  final Color? iconColor;
+
+  const _OverlayCircleButton({
+    required this.icon,
+    required this.cs,
+    required this.onPressed,
+    this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      backgroundColor: cs.surface.withValues(alpha: 0.88),
+      child: IconButton(
+        icon: Icon(icon, color: iconColor ?? cs.primary),
+        onPressed: onPressed,
       ),
     );
   }
@@ -464,24 +502,27 @@ class _BentoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      color: kSurfaceContainerLow,
+      color: cs.surfaceContainerHighest,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Icon(icon, color: kPrimary, size: 24),
+            Icon(icon, color: cs.primary, size: 24),
             const SizedBox(height: 4),
             Text(label,
-                style: const TextStyle(fontSize: 10, color: kOnSurfaceVariant)),
+                style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
             Text(value,
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface)),
           ],
         ),
       ),
@@ -499,11 +540,12 @@ class _SellerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      color: kSurfaceContainerLowest,
+      color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: kOutlineVariant.withOpacity(0.2)),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.2)),
       ),
       elevation: 0,
       child: Padding(
@@ -516,7 +558,7 @@ class _SellerCard extends StatelessWidget {
               style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: kOnSurfaceVariant.withOpacity(0.6)),
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
             ),
             const SizedBox(height: 12),
             Row(
@@ -535,8 +577,10 @@ class _SellerCard extends StatelessWidget {
                   children: [
                     Text(
                       listing.sellerName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: cs.onSurface),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -545,7 +589,8 @@ class _SellerCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           '${listing.sellerRating} (${listing.sellerReviewsCount} ${state.s.detailReviews})',
-                          style: const TextStyle(fontSize: 12),
+                          style: TextStyle(
+                              fontSize: 12, color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -564,11 +609,11 @@ class _SellerCard extends StatelessWidget {
                 minimumSize: const Size.fromHeight(44),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
-                side: const BorderSide(color: kOutlineVariant),
+                side: BorderSide(color: cs.outlineVariant),
               ),
               child: Text(
                 state.s.detailViewProfile,
-                style: const TextStyle(color: kOnSurface),
+                style: TextStyle(color: cs.onSurface),
               ),
             ),
           ],
@@ -593,11 +638,12 @@ class _ContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      color: kSurfaceContainerLowest,
+      color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: kPrimary.withOpacity(0.3)),
+        side: BorderSide(color: cs.primary.withValues(alpha: 0.35)),
       ),
       elevation: 0,
       child: Padding(
@@ -605,52 +651,54 @@ class _ContactCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Contact Details',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: cs.onSurface),
                 ),
-                Icon(Icons.lock, color: kPrimary, size: 28),
+                Icon(Icons.lock, color: cs.primary, size: 28),
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Phone numbers and direct emails are protected to avoid '
               'phishing/spam. Interact safely using escrow.',
-              style: TextStyle(fontSize: 13, color: kOnSurfaceVariant),
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
             if (isUnlocked) ...[
-              const Text(
+              Text(
                 'Phone: +251 91 123 4567',
                 style: TextStyle(
-                    fontWeight: FontWeight.bold, color: kPrimary),
+                    fontWeight: FontWeight.bold, color: cs.primary),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Email: contact@jigjigamarketplace.et',
-                style: TextStyle(color: kOnSurfaceVariant),
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             ] else
               ElevatedButton(
                 onPressed: onUnlock,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
-                  backgroundColor: kPrimary,
+                  backgroundColor: cs.primary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.payment, color: Colors.white),
+                    Icon(Icons.payment, color: cs.onPrimary),
                     const SizedBox(width: 8),
                     Text(
                       unlockLabel,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: cs.onPrimary),
                     ),
                   ],
                 ),
@@ -662,33 +710,36 @@ class _ContactCard extends StatelessWidget {
   }
 }
 
-// ── Map painter ───────────────────────────────────────────────────────────────
+// ── Map painter (theme-aware) ─────────────────────────────────────────────────
 
 class _MapPainter extends CustomPainter {
-  final Color primaryColor;
-  const _MapPainter(this.primaryColor);
+  final ColorScheme cs;
+  const _MapPainter(this.cs);
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Background
+    // Background – use a mid-tone surface so it reads in both modes
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = const Color(0xFFF1F3F5),
+      Paint()..color = cs.surfaceContainerHighest,
     );
 
+    // Roads
     final roadPaint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 24
+      ..color = cs.surface
+      ..strokeWidth = 22
       ..style = PaintingStyle.stroke;
 
     final dashPaint = Paint()
-      ..color = Colors.black26
+      ..color = cs.outlineVariant.withValues(alpha: 0.6)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
     // Horizontal road
     canvas.drawLine(
-        Offset(0, size.height / 2), Offset(size.width, size.height / 2), roadPaint);
+        Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2),
+        roadPaint);
 
     // Dashes
     var startX = 0.0;
@@ -703,15 +754,18 @@ class _MapPainter extends CustomPainter {
 
     // Vertical road
     canvas.drawLine(
-        Offset(size.width / 3, 0), Offset(size.width / 3, size.height), roadPaint);
+        Offset(size.width / 3, 0),
+        Offset(size.width / 3, size.height),
+        roadPaint);
 
-    // Marker rings
+    // Location marker
     final cx = Offset(size.width / 3, size.height / 2);
-    canvas.drawCircle(cx, 24, Paint()..color = primaryColor.withOpacity(0.2));
-    canvas.drawCircle(cx, 8, Paint()..color = Colors.white);
-    canvas.drawCircle(cx, 4, Paint()..color = primaryColor);
+    canvas.drawCircle(
+        cx, 24, Paint()..color = cs.primary.withValues(alpha: 0.18));
+    canvas.drawCircle(cx, 8, Paint()..color = cs.surface);
+    canvas.drawCircle(cx, 4, Paint()..color = cs.primary);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MapPainter old) => old.cs != cs;
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
 
 /// Consistent card container with subtle border and zero elevation.
 class CardFrame extends StatelessWidget {
@@ -18,12 +17,14 @@ class CardFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
-      color: kSurfaceContainerLowest,
+      color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radius),
-        side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
+        side:
+            BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       clipBehavior: Clip.antiAlias,
       child: onTap != null

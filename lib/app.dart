@@ -14,30 +14,14 @@ import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
 import 'shared/services/app_state.dart';
 
-class KoolanApp extends StatelessWidget {
+class KoolanApp extends StatefulWidget {
   const KoolanApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Koolan – Jigjiga Marketplace',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: const _AppRoot(),
-    );
-  }
+  State<KoolanApp> createState() => _KoolanAppState();
 }
 
-// ── Root shell ────────────────────────────────────────────────────────────────
-
-class _AppRoot extends StatefulWidget {
-  const _AppRoot();
-
-  @override
-  State<_AppRoot> createState() => _AppRootState();
-}
-
-class _AppRootState extends State<_AppRoot> {
+class _KoolanAppState extends State<KoolanApp> {
   late final KoolanAppState _appState;
 
   @override
@@ -59,56 +43,83 @@ class _AppRootState extends State<_AppRoot> {
       child: ListenableBuilder(
         listenable: _appState,
         builder: (context, _) {
-          final current = _appState.navigationStack.last;
-          final hideBar = current is PostWizardScreenRoute ||
-              current is ActiveChatScreenRoute;
-
-          final shell = Scaffold(
-            bottomNavigationBar: hideBar
-                ? null
-                : _BottomNavBar(
-                    current: current,
-                    onTabSelect: _appState.switchTab,
-                    onPostFab: () =>
-                        _appState.pushScreen(PostWizardScreenRoute()),
-                  ),
-            body: SafeArea(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _screenFor(current),
-              ),
-            ),
-          );
-
-          // On wide screens (desktop / web) centre a phone-sized card.
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth <= 600) return shell;
-              return Container(
-                color: const Color(0xFFE2E8F0),
-                alignment: Alignment.center,
-                child: Container(
-                  width: 480,
-                  height: 850,
-                  decoration: BoxDecoration(
-                    color: kBackground,
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: shell,
-                ),
-              );
-            },
+          return MaterialApp(
+            title: 'Koolan – Jigjiga Marketplace',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode:
+                _appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: const _AppShell(),
           );
         },
       ),
+    );
+  }
+}
+
+// ── Root shell ────────────────────────────────────────────────────────────────
+
+class _AppShell extends StatelessWidget {
+  const _AppShell();
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = KoolanAppStateScope.of(context);
+    final isDark = appState.isDarkMode;
+
+    final current = appState.navigationStack.last;
+    final hideBar =
+        current is PostWizardScreenRoute || current is ActiveChatScreenRoute;
+
+    final shell = Scaffold(
+      bottomNavigationBar: hideBar
+          ? null
+          : _BottomNavBar(
+              current: current,
+              onTabSelect: appState.switchTab,
+              onPostFab: () => appState.pushScreen(PostWizardScreenRoute()),
+            ),
+      body: SafeArea(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _screenFor(current),
+        ),
+      ),
+    );
+
+    // On wide screens (desktop / web) centre a phone-sized card.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth <= 600) return shell;
+
+        final desktopBg =
+            isDark ? const Color(0xFF060A10) : const Color(0xFFE2E8F0);
+        final cardBg =
+            isDark ? kDarkBackground : kBackground;
+
+        return Container(
+          color: desktopBg,
+          alignment: Alignment.center,
+          child: Container(
+            width: 480,
+            height: 850,
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.5 : 0.15),
+                  blurRadius: 40,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: shell,
+          ),
+        );
+      },
     );
   }
 
@@ -160,22 +171,35 @@ class _BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final appState = KoolanAppStateScope.of(context);
+    final s = appState.s;
+    final cs = Theme.of(context).colorScheme;
 
     final tabs = [
       _Tab(s.navHome, Icons.home_outlined, Icons.home, HomeScreenRoute()),
-      _Tab(s.navSaved, Icons.bookmark_border, Icons.bookmark, SavedScreenRoute()),
-      _Tab(s.navPost, Icons.add, Icons.add, PostWizardScreenRoute(), isFab: true),
-      _Tab(s.navMessages, Icons.chat_bubble_outline, Icons.chat_bubble, MessagesScreenRoute()),
-      _Tab(s.navProfile, Icons.person_outline, Icons.person, ProfileScreenRoute()),
+      _Tab(s.navSaved, Icons.bookmark_border, Icons.bookmark,
+          SavedScreenRoute()),
+      _Tab(s.navPost, Icons.add, Icons.add, PostWizardScreenRoute(),
+          isFab: true),
+      _Tab(s.navMessages, Icons.chat_bubble_outline, Icons.chat_bubble,
+          MessagesScreenRoute()),
+      _Tab(s.navProfile, Icons.person_outline, Icons.person,
+          ProfileScreenRoute()),
     ];
 
     return Container(
       height: 80,
-      decoration: const BoxDecoration(
-        color: kSurfaceContainerLowest,
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withOpacity(0.4), width: 1),
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2)),
+          BoxShadow(
+            color: Colors.black.withOpacity(appState.isDarkMode ? 0.3 : 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: Row(
@@ -188,11 +212,11 @@ class _BottomNavBar extends StatelessWidget {
               child: Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
-                  color: kPrimaryContainer,
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 28),
+                child: Icon(Icons.add, color: cs.onPrimaryContainer, size: 28),
               ),
             );
           }
@@ -204,12 +228,16 @@ class _BottomNavBar extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    selected ? tab.selectedIcon : tab.unselectedIcon,
-                    color: selected
-                        ? kPrimary
-                        : kOnSurfaceVariant.withOpacity(0.6),
-                    size: 24,
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: Icon(
+                      selected ? tab.selectedIcon : tab.unselectedIcon,
+                      key: ValueKey(selected),
+                      color: selected
+                          ? cs.primary
+                          : cs.onSurfaceVariant.withOpacity(0.55),
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -219,8 +247,8 @@ class _BottomNavBar extends StatelessWidget {
                       fontWeight:
                           selected ? FontWeight.bold : FontWeight.w500,
                       color: selected
-                          ? kPrimary
-                          : kOnSurfaceVariant.withOpacity(0.6),
+                          ? cs.primary
+                          : cs.onSurfaceVariant.withOpacity(0.55),
                     ),
                   ),
                 ],

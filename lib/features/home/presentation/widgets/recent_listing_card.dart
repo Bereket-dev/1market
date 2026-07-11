@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../shared/models/listing.dart';
 
 /// Compact horizontal card shown in the "Recently Added" feed on the home screen.
@@ -15,12 +14,14 @@ class RecentListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Card(
       elevation: 0,
-      color: kSurfaceContainerLowest,
+      color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -29,7 +30,7 @@ class RecentListingCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Thumbnail + verified dot
+              // Thumbnail
               Stack(
                 children: [
                   ClipRRect(
@@ -39,18 +40,21 @@ class RecentListingCard extends StatelessWidget {
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          Container(width: 80, height: 80, color: Colors.grey[300]),
+                      errorBuilder: (_, __, ___) => Container(
+                          width: 80,
+                          height: 80,
+                          color: cs.surfaceContainerHighest),
                     ),
                   ),
                   if (listing.verified)
-                    const Positioned(
+                    Positioned(
                       top: 4,
                       right: 4,
                       child: CircleAvatar(
                         radius: 9,
-                        backgroundColor: kVerifiedColor,
-                        child: Icon(Icons.check, size: 11, color: Colors.white),
+                        backgroundColor: cs.tertiary,
+                        child: Icon(Icons.check,
+                            size: 11, color: cs.onTertiary),
                       ),
                     ),
                 ],
@@ -66,10 +70,10 @@ class RecentListingCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             listing.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: kOnSurface,
+                              color: cs.onSurface,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -77,10 +81,10 @@ class RecentListingCard extends StatelessWidget {
                         ),
                         Text(
                           listing.price,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w900,
-                            color: kPrimary,
+                            color: cs.primary,
                           ),
                         ),
                       ],
@@ -88,14 +92,14 @@ class RecentListingCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined,
-                            color: kOutline, size: 14),
+                        Icon(Icons.location_on_outlined,
+                            color: cs.outline, size: 14),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             listing.location,
-                            style: const TextStyle(
-                                fontSize: 12, color: kOutline),
+                            style: TextStyle(
+                                fontSize: 12, color: cs.outline),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -109,7 +113,8 @@ class RecentListingCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: kPrimary.withOpacity(0.06),
+                          color: cs.primaryContainer
+                              .withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -119,10 +124,10 @@ class RecentListingCard extends StatelessWidget {
                               listing.category == 'SKILLS'
                                   ? 'Talk to Seller'
                                   : 'Call Owner',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: kPrimary,
+                                color: cs.primary,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -130,7 +135,7 @@ class RecentListingCard extends StatelessWidget {
                               listing.category == 'SKILLS'
                                   ? Icons.chat_bubble
                                   : Icons.call,
-                              color: kPrimary,
+                              color: cs.primary,
                               size: 11,
                             ),
                           ],

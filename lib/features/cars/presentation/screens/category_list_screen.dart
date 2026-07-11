@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/services/app_state.dart';
 import '../widgets/car_card.dart';
@@ -38,6 +37,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
+    final cs = Theme.of(context).colorScheme;
     final results = state
         .getFilteredListings()
         .where((l) => !_verifiedOnly || l.verified)
@@ -50,8 +50,8 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
               widget.categoryName == 'ALL' ? 'CARS' : widget.categoryName;
           state.pushScreen(PostWizardScreenRoute());
         },
-        backgroundColor: kPrimaryContainer,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: cs.primaryContainer,
+        child: Icon(Icons.add, color: cs.onPrimaryContainer),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,24 +62,27 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: kPrimary),
+                  icon: Icon(Icons.arrow_back, color: cs.primary),
                   onPressed: () => state.popScreen(),
                 ),
                 Expanded(
                   child: Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: kSurfaceContainerLow,
+                      color: cs.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
                       controller: _searchController,
                       onChanged: state.setSearchQuery,
-                      style: const TextStyle(fontSize: 14),
+                      style: TextStyle(fontSize: 14, color: cs.onSurface),
                       decoration: InputDecoration(
                         hintText:
                             'Search ${widget.categoryName.toLowerCase()}...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
+                        hintStyle:
+                            TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                        prefixIcon: Icon(Icons.search,
+                            size: 20, color: cs.onSurfaceVariant),
                         border: InputBorder.none,
                         contentPadding:
                             const EdgeInsets.symmetric(vertical: 12),
@@ -99,11 +102,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // List / Map toggle
+                    // List / Map toggle pill
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: kSurfaceContainerHigh,
+                        color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Row(
@@ -112,25 +115,25 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 6),
                             decoration: BoxDecoration(
-                              color: kPrimary,
+                              color: cs.primary,
                               borderRadius: BorderRadius.circular(24),
                             ),
-                            child: const Text(
+                            child: Text(
                               'List',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: cs.onPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
                             ),
                           ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 6),
                             child: Text(
                               'Map',
                               style: TextStyle(
-                                  color: kOnSurfaceVariant, fontSize: 12),
+                                  color: cs.onSurfaceVariant, fontSize: 12),
                             ),
                           ),
                         ],
@@ -141,13 +144,12 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                       children: [
                         Text(
                           state.s.catVerifiedOnly,
-                          style: const TextStyle(
-                              fontSize: 12, color: kOnSurfaceVariant),
+                          style: TextStyle(
+                              fontSize: 12, color: cs.onSurfaceVariant),
                         ),
                         const SizedBox(width: 8),
                         Switch(
                           value: _verifiedOnly,
-                          activeThumbColor: kPrimary,
                           onChanged: (val) =>
                               setState(() => _verifiedOnly = val),
                         ),
@@ -222,7 +224,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
               '${results.length} results in Jigjiga',
               style: TextStyle(
                 fontSize: 12,
-                color: kOnSurfaceVariant.withValues(alpha: 0.6),
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -237,20 +239,23 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                         Icon(
                           Icons.search_off,
                           size: 64,
-                          color: kOnSurfaceVariant.withValues(alpha: 0.4),
+                          color:
+                              cs.onSurfaceVariant.withValues(alpha: 0.4),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           'No matching listings found',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: cs.onSurface),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Try clearing your query filters',
                           style: TextStyle(
                             fontSize: 13,
-                            color: kOnSurfaceVariant.withValues(alpha: 0.6),
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -280,8 +285,4 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 }
 
-// Convenience locale getters used by the filter chip labels.
-extension on KoolanAppState {
-  bool get isAmharic => locale == 'am';
-  bool get isSomali => locale == 'so';
-}
+

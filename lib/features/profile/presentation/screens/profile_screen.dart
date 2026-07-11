@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
@@ -17,6 +16,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
+    final cs = Theme.of(context).colorScheme;
     final myListings = state.allListings
         .where((l) => l.isCustom || l.sellerName.contains('Me'))
         .toList();
@@ -36,12 +36,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
                     fit: BoxFit.cover,
                   ),
-                  Container(color: Colors.black.withOpacity(0.3)),
+                  // Dark scrim so content over it is readable in both modes
+                  Container(color: Colors.black.withValues(alpha: 0.38)),
                   Positioned(
                     top: 16,
                     right: 16,
                     child: CircleAvatar(
-                      backgroundColor: Colors.white24,
+                      backgroundColor: Colors.white.withValues(alpha: 0.18),
                       child: IconButton(
                         icon: const Icon(Icons.settings, color: Colors.white),
                         onPressed: () =>
@@ -53,17 +54,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            // ── Profile info block ────────────────────────────────────────────
+            // ── Profile card, pulled up over banner ──────────────────────────
             Transform.translate(
               offset: const Offset(0, -50),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    const CircleAvatar(
+                    // Avatar with theme-coloured ring
+                    CircleAvatar(
                       radius: 56,
-                      backgroundColor: kBackground,
-                      child: CircleAvatar(
+                      backgroundColor: cs.primary,
+                      child: const CircleAvatar(
                         radius: 52,
                         backgroundImage: NetworkImage(
                           'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
@@ -71,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
@@ -79,33 +81,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: kOnSurface,
+                            color: cs.onSurface,
                           ),
                         ),
-                        SizedBox(width: 6),
-                        Icon(Icons.verified, color: kVerifiedColor, size: 20),
+                        const SizedBox(width: 6),
+                        Icon(Icons.verified, color: cs.tertiary, size: 20),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Professional Housekeeper & Plumber',
                       style: TextStyle(
-                          fontWeight: FontWeight.w600, color: kPrimary),
+                          fontWeight: FontWeight.w600, color: cs.primary),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Kebele 06, Jigjiga • Joined Dec 2024',
-                      style: TextStyle(color: kOnSurfaceVariant, fontSize: 13),
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 13),
                     ),
                     const SizedBox(height: 20),
 
                     // Stats card
                     Card(
-                      color: kSurfaceContainerLowest,
+                      color: cs.surfaceContainerHighest,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                            color: kOutlineVariant.withOpacity(0.3)),
+                            color: cs.outlineVariant.withValues(alpha: 0.3)),
                       ),
                       elevation: 0,
                       child: Padding(
@@ -113,113 +116,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            const Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.star,
-                                        color: Colors.amber, size: 16),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      '5.0',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16),
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  '12 Reviews',
+                            Column(children: [
+                              Row(children: [
+                                const Icon(Icons.star,
+                                    color: Colors.amber, size: 16),
+                                const SizedBox(width: 4),
+                                Text('5.0',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: cs.onSurface)),
+                              ]),
+                              Text('12 Reviews',
                                   style: TextStyle(
                                       fontSize: 10,
-                                      color: kOnSurfaceVariant),
-                                ),
-                              ],
-                            ),
+                                      color: cs.onSurfaceVariant)),
+                            ]),
                             Container(
                                 width: 1,
                                 height: 30,
-                                color: kOutlineVariant.withOpacity(0.3)),
-                            const Column(
-                              children: [
-                                Text(
-                                  '47',
+                                color: cs.outlineVariant.withValues(alpha: 0.5)),
+                            Column(children: [
+                              Text('47',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16),
-                                ),
-                                Text(
-                                  'Jobs Done',
+                                      fontSize: 16,
+                                      color: cs.onSurface)),
+                              Text('Jobs Done',
                                   style: TextStyle(
                                       fontSize: 10,
-                                      color: kOnSurfaceVariant),
-                                ),
-                              ],
-                            ),
+                                      color: cs.onSurfaceVariant)),
+                            ]),
                             Container(
                                 width: 1,
                                 height: 30,
-                                color: kOutlineVariant.withOpacity(0.3)),
-                            const Column(
-                              children: [
-                                Text(
-                                  '100%',
+                                color: cs.outlineVariant.withValues(alpha: 0.5)),
+                            Column(children: [
+                              Text('100%',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: kVerifiedColor,
-                                  ),
-                                ),
-                                Text(
-                                  'Response Rate',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: cs.tertiary)),
+                              Text('Response Rate',
                                   style: TextStyle(
                                       fontSize: 10,
-                                      color: kOnSurfaceVariant),
-                                ),
-                              ],
-                            ),
+                                      color: cs.onSurfaceVariant)),
+                            ]),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    // Tabs
+                    // Tab buttons
                     Row(
                       children: ['Services', 'About', 'Reviews'].map((tab) {
                         final isSel = _activeTab == tab;
                         return Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4),
                             child: ElevatedButton(
                               onPressed: () =>
                                   setState(() => _activeTab = tab),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isSel
-                                    ? kPrimary
-                                    : kSurfaceContainerHigh,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20)),
+                                    ? cs.primary
+                                    : cs.surfaceContainerHighest,
+                                foregroundColor: isSel
+                                    ? cs.onPrimary
+                                    : cs.onSurfaceVariant,
                                 elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(20)),
                               ),
-                              child: Text(
-                                tab,
-                                style: TextStyle(
-                                  color: isSel
-                                      ? Colors.white
-                                      : kOnSurfaceVariant,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
+                              child: Text(tab,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12)),
                             ),
                           ),
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: 20),
-
-                    // Tab content
                     _buildTabContent(state, myListings),
                   ],
                 ),
@@ -247,41 +228,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Services tab ─────────────────────────────────────────────────────────────
+// ── Services tab ──────────────────────────────────────────────────────────────
 
 class _ServicesTab extends StatelessWidget {
   final List<Listing> myListings;
-  final void Function(int id) onListingTap;
-
+  final void Function(int) onListingTap;
   const _ServicesTab({required this.myListings, required this.onListingTap});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     if (myListings.isEmpty) {
-      return Column(
-        children: [
-          const SizedBox(height: 20),
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: kPrimary.withOpacity(0.05),
-            child: const Icon(Icons.work_outline, size: 36, color: kPrimary),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No services posted yet',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tap the central + button to publish your professional service ad instantly.',
+      return Column(children: [
+        const SizedBox(height: 20),
+        CircleAvatar(
+          radius: 40,
+          backgroundColor: cs.primaryContainer.withValues(alpha: 0.2),
+          child: Icon(Icons.work_outline, size: 36, color: cs.primary),
+        ),
+        const SizedBox(height: 16),
+        Text('No services posted yet',
             style: TextStyle(
-                color: kOnSurfaceVariant.withOpacity(0.6), fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      );
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: cs.onSurface)),
+        const SizedBox(height: 4),
+        Text(
+          'Tap the central + button to publish your professional service ad instantly.',
+          style: TextStyle(
+              color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+              fontSize: 13),
+          textAlign: TextAlign.center,
+        ),
+      ]);
     }
-
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -290,10 +270,11 @@ class _ServicesTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = myListings[index];
         return Card(
-          color: kSurfaceContainerLowest,
+          color: cs.surfaceContainerHighest,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
+            side:
+                BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
           ),
           elevation: 0,
           child: InkWell(
@@ -301,51 +282,42 @@ class _ServicesTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(item.imageUrl,
-                        width: 72, height: 72, fit: BoxFit.cover),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          item.price,
-                          style: const TextStyle(
+              child: Row(children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(item.imageUrl,
+                      width: 72, height: 72, fit: BoxFit.cover),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.title,
+                          style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: kPrimary,
-                              fontSize: 13),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on,
-                                color: kPrimary, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              item.location.split(',')[0],
-                              style: const TextStyle(
-                                  color: kOnSurfaceVariant, fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                              fontSize: 15,
+                              color: cs.onSurface),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      Text(item.price,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: cs.primary,
+                              fontSize: 13)),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        Icon(Icons.location_on, color: cs.primary, size: 14),
+                        const SizedBox(width: 4),
+                        Text(item.location.split(',')[0],
+                            style: TextStyle(
+                                color: cs.onSurfaceVariant, fontSize: 11)),
+                      ]),
+                    ],
                   ),
-                  const Icon(Icons.chevron_right, color: kOnSurfaceVariant),
-                ],
-              ),
+                ),
+                Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+              ]),
             ),
           ),
         );
@@ -354,125 +326,105 @@ class _ServicesTab extends StatelessWidget {
   }
 }
 
-// ── About tab ────────────────────────────────────────────────────────────────
+// ── About tab ─────────────────────────────────────────────────────────────────
 
 class _AboutTab extends StatelessWidget {
   const _AboutTab();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Professional Summary',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Highly skilled and dependable professional offering comprehensive '
-          'housekeeper, catering, and plumbing support. Over 4 years of '
-          'verified experience assisting private homes and business complexes '
-          'in Jigjiga.',
+    final cs = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Professional Summary',
           style: TextStyle(
-              color: kOnSurfaceVariant, fontSize: 13, height: 1.5),
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: cs.onSurface)),
+      const SizedBox(height: 8),
+      Text(
+        'Highly skilled and dependable professional offering comprehensive '
+        'housekeeper, catering, and plumbing support. Over 4 years of '
+        'verified experience assisting private homes and business complexes in Jigjiga.',
+        style: TextStyle(
+            color: cs.onSurfaceVariant, fontSize: 13, height: 1.5),
+      ),
+      const SizedBox(height: 20),
+      Card(
+        color: cs.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side:
+              BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
         ),
-        const SizedBox(height: 20),
-
-        // Escrow vault card
-        Card(
-          color: kSurfaceContainerLowest,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
-          ),
-          elevation: 0,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.shield, color: kVerifiedColor),
-                        SizedBox(width: 8),
-                        Text(
-                          'Escrow Safety Vault',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      'Active',
-                      style: TextStyle(
-                          color: kVerifiedColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Divider(),
-                const SizedBox(height: 12),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Secured Escrow Wallet',
-                      style: TextStyle(
-                          color: kOnSurfaceVariant, fontSize: 13),
-                    ),
-                    Text(
-                      '15,400 ETB',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
-                ),
-              ],
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Row(children: [
+                Icon(Icons.shield, color: cs.tertiary),
+                const SizedBox(width: 8),
+                Text('Escrow Safety Vault',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: cs.onSurface)),
+              ]),
+              Text('Active',
+                  style: TextStyle(
+                      color: cs.tertiary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12)),
+            ]),
+            const SizedBox(height: 12),
+            Divider(color: cs.outlineVariant.withValues(alpha: 0.5)),
+            const SizedBox(height: 12),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Secured Escrow Wallet',
+                  style: TextStyle(
+                      color: cs.onSurfaceVariant, fontSize: 13)),
+              Text('15,400 ETB',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: cs.onSurface)),
+            ]),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 20),
+      Text('Verified Specialties',
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: cs.onSurface)),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          'Residential Plumbing',
+          'Deep Cleaning',
+          'Emergency Repairs',
+          'Meal Preparation',
+          'Bilingual Support',
+        ].map((skill) {
+          return Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(24),
             ),
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Specialties
-        const Text(
-          'Verified Specialties',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            'Residential Plumbing',
-            'Deep Cleaning',
-            'Emergency Repairs',
-            'Meal Preparation',
-            'Bilingual Support',
-          ].map((skill) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: kPrimary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Text(
-                skill,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: kPrimary,
-                  fontSize: 11,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
+            child: Text(skill,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: cs.primary,
+                    fontSize: 11)),
+          );
+        }).toList(),
+      ),
+    ]);
   }
 }
 
@@ -483,25 +435,23 @@ class _ReviewsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: const [
-        _ReviewCard(
-          name: 'Ahmed Mohammed',
-          date: '2 days ago',
-          comment:
-              'Hodan was absolutely amazing! Fixed a complicated plumbing '
-              'issue in our house within an hour. Extremely professional and courteous.',
-        ),
-        SizedBox(height: 16),
-        _ReviewCard(
-          name: 'Hodan Ali',
-          date: '1 week ago',
-          comment:
-              'Great cleaning service, left the house sparkling and clean. '
-              'Will definitely hire her again next month!',
-        ),
-      ],
-    );
+    return const Column(children: [
+      _ReviewCard(
+        name: 'Ahmed Mohammed',
+        date: '2 days ago',
+        comment:
+            'Hodan was absolutely amazing! Fixed a complicated plumbing issue '
+            'in our house within an hour. Extremely professional and courteous.',
+      ),
+      SizedBox(height: 16),
+      _ReviewCard(
+        name: 'Hodan Ali',
+        date: '1 week ago',
+        comment:
+            'Great cleaning service, left the house sparkling. Will definitely '
+            'hire her again next month!',
+      ),
+    ]);
   }
 }
 
@@ -509,81 +459,64 @@ class _ReviewCard extends StatelessWidget {
   final String name;
   final String date;
   final String comment;
-
-  const _ReviewCard({
-    required this.name,
-    required this.date,
-    required this.comment,
-  });
+  const _ReviewCard(
+      {required this.name, required this.date, required this.comment});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      color: kSurfaceContainerLowest,
+      color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: kOutlineVariant.withOpacity(0.3)),
+        side:
+            BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: kPrimary.withOpacity(0.1),
-                      child: Text(
-                        name.substring(0, 1),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: kPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        Text(
-                          date,
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: kOnSurfaceVariant.withOpacity(0.6)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const Row(
-                  children: [
-                    Icon(Icons.star, color: Colors.amber, size: 16),
-                    SizedBox(width: 4),
-                    Text(
-                      '5.0',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor:
+                      cs.primaryContainer.withValues(alpha: 0.35),
+                  child: Text(name[0],
                       style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ],
+                          fontWeight: FontWeight.bold, color: cs.primary)),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              comment,
-              style: const TextStyle(
-                  fontSize: 13, color: kOnSurfaceVariant, height: 1.4),
-            ),
-          ],
-        ),
+                const SizedBox(width: 10),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: cs.onSurface)),
+                  Text(date,
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
+                ]),
+              ]),
+              Row(children: [
+                const Icon(Icons.star, color: Colors.amber, size: 16),
+                const SizedBox(width: 4),
+                Text('5.0',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: cs.onSurface)),
+              ]),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(comment,
+              style: TextStyle(
+                  fontSize: 13, color: cs.onSurfaceVariant, height: 1.4)),
+        ]),
       ),
     );
   }

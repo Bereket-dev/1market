@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
 
@@ -9,20 +8,16 @@ class _RowSpec {
   const _RowSpec(this.label, this.mapper);
 }
 
-/// Full-screen overlay that displays a side-by-side listing comparison table.
 class CompareOverlay extends StatelessWidget {
   final List<Listing> listings;
   final VoidCallback onClose;
 
-  const CompareOverlay({
-    super.key,
-    required this.listings,
-    required this.onClose,
-  });
+  const CompareOverlay(
+      {super.key, required this.listings, required this.onClose});
 
   static const _rows = [
     _RowSpec('Price', _price),
-    _RowSpec('Location', _location),
+    _RowSpec('Location', _loc),
     _RowSpec('Status', _status),
     _RowSpec('Spec 1', _spec1),
     _RowSpec('Spec 2', _spec2),
@@ -31,7 +26,7 @@ class CompareOverlay extends StatelessWidget {
   ];
 
   static String _price(Listing l) => l.price;
-  static String _location(Listing l) => l.location.split(',')[0];
+  static String _loc(Listing l) => l.location.split(',')[0];
   static String _status(Listing l) => l.conditionOrStatus;
   static String _spec1(Listing l) =>
       l.spec1Label != null ? '${l.spec1Label}: ${l.spec1Value}' : 'N/A';
@@ -44,14 +39,17 @@ class CompareOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (listings.length < 2) return const SizedBox();
+    final cs = Theme.of(context).colorScheme;
     final s = KoolanAppStateScope.of(context).s;
 
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withValues(alpha: 0.6),
         padding: const EdgeInsets.all(20),
         alignment: Alignment.center,
         child: Material(
+          // Use Card-level surface so it adapts to both themes
+          color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(24),
           child: Container(
             width: double.infinity,
@@ -64,68 +62,65 @@ class CompareOverlay extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      s.compareTitle,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w900),
-                    ),
+                    Text(s.compareTitle,
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: cs.onSurface)),
                     IconButton(
-                        icon: const Icon(Icons.close), onPressed: onClose),
+                        icon: Icon(Icons.close, color: cs.onSurface),
+                        onPressed: onClose),
                   ],
                 ),
                 const SizedBox(height: 16),
 
-                // Listing headers
-                Row(
-                  children: [
-                    const Expanded(child: SizedBox()),
-                    Expanded(child: _ListingHeader(listing: listings[0])),
-                    const SizedBox(width: 8),
-                    Expanded(child: _ListingHeader(listing: listings[1])),
-                  ],
-                ),
+                // Listing thumbnails
+                Row(children: [
+                  const Expanded(child: SizedBox()),
+                  Expanded(
+                      child: _ListingHeader(
+                          listing: listings[0], cs: cs)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: _ListingHeader(
+                          listing: listings[1], cs: cs)),
+                ]),
                 const SizedBox(height: 12),
-                const Divider(),
+                Divider(color: cs.outlineVariant.withValues(alpha: 0.5)),
 
-                // Comparison rows
+                // Row comparisons
                 Expanded(
                   child: ListView.separated(
                     itemCount: _rows.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(color: Color(0xFFF1F3F9)),
+                    separatorBuilder: (_, __) => Divider(
+                        color: cs.outlineVariant.withValues(alpha: 0.4)),
                     itemBuilder: (context, index) {
                       final row = _rows[index];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                row.label,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: kPrimary,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                row.mapper(listings[0]),
-                                style: const TextStyle(fontSize: 12),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                row.mapper(listings[1]),
-                                style: const TextStyle(fontSize: 12),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(children: [
+                          Expanded(
+                            child: Text(row.label,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: cs.primary)),
+                          ),
+                          Expanded(
+                            child: Text(row.mapper(listings[0]),
+                                style: TextStyle(
+                                    fontSize: 12, color: cs.onSurface),
+                                textAlign: TextAlign.center),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(row.mapper(listings[1]),
+                                style: TextStyle(
+                                    fontSize: 12, color: cs.onSurface),
+                                textAlign: TextAlign.center),
+                          ),
+                        ]),
                       );
                     },
                   ),
@@ -136,14 +131,13 @@ class CompareOverlay extends StatelessWidget {
                   onPressed: onClose,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(48),
-                    backgroundColor: kPrimary,
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text(
-                    'Close Comparison',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: const Text('Close Comparison',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -156,29 +150,25 @@ class CompareOverlay extends StatelessWidget {
 
 class _ListingHeader extends StatelessWidget {
   final Listing listing;
-  const _ListingHeader({required this.listing});
+  final ColorScheme cs;
+  const _ListingHeader({required this.listing, required this.cs});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            listing.imageUrl,
-            height: 70,
-            width: 100,
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          listing.title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+    return Column(children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(listing.imageUrl,
+            height: 70, width: 100, fit: BoxFit.cover),
+      ),
+      const SizedBox(height: 4),
+      Text(listing.title,
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: cs.onSurface),
           maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
+          overflow: TextOverflow.ellipsis),
+    ]);
   }
 }

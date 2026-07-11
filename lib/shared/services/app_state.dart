@@ -18,6 +18,14 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Theme ────────────────────────────────────────────────────────────────────
+  bool isDarkMode = false;
+
+  void toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    notifyListeners();
+  }
+
   // ── Filters ─────────────────────────────────────────────────────────────────
   String selectedCategory = 'ALL';
   String searchQuery = '';

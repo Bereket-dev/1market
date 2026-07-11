@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
 
 /// Full-width primary CTA button.
 class PrimaryButton extends StatelessWidget {
@@ -16,11 +15,13 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         minimumSize: const Size.fromHeight(56),
-        backgroundColor: kPrimary,
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -29,17 +30,12 @@ class PrimaryButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (icon != null) ...[
-            Icon(icon, color: Colors.white),
+            Icon(icon, color: cs.onPrimary),
             const SizedBox(width: 8),
           ],
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
+          Text(label,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );
@@ -63,14 +59,13 @@ class OutlinedActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? kPrimary;
+    final cs = Theme.of(context).colorScheme;
+    final c = color ?? cs.primary;
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         side: BorderSide(color: c),
       ),
       child: Row(
@@ -80,10 +75,8 @@ class OutlinedActionButton extends StatelessWidget {
             Icon(icon, color: c),
             const SizedBox(width: 8),
           ],
-          Text(
-            label,
-            style: TextStyle(color: c, fontWeight: FontWeight.bold),
-          ),
+          Text(label,
+              style: TextStyle(color: c, fontWeight: FontWeight.bold)),
         ],
       ),
     );
