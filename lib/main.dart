@@ -202,6 +202,129 @@ class ChatSession {
 }
 
 // ==========================================
+// LOCALIZATION — ENGLISH, AMHARIC & SOMALI
+// ==========================================
+class AppStrings {
+  final String locale;
+  const AppStrings(this.locale);
+
+  bool get isAmharic => locale == "am";
+  bool get isSomali  => locale == "so";
+
+  String _t(String en, String am, String so) =>
+      locale == "am" ? am : locale == "so" ? so : en;
+
+  // App-wide
+  String get appName => _t("Koolan", "ኩላን", "Koolan");
+
+  // Bottom Navigation
+  String get navHome     => _t("Home",     "ዋና ገጽ",    "Guriga");
+  String get navSaved    => _t("Saved",    "የተቀመጡ",   "La kaydiyey");
+  String get navPost     => _t("Post",     "አስተዋውቅ",  "Ku daji");
+  String get navMessages => _t("Messages", "መልዕክቶች",  "Farriimaha");
+  String get navProfile  => _t("Profile",  "መገለጫ",    "Xogta");
+
+  // Home Screen
+  String get homeGreeting       => _t("Find what you need",             "የሚፈልጉትን ያግኙ",           "Hel waxa aad u baahan tahay");
+  String get homeCategoryCars   => _t("Cars",                           "መኪናዎች",                  "Gawaarida");
+  String get homeCategoryHouses => _t("Houses",                         "ቤቶች",                    "Guryaha");
+  String get homeCategoryLand   => _t("Land",                           "መሬት",                    "Dhul");
+  String get homeCategorySkills => _t("Skills",                         "ችሎታዎች",                 "Xirfadlayaasha");
+  String get homeSearchHint     => _t("Search listings...",             "ዝርዝሮችን ፈልግ...",         "Raadi xayaysiisyada...");
+  String get homeRecentlyAdded  => _t("Recently Added Near You",        "በአቅራቢያዎ አዲስ የተጨመሩ",     "Dhawaan lagu daray");
+  String get homeViewAll        => _t("View All Recent Listings",       "ሁሉንም ዝርዝሮች ይመልከቱ",     "Arag dhammaan xayaysiisyada");
+  String get homeTrustTitle     => _t("Trusted Community",              "ታመነ ማህበረሰብ",            "Bulshada la믿aha ah");
+  String get homeVerifiedStats  => _t("98% verified listings in Jigjiga","98% የተረጋገጡ ዝርዝሮች",    "98% xayaysiis xaqiijiyey");
+  String get homeSeeStats       => _t("See stats",                      "ስታቲስቲክስ ይመልከቱ",        "Arag tirooyin");
+  String get homeNoNotifications=> _t("No new notifications",           "አዲስ ማሳወቂያ የለም",          "Wax ogeysiis cusub ma jiraan");
+
+  // Category List Screen
+  String get catVerifiedOnly => _t("Verified only", "የተረጋገጡ ብቻ",  "Kuwa xaqiijiyey oo kaliya");
+  String get catAll          => _t("All",           "ሁሉም",         "Dhammaan");
+  String get catForSale      => _t("For Sale",      "ለሽያጭ",        "Iib");
+  String get catForRent      => _t("For Rent",      "ለኪራይ",        "Kiradda");
+  String get catNewOnly      => _t("New only",      "አዲስ ብቻ",      "Cusub oo kaliya");
+
+  // Listing Detail Screen
+  String get detailSeller          => _t("Seller",                           "ሻጭ",                      "Iibiyaha");
+  String get detailContact         => _t("Contact",                          "ያግኙ",                     "La xiriir");
+  String get detailChat            => _t("Chat",                             "ቻት",                      "Sheekeyso");
+  String get detailViewProfile     => _t("View Profile",                     "መገለጫ ይመልከቱ",             "Arag xogta");
+  String get detailUnlockContact   => _t("Unlock Contact",                   "ግንኙነት ይክፈቱ",             "Fur xiriirka");
+  String get detailRequestHire     => _t("Request Hire",                     "ቅጠር ጠይቅ",                "Dalbo shaqo");
+  String get detailViewProperty    => _t("View Property",                    "ሪል እስቴት ይመልከቱ",          "Arag hantida");
+  String get detailDescription     => _t("Description",                      "መግለጫ",                    "Sharaxaad");
+  String get detailSpecs           => _t("Specifications",                   "ዝርዝሮች",                   "Sifooyinka");
+  String get detailVerified        => _t("Verified",                         "የተረጋገጠ",                  "Xaqiijiyey");
+  String get detailReviews         => _t("reviews",                          "ግምገማዎች",                  "dib-u-eegis");
+  String get detailContactUnlocked => _t("Contact unlocked! Phone: +251-XXX-XXXX", "ግንኙነት ተከፍቷል! ስልክ: +251-XXX-XXXX", "Xiriirka la furay! Tel: +251-XXX-XXXX");
+  String get detailProfileVerified => _t("Full profile verification: OK",    "ሙሉ የመገለጫ ማረጋገጫ: ተሳካ",  "Xaqiijinta xogta: OK");
+
+  // Saved Screen
+  String get savedTitle         => _t("Saved Listings",              "የተቀመጡ ዝርዝሮች",           "Liiska la kaydiyey");
+  String get savedEmpty         => _t("Nothing saved yet",           "ምንም አልተቀመጠም",            "Wax la kaydin ma jiro");
+  String get savedEmptySub      => _t("Bookmark listings while browsing", "ዝርዝሮችን ሲያስሱ ምልክት ያድርጉባቸው", "Calaamadee xayaysiisyada");
+  String get savedCompare       => _t("Compare",                     "ያወዳድሩ",                   "Is-bar-bar dhig");
+  String get savedDone          => _t("Done",                        "ተጠናቋል",                   "Dhammaatay");
+  String get savedSelectTwo     => _t("Select up to 2 listings",     "እስከ 2 ዝርዝሮች ይምረጡ",       "Dooro ilaa 2 xayaysiis");
+  String get savedCompareButton => _t("Compare",                     "ያወዳድሩ",                   "Is-bar-bar dhig");
+
+  // Compare Overlay
+  String get compareTitle     => _t("Side-by-side Compare", "ጎን ለጎን ያወዳድሩ",  "Is-bar-bar dhigga");
+  String get compareFeature   => _t("Feature",              "ባህሪ",             "Astaamaha");
+  String get comparePrice     => _t("Price",                "ዋጋ",              "Qiimaha");
+  String get compareLocation  => _t("Location",             "ቦታ",              "Goobta");
+  String get compareCondition => _t("Condition",            "ሁኔታ",             "Xaalad");
+  String get compareVerified  => _t("Verified",             "የተረጋገጠ",          "Xaqiijiyey");
+  String get compareYes       => _t("Yes ✓",                "አዎ ✓",            "Haa ✓");
+  String get compareNo        => _t("No",                   "አይደለም",           "Maya");
+
+  // Post Wizard
+  String get wizardTitle        => _t("Post a Listing",              "ዝርዝር ያስቀምጡ",             "Ku daji xayaysiis");
+  String get wizardStep1        => _t("Choose Category",             "ምድብ ይምረጡ",                "Dooro qeybta");
+  String get wizardStep2        => _t("Your Info",                   "የእርስዎ መረጃ",               "Macluumaadkaaga");
+  String get wizardStep3        => _t("Details",                     "ዝርዝሮች",                   "Faahfaahinta");
+  String get wizardStep4        => _t("Review & Submit",             "ይገምግሙ እና ያስቀምጡ",          "Dib u eeg oo gudbi");
+  String get wizardNext         => _t("Next",                        "ቀጣይ",                     "Xiga");
+  String get wizardBack         => _t("Back",                        "ተመለስ",                    "Dib u noqo");
+  String get wizardSubmit       => _t("Submit Listing",              "ዝርዝር ያስቀምጡ",             "Gudbi xayaysiiska");
+  String get wizardPhotoAttach  => _t("Attach Photo",                "ፎቶ ያያይዙ",                 "Ku dar sawir");
+  String get wizardPhotoAttached=> _t("Photo attached ✓",            "ፎቶ ተያይዟል ✓",             "Sawirka la daray ✓");
+  String get wizardTitleLabel   => _t("Title",                       "ርዕስ",                     "Cinwaan");
+  String get wizardPriceLabel   => _t("Price",                       "ዋጋ",                      "Qiimaha");
+  String get wizardDescLabel    => _t("Description",                 "መግለጫ",                    "Sharaxaad");
+  String get wizardLocationLabel=> _t("Location",                    "ቦታ",                      "Goobta");
+  String get wizardAddressLabel => _t("Physical Address",            "አካላዊ አድራሻ",               "Cinwaanka jireed");
+  String get wizardPhotoMock    => _t("Mock photo attached successfully!", "ሞክ ፎቶ ተያይዟል!",    "Sawirada si guul leh ayaa loo daray!");
+  String get wizardPosted       => _t("Your listing has been posted!", "ዝርዝርዎ ተለጠፈ!",         "Xayaysiiskaagu waa la daabacay!");
+
+  // Messages Screen
+  String get messagesTitle => _t("Messages",           "መልዕክቶች",  "Farriimaha");
+  String get messagesEmpty => _t("No active chats yet","ምንም ንቁ ቻት የለም", "Ma jiraan sheekooyin firfircoon");
+
+  // Active Chat Screen
+  String get chatInputHint => _t("Type a message...",         "መልዕክት ይጻፉ...",          "Qor fariin...");
+  String get chatSend      => _t("Send",                      "ላክ",                     "Dir");
+  String get chatReplied   => _t("Sounds good, what do you think?", "ደህና ነው, ምን ያስቡ ነበር?", "Waa hagaagsan tahay, maxaad u maleynaysaa?");
+
+  // Settings / Profile Screen
+  String get settingsTitle        => _t("Settings",            "ቅንብሮች",                  "Dejinta");
+  String get settingsProfile      => _t("Edit Profile",        "መገለጫ ያርትዑ",             "Wax ka beddel xogta");
+  String get settingsNotifications=> _t("Notifications",       "ማሳወቂያዎች",               "Ogeysiisyada");
+  String get settingsPushEnabled  => _t("Push Notifications",  "ፑሽ ማሳወቂያዎች",            "Ogeysiisyada push");
+  String get settingsNewMessages  => _t("New Messages",        "አዲስ መልዕክቶች",             "Farriimaha cusub");
+  String get settingsPriceAlerts  => _t("Price Alerts",        "የዋጋ ማስጠንቀቂያዎች",          "Digniin qiimeed");
+  String get settingsTheme        => _t("Theme",               "ገጽታ",                    "Muuqaalka");
+  String get settingsDarkMode     => _t("Dark Mode",           "ጨለማ ሁነታ",               "Habeennimo");
+  String get settingsLanguage     => _t("Language",            "ቋንቋ",                    "Luqadda");
+  String get settingsSave         => _t("Save Changes",        "ለውጦችን አስቀምጥ",           "Keydi isbeddelada");
+  String get settingsSaved        => _t("Saved!",              "ተቀምጧል!",                 "La kaydiyey!");
+  String get settingsNameLabel    => _t("Full Name",           "ሙሉ ስም",                  "Magaca buuxa");
+  String get settingsPhoneLabel   => _t("Phone",               "ስልክ",                    "Telefoonka");
+  String get settingsCityLabel    => _t("City",                "ከተማ",                    "Magaalada");
+}
+
+// ==========================================
 // NAVIGATION SYSTEM (SEALED CLASS PORT)
 // ==========================================
 abstract class KoolanScreen {}
@@ -239,6 +362,15 @@ class SettingsScreenRoute extends KoolanScreen {}
 class KoolanAppState extends ChangeNotifier {
   // Navigation stack
   final List<KoolanScreen> navigationStack = [HomeScreenRoute()];
+
+  // Locale — "en" (English) or "am" (Amharic)
+  String locale = "en";
+  AppStrings get s => AppStrings(locale);
+
+  void toggleLocale() {
+    locale = locale == "en" ? "am" : locale == "am" ? "so" : "en";
+    notifyListeners();
+  }
 
   // Filter & Queries
   String selectedCategory = "ALL";
@@ -910,12 +1042,13 @@ class KoolanBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = KoolanAppStateScope.of(context);
     final items = [
-      _BottomItem("Home", Icons.home_outlined, Icons.home, HomeScreenRoute()),
-      _BottomItem("Saved", Icons.bookmark_border, Icons.bookmark, SavedScreenRoute()),
-      _BottomItem("Post", Icons.add, Icons.add, PostWizardScreenRoute(), isFAB: true),
-      _BottomItem("Messages", Icons.chat_bubble_outline, Icons.chat_bubble, MessagesScreenRoute()),
-      _BottomItem("Profile", Icons.person_outline, Icons.person, ProfileScreenRoute()),
+      _BottomItem(state.s.navHome, Icons.home_outlined, Icons.home, HomeScreenRoute()),
+      _BottomItem(state.s.navSaved, Icons.bookmark_border, Icons.bookmark, SavedScreenRoute()),
+      _BottomItem(state.s.navPost, Icons.add, Icons.add, PostWizardScreenRoute(), isFAB: true),
+      _BottomItem(state.s.navMessages, Icons.chat_bubble_outline, Icons.chat_bubble, MessagesScreenRoute()),
+      _BottomItem(state.s.navProfile, Icons.person_outline, Icons.person, ProfileScreenRoute()),
     ];
 
     return Container(
@@ -1054,15 +1187,39 @@ class HomeScreen extends StatelessWidget {
                       icon: const Icon(Icons.notifications_none, color: kOnSurfaceVariant),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("No new notifications")),
+                          SnackBar(content: Text(state.s.homeNoNotifications)),
                         );
                       },
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.search, color: kPrimary),
-                      onPressed: () {
-                        state.pushScreen(CategoryListScreenRoute("ALL"));
-                      },
+                    // ── Language Toggle Pill ──────────────────────────
+                    GestureDetector(
+                      onTap: state.toggleLocale,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: kSurfaceContainer,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: kOutlineVariant),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _LangPillSegment(
+                              label: "EN",
+                              isActive: state.locale == "en",
+                            ),
+                            _LangPillSegment(
+                              label: "አማ",
+                              isActive: state.locale == "am",
+                            ),
+                            _LangPillSegment(
+                              label: "SO",
+                              isActive: state.locale == "so",
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 )
@@ -1077,65 +1234,65 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Find what you need section
+                  // ── Find what you need ──────────────────────────────
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Find what you need",
-                          style: TextStyle(
+                        Text(
+                          state.s.homeGreeting,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: kOnSurface,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
 
-                        // 2x2 grid
+                        // 2×2 compact category grid
                         Row(
                           children: [
                             Expanded(
-                              child: _CategoryHeroCard(
-                                title: "Cars",
-                                somali: "Gawaarida",
-                                imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=300&q=80",
-                                icon: Icons.directions_car,
+                              child: _CompactCategoryCard(
+                                title: state.s.homeCategoryCars,
+                                subtitle: state.s.isSomali ? "Gawaarida" : "Gawaarida",
+                                icon: Icons.directions_car_filled,
+                                color: const Color(0xFF1E40AF),
                                 onTap: () => state.pushScreen(CategoryListScreenRoute("CARS")),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: _CategoryHeroCard(
-                                title: "Houses",
-                                somali: "Guryaha",
-                                imageUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=300&q=80",
-                                icon: Icons.home,
+                              child: _CompactCategoryCard(
+                                title: state.s.homeCategoryHouses,
+                                subtitle: "Guryaha",
+                                icon: Icons.home_rounded,
+                                color: const Color(0xFF0F766E),
                                 onTap: () => state.pushScreen(CategoryListScreenRoute("HOUSES")),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
-                              child: _CategoryHeroCard(
-                                title: "Land",
-                                somali: "Dhul",
-                                imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=80",
-                                icon: Icons.landscape,
+                              child: _CompactCategoryCard(
+                                title: state.s.homeCategoryLand,
+                                subtitle: "Dhul",
+                                icon: Icons.landscape_rounded,
+                                color: const Color(0xFF92400E),
                                 onTap: () => state.pushScreen(CategoryListScreenRoute("LAND")),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: _CategoryHeroCard(
-                                title: "Skills",
-                                somali: "Xirfadlayaal",
-                                imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80",
-                                icon: Icons.construction,
+                              child: _CompactCategoryCard(
+                                title: state.s.homeCategorySkills,
+                                subtitle: "Xirfadlayaasha",
+                                icon: Icons.construction_rounded,
+                                color: const Color(0xFF6D28D9),
                                 onTap: () => state.pushScreen(CategoryListScreenRoute("SKILLS")),
                               ),
                             ),
@@ -1144,6 +1301,10 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+
+                  // ── Koolan Promo Carousel ────────────────────────────
+                  const SizedBox(height: 20),
+                  const _PromoCarousel(),
 
                   // Search Simulator Box
                   Padding(
@@ -1163,7 +1324,7 @@ class HomeScreen extends StatelessWidget {
                             const Icon(Icons.search, color: kOnSurfaceVariant),
                             const SizedBox(width: 12),
                             Text(
-                              "Search items in Jigjiga...",
+                              state.s.homeSearchHint,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: kOnSurfaceVariant.withOpacity(0.6),
@@ -1184,9 +1345,9 @@ class HomeScreen extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              "Community Trust",
-                              style: TextStyle(
+                            Text(
+                              state.s.homeTrustTitle,
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: kOnSurface,
@@ -1195,10 +1356,10 @@ class HomeScreen extends StatelessWidget {
                             TextButton(
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("98% verified listings in Jigjiga")),
+                                  SnackBar(content: Text(state.s.homeVerifiedStats)),
                                 );
                               },
-                              child: const Text("See stats", style: TextStyle(color: kPrimary)),
+                              child: Text(state.s.homeSeeStats, style: const TextStyle(color: kPrimary)),
                             ),
                           ],
                         ),
@@ -1229,9 +1390,9 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Recently Added Near You",
-                          style: TextStyle(
+                        Text(
+                          state.s.homeRecentlyAdded,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: kOnSurface,
@@ -1259,7 +1420,7 @@ class HomeScreen extends StatelessWidget {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             side: const BorderSide(color: kOutlineVariant),
                           ),
-                          child: const Text("View All Recent Listings", style: TextStyle(color: kPrimary, fontWeight: FontWeight.bold)),
+                          child: Text(state.s.homeViewAll, style: const TextStyle(color: kPrimary, fontWeight: FontWeight.bold)),
                         )
                       ],
                     ),
@@ -1295,76 +1456,362 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _CategoryHeroCard extends StatelessWidget {
+// ── Language pill segment (EN / አማ) ──────────────────────────────────────
+class _LangPillSegment extends StatelessWidget {
+  final String label;
+  final bool isActive;
+
+  const _LangPillSegment({required this.label, required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive ? kPrimary : Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: isActive ? kOnPrimary : kOnSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Compact category pill card ──────────────────────────────────────────────
+class _CompactCategoryCard extends StatelessWidget {
   final String title;
-  final String somali;
-  final String imageUrl;
+  final String subtitle;
   final IconData icon;
+  final Color color;
   final VoidCallback onTap;
 
-  const _CategoryHeroCard({
+  const _CompactCategoryCard({
     required this.title,
-    required this.somali,
-    required this.imageUrl,
+    required this.subtitle,
     required this.icon,
+    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: InkWell(
-          onTap: onTap,
-          child: Stack(
-            fit: StackFit.expand,
+    return Material(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 80,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.18)),
+          ),
+          child: Row(
             children: [
-              Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[300]),
-              ),
               Container(
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.75)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: Icon(icon, color: Colors.white, size: 22),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(height: 8),
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: color.withValues(alpha: 1.0),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      somali,
-                      style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.8)),
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: kOnSurfaceVariant.withValues(alpha: 0.65),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-              )
+              ),
+              Icon(Icons.arrow_forward_ios_rounded, size: 13, color: color.withValues(alpha: 0.5)),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Koolan Promo Carousel ───────────────────────────────────────────────────
+class _PromoCarousel extends StatefulWidget {
+  const _PromoCarousel();
+
+  @override
+  State<_PromoCarousel> createState() => _PromoCarouselState();
+}
+
+class _PromoCarouselState extends State<_PromoCarousel> {
+  final PageController _ctrl = PageController(viewportFraction: 0.88);
+  int _page = 0;
+
+  static const _slides = [
+    _PromoSlide(
+      headline: "Jigjiga's #1\nMarketplace",
+      sub: "Buy, sell, and hire in your city — all in one place.",
+      accent: Color(0xFF00288E),
+      accentLight: Color(0xFF1E40AF),
+      icon: Icons.storefront_rounded,
+      imageUrl: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=600&q=80",
+    ),
+    _PromoSlide(
+      headline: "Trusted &\nVerified Sellers",
+      sub: "Every listing is reviewed. Real IDs, real people.",
+      accent: Color(0xFF0F766E),
+      accentLight: Color(0xFF14B8A6),
+      icon: Icons.verified_user_rounded,
+      imageUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80",
+    ),
+    _PromoSlide(
+      headline: "Post a Listing\nin 60 Seconds",
+      sub: "Cars, houses, land or skills — post for free today.",
+      accent: Color(0xFF6D28D9),
+      accentLight: Color(0xFF8B5CF6),
+      icon: Icons.add_circle_rounded,
+      imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
+    ),
+    _PromoSlide(
+      headline: "Safe Escrow\nPayments",
+      sub: "Pay only when you're satisfied. Koolan protects your money.",
+      accent: Color(0xFF92400E),
+      accentLight: Color(0xFFF59E0B),
+      icon: Icons.lock_rounded,
+      imageUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=600&q=80",
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    Future.delayed(const Duration(seconds: 4), () {
+      if (!mounted) return;
+      final next = (_page + 1) % _slides.length;
+      _ctrl.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOutCubic,
+      );
+      _startAutoScroll();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 170,
+          child: PageView.builder(
+            controller: _ctrl,
+            itemCount: _slides.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (context, index) {
+              final slide = _slides[index];
+              return AnimatedScale(
+                scale: _page == index ? 1.0 : 0.95,
+                duration: const Duration(milliseconds: 300),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: _PromoSlideCard(slide: slide),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Dot indicators
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_slides.length, (i) {
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _page == i ? 20 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: _page == i ? kPrimary : kOutlineVariant,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+class _PromoSlide {
+  final String headline;
+  final String sub;
+  final Color accent;
+  final Color accentLight;
+  final IconData icon;
+  final String imageUrl;
+
+  const _PromoSlide({
+    required this.headline,
+    required this.sub,
+    required this.accent,
+    required this.accentLight,
+    required this.icon,
+    required this.imageUrl,
+  });
+}
+
+class _PromoSlideCard extends StatelessWidget {
+  final _PromoSlide slide;
+  const _PromoSlideCard({required this.slide});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background photo
+          Image.network(
+            slide.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(color: slide.accent),
+          ),
+          // Dark gradient overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  slide.accent.withValues(alpha: 0.92),
+                  slide.accent.withValues(alpha: 0.55),
+                  Colors.transparent,
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                // Left text block
+                Expanded(
+                  flex: 6,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(slide.icon, color: Colors.white, size: 13),
+                            const SizedBox(width: 5),
+                            const Text(
+                              "KOOLAN",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        slide.headline,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          height: 1.2,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        slide.sub,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: 11,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                // Right: decorative icon badge
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+                      ),
+                      child: Icon(slide.icon, color: Colors.white, size: 28),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1757,7 +2204,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                     // Verified Toggle
                     Row(
                       children: [
-                        const Text("Verified Only", style: TextStyle(fontSize: 12, color: kOnSurfaceVariant)),
+                        Text(state.s.catVerifiedOnly, style: const TextStyle(fontSize: 12, color: kOnSurfaceVariant)),
                         const SizedBox(width: 8),
                         Switch(
                           value: verifiedOnly,
@@ -1780,7 +2227,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                   child: Row(
                     children: [
                       _FilterChip(
-                        label: "Rent / Buy",
+                        label: state.s.isAmharic ? "${state.s.catForRent} / ${state.s.catForSale}" : state.s.isSomali ? "${state.s.catForRent} / ${state.s.catForSale}" : "Rent / Buy",
                         selected: rentBuySelected != "Buy",
                         onTap: () {
                           setState(() {
@@ -1789,17 +2236,17 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                         },
                       ),
                       const SizedBox(width: 8),
-                      const _FilterChip(label: "Price Range"),
+                      _FilterChip(label: state.s.isAmharic ? "የዋጋ ክልል" : state.s.isSomali ? "Xadka qiimaha" : "Price Range"),
                       const SizedBox(width: 8),
                       if (widget.categoryName == "HOUSES" || widget.categoryName == "ALL") ...[
-                        const _FilterChip(label: "Bedrooms"),
+                        _FilterChip(label: state.s.isAmharic ? "አልጋ ቤቶች" : state.s.isSomali ? "Qolalka jiifka" : "Bedrooms"),
                         const SizedBox(width: 8),
                       ],
                       if (widget.categoryName == "LAND" || widget.categoryName == "ALL") ...[
-                        const _FilterChip(label: "Land-use"),
+                        _FilterChip(label: state.s.isAmharic ? "የመሬት አጠቃቀም" : state.s.isSomali ? "Isticmaalka dhulka" : "Land-use"),
                         const SizedBox(width: 8),
                       ],
-                      const _FilterChip(label: "More"),
+                      _FilterChip(label: state.s.isAmharic ? "ተጨማሪ" : state.s.isSomali ? "Wax dheeraad ah" : "More"),
                     ],
                   ),
                 )
@@ -2139,9 +2586,9 @@ class _SavedScreenState extends State<SavedScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Saved Items",
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimary),
+                    Text(
+                      state.s.savedTitle,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimary),
                     ),
                     IconButton(
                       icon: const Icon(Icons.compare_arrows, color: kPrimary),
@@ -2168,7 +2615,7 @@ class _SavedScreenState extends State<SavedScreen> {
                             child: Icon(Icons.bookmark_border, size: 48, color: kOnSurfaceVariant.withOpacity(0.4)),
                           ),
                           const SizedBox(height: 16),
-                          const Text("Nothing saved yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(state.s.savedEmpty, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
                           Text(
                             "Tap the bookmark icon on any item you love to save it here and keep track of your favorites.",
@@ -2286,7 +2733,7 @@ class _SavedScreenState extends State<SavedScreen> {
                           disabledBackgroundColor: Colors.white12,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text("Compare Now", style: TextStyle(color: Colors.white)),
+                        child: Text(state.s.savedCompareButton, style: const TextStyle(color: Colors.white)),
                       )
                     ],
                   ),
@@ -2347,7 +2794,7 @@ class _CompareOverlay extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Side-by-side Compare", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                    Text(KoolanAppStateScope.of(context).s.compareTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                     IconButton(icon: const Icon(Icons.close), onPressed: onClose),
                   ],
                 ),
@@ -2625,7 +3072,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       const SizedBox(height: 24),
 
                       // Description
-                      const Text("Description", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(state.s.detailDescription, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Text(
                         listing.description.isEmpty
@@ -2700,7 +3147,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "LISTED BY",
+                                state.s.detailSeller,
                                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kOnSurfaceVariant.withOpacity(0.6)),
                               ),
                               const SizedBox(height: 12),
@@ -2724,7 +3171,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                         children: [
                                           const Icon(Icons.star, color: Colors.amber, size: 16),
                                           const SizedBox(width: 4),
-                                          Text("${listing.sellerRating} (${listing.sellerReviewsCount} reviews)", style: const TextStyle(fontSize: 12)),
+                                          Text("${listing.sellerRating} (${listing.sellerReviewsCount} ${state.s.detailReviews})", style: const TextStyle(fontSize: 12)),
                                         ],
                                       )
                                     ],
@@ -2735,7 +3182,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                               OutlinedButton(
                                 onPressed: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Full profile verification: OK")),
+                                    SnackBar(content: Text(state.s.detailProfileVerified)),
                                   );
                                 },
                                 style: OutlinedButton.styleFrom(
@@ -2743,7 +3190,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   side: const BorderSide(color: kOutlineVariant),
                                 ),
-                                child: const Text("View Profile", style: TextStyle(color: kOnSurface)),
+                                child: Text(state.s.detailViewProfile, style: const TextStyle(color: kOnSurface)),
                               )
                             ],
                           ),
@@ -2793,12 +3240,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                     backgroundColor: kPrimary,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.payment, color: Colors.white),
-                                      SizedBox(width: 8),
-                                      Text("Unlock Contact Details", style: TextStyle(color: Colors.white)),
+                                      const Icon(Icons.payment, color: Colors.white),
+                                      const SizedBox(width: 8),
+                                      Text(state.s.detailUnlockContact, style: const TextStyle(color: Colors.white)),
                                     ],
                                   ),
                                 )
@@ -2835,12 +3282,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         side: const BorderSide(color: kPrimary),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.chat, color: kPrimary),
-                          SizedBox(width: 8),
-                          Text("Chat", style: TextStyle(color: kPrimary, fontWeight: FontWeight.bold)),
+                          const Icon(Icons.chat, color: kPrimary),
+                          const SizedBox(width: 8),
+                          Text(state.s.detailChat, style: const TextStyle(color: kPrimary, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -2864,7 +3311,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           const Icon(Icons.event, color: Colors.white),
                           const SizedBox(width: 8),
                           Text(
-                            listing.category == "SKILLS" ? "Request Hire" : "Request View",
+                            listing.category == "SKILLS" ? state.s.detailRequestHire : state.s.detailViewProperty,
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -3014,7 +3461,7 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
                       }
                     },
                   ),
-                  const Text("Post ad", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  Text(state.s.wizardTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                   Text(
                     "Step ${state.postStep} of 4",
                     style: const TextStyle(fontWeight: FontWeight.bold, color: kOnSurfaceVariant),
@@ -3065,7 +3512,7 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: Text(
-                  state.postStep == 4 ? "Submit Post" : "Continue",
+                  state.postStep == 4 ? state.s.wizardSubmit : state.s.wizardNext,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
@@ -3389,9 +3836,9 @@ class MessagesScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Conversations",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kOnSurface),
+                Text(
+                  state.s.messagesTitle,
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kOnSurface),
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh, color: kPrimary),
@@ -3668,10 +4115,10 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
                       ),
                       child: TextField(
                         controller: _messageController,
-                        decoration: const InputDecoration(
-                          hintText: "Type safe message...",
+                        decoration: InputDecoration(
+                          hintText: state.s.chatInputHint,
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
                       ),
                     ),
@@ -4189,34 +4636,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: const Icon(Icons.arrow_back, color: kPrimary),
           onPressed: () => state.popScreen(),
         ),
-        title: const Text("App Settings", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+        title: Text(state.s.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
         backgroundColor: kBackground,
         elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text("Account settings", style: TextStyle(fontWeight: FontWeight.bold, color: kPrimary, fontSize: 12)),
+          Text(state.s.isAmharic ? "የሂሳብ ቅንብሮች" : state.s.isSomali ? "Dejinta xisaabta" : "Account settings", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimary, fontSize: 12)),
           const SizedBox(height: 10),
-          const _SettingsRow(icon: Icons.person, title: "Edit Personal Info", subtitle: "Change display name, bio, and photos"),
+          _SettingsRow(icon: Icons.person, title: state.s.settingsProfile, subtitle: state.s.isAmharic ? "ስም፣ ባዮ እና ፎቶ ይቀይሩ" : state.s.isSomali ? "Beddel magaca, xogta" : "Change display name, bio, and photos"),
           const SizedBox(height: 10),
-          const _SettingsRow(icon: Icons.phone, title: "Phone Verification", subtitle: "+251 912 ****90 verified", trailingText: "Verified"),
+          _SettingsRow(icon: Icons.phone, title: state.s.isAmharic ? "ስልክ ማረጋገጫ" : state.s.isSomali ? "Xaqiijinta telefoonka" : "Phone Verification", subtitle: "+251 912 ****90 verified", trailingText: state.s.isAmharic ? "ተረጋግጧል" : state.s.isSomali ? "Xaqiijiyey" : "Verified"),
           const SizedBox(height: 10),
-          const _SettingsRow(icon: Icons.work, title: "Preferred Category", subtitle: "Selected: HOUSEHOLD SERVICES"),
+          _SettingsRow(icon: Icons.work, title: state.s.isAmharic ? "ተመራጭ ምድብ" : state.s.isSomali ? "Qaybta la doortay" : "Preferred Category", subtitle: state.s.isAmharic ? "የቤት ውስጥ አገልግሎቶች" : state.s.isSomali ? "Adeegyada guriga" : "Selected: HOUSEHOLD SERVICES"),
           const SizedBox(height: 24),
 
-          const Text("Trust & Escrow Safety", style: TextStyle(fontWeight: FontWeight.bold, color: kPrimary, fontSize: 12)),
+          Text(state.s.isAmharic ? "ደህንነት እና ኤስክሮ" : state.s.isSomali ? "Ammaan & Escrow" : "Trust & Escrow Safety", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimary, fontSize: 12)),
           const SizedBox(height: 10),
-          const _SettingsRow(icon: Icons.shield, title: "ID Document Verification", subtitle: "Kebele ID verified", trailingText: "Active"),
+          _SettingsRow(icon: Icons.shield, title: state.s.isAmharic ? "ዋስትና ማረጋገጫ" : state.s.isSomali ? "Xaqiijinta aqoonsiga" : "ID Document Verification", subtitle: state.s.isAmharic ? "የቀበሌ መታወቂያ ተረጋግጧል" : state.s.isSomali ? "Aqoonsiga Kebele xaqiijiyey" : "Kebele ID verified", trailingText: state.s.isAmharic ? "ንቁ" : state.s.isSomali ? "Firfircoon" : "Active"),
           const SizedBox(height: 10),
-          const _SettingsRow(icon: Icons.payment, title: "Secure Wallet Account", subtitle: "Configure payout banks & escrow conditions"),
+          _SettingsRow(icon: Icons.payment, title: state.s.isAmharic ? "የኤስክሮ ዋሌት" : state.s.isSomali ? "Xisaabta Escrow" : "Secure Wallet Account", subtitle: state.s.isAmharic ? "የክፍያ ባንኮችን ያዋቅሩ" : state.s.isSomali ? "Habaynta bangiga" : "Configure payout banks & escrow conditions"),
           const SizedBox(height: 24),
 
-          const Text("System preferences", style: TextStyle(fontWeight: FontWeight.bold, color: kPrimary, fontSize: 12)),
+          Text(state.s.isAmharic ? "የስርዓት ቅንብሮች" : state.s.isSomali ? "Doorashada nidaamka" : "System preferences", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimary, fontSize: 12)),
           const SizedBox(height: 10),
           _SettingsToggleRow(
             icon: Icons.notifications,
-            title: "Push Notifications",
+            title: state.s.settingsPushEnabled,
             value: notificationEnabled,
             onChanged: (val) {
               setState(() {
@@ -4227,7 +4674,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           _SettingsToggleRow(
             icon: Icons.light_mode,
-            title: "Force Dark Theme",
+            title: state.s.settingsDarkMode,
             value: darkModeEnabled,
             onChanged: (val) {
               setState(() {
@@ -4245,7 +4692,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            child: const Text("Log Out Account", style: TextStyle(color: Color(0xFF991B1B), fontWeight: FontWeight.bold)),
+            child: Text(state.s.isAmharic ? "ከሂሳብ ውጣ" : state.s.isSomali ? "Ka bax xisaabta" : "Log Out Account", style: const TextStyle(color: Color(0xFF991B1B), fontWeight: FontWeight.bold)),
           )
         ],
       ),
