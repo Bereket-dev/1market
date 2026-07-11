@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/utils/icon_for_spec.dart';
 import '../../../../core/widgets/verified_badge.dart';
 import '../../../../shared/models/listing.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 /// Full-size vertical listing card. Used across all category browse screens.
 class PremiumClassifiedCard extends StatelessWidget {
@@ -40,10 +41,12 @@ class PremiumClassifiedCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    listing.imageUrl,
+                  CachedImageWidget(
+                    imageUrl: listing.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    width: double.infinity,
+                    height: 200,
+                    errorWidget: Container(
                         color: cs.surfaceContainerHighest),
                   ),
                   Positioned(

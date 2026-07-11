@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/models/listing.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 /// Compact horizontal card shown in the "Recently Added" feed on the home screen.
 class RecentListingCard extends StatelessWidget {
@@ -35,12 +36,12 @@ class RecentListingCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: Image.network(
-                      listing.imageUrl,
+                    child: CachedImageWidget(
+                      imageUrl: listing.imageUrl,
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorWidget: Container(
                           width: 80,
                           height: 80,
                           color: cs.surfaceContainerHighest),

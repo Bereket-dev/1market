@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -32,9 +33,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
+                  CachedImageWidget(
+                    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
                     fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: 180,
                   ),
                   // Dark scrim so content over it is readable in both modes
                   Container(color: Colors.black.withValues(alpha: 0.38)),
@@ -65,11 +68,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CircleAvatar(
                       radius: 56,
                       backgroundColor: cs.primary,
-                      child: const CircleAvatar(
+                      child: CachedCircularImage(
+                        imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
                         radius: 52,
-                        backgroundImage: NetworkImage(
-                          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -285,8 +286,12 @@ class _ServicesTab extends StatelessWidget {
               child: Row(children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(item.imageUrl,
-                      width: 72, height: 72, fit: BoxFit.cover),
+                  child: CachedImageWidget(
+                    imageUrl: item.imageUrl,
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
