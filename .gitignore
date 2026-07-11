@@ -1,7 +1,30 @@
+# Flutter / Dart generated
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+
+# Build output
+/build/
+/captures/
+
+# Android
 *.iml
-.gradle
-.kotlin
+.gradle/
+.kotlin/
 /local.properties
+.externalNativeBuild/
+.cxx/
+local.properties
+debug.keystore
+
+# iOS / macOS
+*.xcworkspace
+Pods/
+.symlinks/
+
+# IDE
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -9,10 +32,10 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+*.swp
+*.swo
+
+# Environment
 .env
-debug.keystore
+.env.*
+!.env.example

@@ -1,1 +1,0 @@
- /home/bereket/projects/koolan/.dart_tool/flutter_build/fe476dfb703d6a181cfa9342bffe1b1d/dart_build_result.json: 
