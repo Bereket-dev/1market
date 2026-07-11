@@ -253,8 +253,44 @@ class _Step2 extends StatelessWidget {
   final ColorScheme cs;
   const _Step2({required this.state, required this.cs});
 
+  // Returns (titleHint, priceHint, priceLabel) per category
+  static ({String titleHint, String priceLabel, String priceHint}) _hints(
+      String cat) {
+    return switch (cat) {
+      'CARS' => (
+          titleHint: 'e.g. 2022 Toyota Land Cruiser Prado',
+          priceLabel: 'Asking Price',
+          priceHint: 'e.g. ETB 2,800,000 or \$42,500',
+        ),
+      'HOUSES' => (
+          titleHint: 'e.g. Modern 4-Bedroom Villa in Kebele 04',
+          priceLabel: 'Price / Rent',
+          priceHint: 'e.g. ETB 145,000 or \$450 /mo',
+        ),
+      'LAND' => (
+          titleHint: 'e.g. Residential Plot in Kebele 02',
+          priceLabel: 'Asking Price',
+          priceHint: 'e.g. ETB 4,200,000',
+        ),
+      _ => (
+          // SKILLS
+          titleHint: 'e.g. Hodan Ahmed – Professional Housekeeper',
+          priceLabel: 'Rate / Fee',
+          priceHint: 'e.g. \$45 /hr  or  Unlock for 30 ETB',
+        ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final h = _hints(state.postCategory);
+    final catLabel = switch (state.postCategory) {
+      'CARS' => 'vehicle',
+      'HOUSES' => 'property',
+      'LAND' => 'land plot',
+      _ => 'service',
+    };
+
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Details & Title',
           style: TextStyle(
@@ -262,18 +298,26 @@ class _Step2 extends StatelessWidget {
               fontWeight: FontWeight.w900,
               color: cs.onSurface)),
       const SizedBox(height: 8),
-      Text('Provide a title and pricing details.',
+      Text('Describe your $catLabel with a clear title and pricing.',
           style: TextStyle(color: cs.onSurfaceVariant)),
       const SizedBox(height: 24),
-      _field('Title', state.postTitle, 'e.g. Toyota Hilux 2021',
-          (v) => state.postTitle = v,
-          validator: (v) =>
-              v == null || v.trim().isEmpty ? 'Title is required' : null),
+      _field(
+        state.postCategory == 'SKILLS' ? 'Your Name / Title' : 'Title',
+        state.postTitle,
+        h.titleHint,
+        (v) => state.postTitle = v,
+        validator: (v) =>
+            v == null || v.trim().isEmpty ? 'Title is required' : null,
+      ),
       const SizedBox(height: 16),
-      _field('Price / Rate', state.postPrice, 'e.g. 4,500,000',
-          (v) => state.postPrice = v,
-          validator: (v) =>
-              v == null || v.trim().isEmpty ? 'Price is required' : null),
+      _field(
+        h.priceLabel,
+        state.postPrice,
+        h.priceHint,
+        (v) => state.postPrice = v,
+        validator: (v) =>
+            v == null || v.trim().isEmpty ? 'Price is required' : null,
+      ),
       const SizedBox(height: 16),
       Text('Location Zone',
           style: TextStyle(
