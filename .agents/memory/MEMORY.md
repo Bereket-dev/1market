@@ -1,0 +1,1 @@
+- [Flutter Nix intl conflict](flutter-nix-intl-conflict.md) — Flutter 3.32.0 (Nix) needs `intl <0.20.0`; add `dependency_overrides: intl: '>=0.19.0 <0.20.0'` to fix compiler crash.
