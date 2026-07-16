@@ -1,4 +1,4 @@
-modules = ["web"]
+modules = ["web", "python-base-3.13"]
 [agent]
 expertMode = true
 
@@ -27,13 +27,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 -m http.server 5000 --directory build/web"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000

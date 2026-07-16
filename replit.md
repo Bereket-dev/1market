@@ -10,15 +10,23 @@ A Flutter marketplace app for Jigjiga, running as a Flutter web build on Replit.
 
 ## Running on Replit
 
-The workflow **"Start application"** runs the Flutter web dev server on port 5000:
+The workflow **"Start application"** serves a pre-built Flutter release bundle:
 
 ```
-flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
+python3 -m http.server 5000 --directory build/web
+```
+
+After any code change, rebuild first:
+
+```bash
+flutter build web \
   --dart-define=SUPABASE_URL=$SUPABASE_URL \
   --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 ```
 
-Supabase credentials are stored as environment variables (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) in the Replit shared environment.
+Then restart the workflow. Supabase credentials are stored as environment variables (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) in the Replit shared environment.
+
+> **Why release build?** Replit's sandbox has no WebGL. Flutter's CanvasKit debug-server falls back to CPU rendering and produces a blank canvas. The release build's CanvasKit initializes correctly even without GPU support.
 
 ## Environment variables
 
