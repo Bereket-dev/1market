@@ -4,3 +4,33 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+SUPABASE_ANON_KEY = "sb_publishable_gT2EZTGj4C6Hy3gJCeX0MQ_xcyRUM6L"
+SUPABASE_URL = "https://hrjxoygflvxfensmclcl.supabase.co"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
