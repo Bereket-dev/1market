@@ -170,7 +170,11 @@ class KoolanAppState extends ChangeNotifier {
 
   Future<void> completeLanguageOnboarding(String language) async {
     await setLocale(language);
-    await _repo.updateLanguage(language);
+    try {
+      await _repo.updateLanguage(language);
+    } catch (_) {
+      // No-op in simulation mode — no real DB connection needed.
+    }
     profile = profile?.copyWith(language: language);
     await app_local.LocalStorage.markSessionRestored();
     await _enterApp();
@@ -441,6 +445,18 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   void markOAuthPending() => _pendingOAuthCompletion = true;
+
+  /// Skips real authentication for demo/simulation — no Supabase call needed.
+  Future<void> simulateAuth() async {
+    profile = const UserProfile(
+      id: 'demo-user',
+      displayName: 'Demo User',
+      rating: 5.0,
+      reviewsCount: 0,
+    );
+    onboardingPhase = OnboardingPhase.language;
+    notifyListeners();
+  }
 
   // ── Private helpers ───────────────────────────────────────────────────────────
   String _defaultImageForCategory(String cat) {
