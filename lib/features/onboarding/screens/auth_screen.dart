@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -65,9 +66,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       KoolanAppStateScope.of(context).markOAuthPending();
+      // On web the redirect must be an http/https URL — the browser cannot
+      // handle the mobile deep-link scheme. Use the current page's origin so
+      // it works in both dev (*.replit.dev) and production (*.replit.app).
+      final redirectTo =
+          kIsWeb ? Uri.base.origin : AppSupabaseConfig.redirectUrl;
       await Supabase.instance.client.auth.signInWithOAuth(
         provider,
-        redirectTo: AppSupabaseConfig.redirectUrl,
+        redirectTo: redirectTo,
       );
     } on AuthException catch (e) {
       setState(() => _error = e.message);
