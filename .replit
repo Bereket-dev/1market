@@ -8,7 +8,7 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-SUPABASE_ANON_KEY = "sb_publishable_gT2EZTGj4C6Hy3gJCeX0MQ_xcyRUM6L"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanhveWdmbHZ4ZmVuc21jbGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNjg5MzYsImV4cCI6MjA5OTc0NDkzNn0.vIprbSNtJHgKrr9FZ-1mzqzMipT_1v-yDZuE-xNG6w0"
 SUPABASE_URL = "https://hrjxoygflvxfensmclcl.supabase.co"
 
 [workflows]
@@ -38,3 +38,8 @@ waitForPort = 5000
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[deployment]
+deploymentTarget = "static"
+build = ["bash", "-c", "flutter build web --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"]
+publicDir = "build/web"
