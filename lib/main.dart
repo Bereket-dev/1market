@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
-import 'app.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+import 'app.dart';
+import 'core/config/supabase_config.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  AppSupabaseConfig.validate();
+  await Supabase.initialize(
+    url: AppSupabaseConfig.url,
+    publishableKey: AppSupabaseConfig.publishableKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+    ),
+  );
   runApp(const KoolanApp());
 }

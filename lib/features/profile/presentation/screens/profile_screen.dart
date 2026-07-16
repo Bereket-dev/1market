@@ -18,9 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
-    final myListings = state.allListings
-        .where((l) => l.isCustom || l.sellerName.contains('Me'))
-        .toList();
+    final myListings = state.getMyListings();
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -233,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 class _ServicesTab extends StatelessWidget {
   final List<Listing> myListings;
-  final void Function(int) onListingTap;
+  final void Function(String) onListingTap;
   const _ServicesTab({required this.myListings, required this.onListingTap});
 
   @override

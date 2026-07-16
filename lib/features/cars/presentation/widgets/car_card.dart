@@ -123,7 +123,7 @@ class PremiumClassifiedCard extends StatelessWidget {
                           color: cs.primary,
                         ),
                       ),
-                      if (listing.isCustom)
+                      if (listing.isOwnedByCurrentUser)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),

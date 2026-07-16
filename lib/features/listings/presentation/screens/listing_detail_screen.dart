@@ -4,7 +4,7 @@ import '../../../../core/utils/icon_for_spec.dart';
 import '../../../../shared/services/app_state.dart';
 
 class ListingDetailScreen extends StatefulWidget {
-  final int listingId;
+  final String listingId;
 
   const ListingDetailScreen({super.key, required this.listingId});
 
@@ -19,8 +19,19 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
-    final listing =
-        state.allListings.firstWhere((l) => l.id == widget.listingId);
+    final listing = state.getListingById(widget.listingId);
+
+    if (listing == null) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => state.popScreen(),
+          ),
+        ),
+        body: Center(child: Text(state.s.listingNotFound)),
+      );
+    }
 
     return Scaffold(
       body: Stack(

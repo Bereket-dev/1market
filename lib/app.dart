@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/constants/colors.dart';
 import 'core/router/routes.dart';
@@ -9,6 +10,8 @@ import 'features/chat/presentation/screens/messages_screen.dart';
 import 'features/favorites/presentation/screens/saved_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/listings/presentation/screens/listing_detail_screen.dart';
+import 'features/onboarding/screens/auth_screen.dart';
+import 'features/onboarding/screens/language_screen.dart';
 import 'features/post/presentation/screens/post_wizard_screen.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
@@ -46,13 +49,88 @@ class _KoolanAppState extends State<KoolanApp> {
           return MaterialApp(
             title: 'Koolan – Jigjiga Marketplace',
             debugShowCheckedModeBanner: false,
+            locale: _appState.materialLocale,
+            supportedLocales: const [
+              Locale('en'),
+              Locale('am'),
+              Locale('so'),
+            ],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode:
                 _appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const _AppShell(),
+            home: _RootGate(appState: _appState),
           );
         },
+      ),
+    );
+  }
+}
+
+// ── Onboarding gate ───────────────────────────────────────────────────────────
+
+class _RootGate extends StatelessWidget {
+  final KoolanAppState appState;
+
+  const _RootGate({required this.appState});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (appState.onboardingPhase) {
+      case OnboardingPhase.initializing:
+        return _InitializingScreen(
+          error: appState.initError,
+          onRetry: appState.retryInitialization,
+        );
+      case OnboardingPhase.auth:
+        return const AuthScreen();
+      case OnboardingPhase.language:
+        return const LanguageScreen();
+      case OnboardingPhase.ready:
+        return const _AppShell();
+    }
+  }
+}
+
+class _InitializingScreen extends StatelessWidget {
+  final String? error;
+  final VoidCallback onRetry;
+
+  const _InitializingScreen({this.error, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (error == null) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text('Loading…', style: TextStyle(color: cs.onSurfaceVariant)),
+              ] else ...[
+                Icon(Icons.error_outline, color: cs.error, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: cs.error),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(onPressed: onRetry, child: const Text('Retry')),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -67,6 +145,7 @@ class _AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = KoolanAppStateScope.of(context);
     final isDark = appState.isDarkMode;
+    final s = appState.s;
 
     final current = appState.navigationStack.last;
     final hideBar =
@@ -81,9 +160,56 @@ class _AppShell extends StatelessWidget {
               onPostFab: () => appState.pushScreen(PostWizardScreenRoute()),
             ),
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: _screenFor(current),
+        child: Stack(
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _screenFor(current),
+            ),
+            if (appState.isLoadingData)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(),
+              ),
+            if (appState.dataError != null)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: hideBar ? 16 : 96,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            appState.dataError!,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            appState.clearDataError();
+                            appState.loadAllData();
+                          },
+                          child: Text(s.commonRetry),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -95,8 +221,7 @@ class _AppShell extends StatelessWidget {
 
         final desktopBg =
             isDark ? const Color(0xFF060A10) : const Color(0xFFE2E8F0);
-        final cardBg =
-            isDark ? kDarkBackground : kBackground;
+        final cardBg = isDark ? kDarkBackground : kBackground;
 
         return Container(
           color: desktopBg,

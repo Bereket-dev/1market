@@ -109,7 +109,7 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
                   icon: Icon(Icons.send, color: cs.onPrimary),
                   onPressed: () {
                     if (_ctrl.text.trim().isNotEmpty) {
-                      state.sendChatMessage(widget.sessionIndex, _ctrl.text);
+                      state.sendChatMessage(session.id, _ctrl.text);
                       _ctrl.clear();
                     }
                   },

@@ -15,7 +15,7 @@ class CategoryListScreenRoute extends KoolanScreen {
 }
 
 class ListingDetailScreenRoute extends KoolanScreen {
-  final int listingId;
+  final String listingId;
   ListingDetailScreenRoute(this.listingId);
 }
 

@@ -1,11 +1,46 @@
 import 'package:flutter/material.dart';
-import '../models/listing.dart';
-import '../models/chat.dart';
-import '../models/app_strings.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../core/router/routes.dart';
+import '../models/app_strings.dart';
+import '../models/chat.dart';
+import '../models/listing.dart';
+import '../models/profile.dart';
+import 'local_storage.dart' as app_local;
+import 'supabase_repository.dart';
+
+enum OnboardingPhase { initializing, auth, language, ready }
 
 /// Central application state. Shared via [KoolanAppStateScope].
 class KoolanAppState extends ChangeNotifier {
+  KoolanAppState() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((event) async {
+      if (event.event == AuthChangeEvent.signedIn &&
+          event.session != null &&
+          _pendingOAuthCompletion) {
+        _pendingOAuthCompletion = false;
+        await onFreshAuth();
+      }
+      notifyListeners();
+    });
+    _initialize();
+  }
+
+  final SupabaseRepository _repo =
+      SupabaseRepository(Supabase.instance.client);
+
+  bool _pendingOAuthCompletion = false;
+
+  // ── Auth & onboarding ───────────────────────────────────────────────────────
+  OnboardingPhase onboardingPhase = OnboardingPhase.initializing;
+  UserProfile? profile;
+  String? initError;
+  bool isLoadingData = false;
+  String? dataError;
+
+  User? get currentUser => Supabase.instance.client.auth.currentUser;
+  bool get isSignedIn => currentUser != null;
+
   // ── Navigation ─────────────────────────────────────────────────────────────
   final List<KoolanScreen> navigationStack = [HomeScreenRoute()];
 
@@ -13,9 +48,39 @@ class KoolanAppState extends ChangeNotifier {
   String locale = 'en';
   AppStrings get s => AppStrings(locale);
 
-  void toggleLocale() {
-    locale = locale == 'en' ? 'am' : locale == 'am' ? 'so' : 'en';
+  Locale get materialLocale {
+    switch (locale) {
+      case 'am':
+        return const Locale('am');
+      case 'so':
+        return const Locale('so');
+      default:
+        return const Locale('en');
+    }
+  }
+
+  Future<void> setLocale(String newLocale) async {
+    locale = newLocale;
+    await app_local.LocalStorage.saveLanguage(newLocale);
+    if (isSignedIn) {
+      try {
+        await _repo.updateLanguage(newLocale);
+        profile = profile?.copyWith(language: newLocale);
+      } catch (e) {
+        dataError = e.toString();
+      }
+    }
     notifyListeners();
+  }
+
+  /// Cycles EN → Amharic → Somali (used by the home language pill).
+  Future<void> toggleLocale() async {
+    final next = switch (locale) {
+      'en' => 'am',
+      'am' => 'so',
+      _ => 'en',
+    };
+    await setLocale(next);
   }
 
   // ── Theme ────────────────────────────────────────────────────────────────────
@@ -32,7 +97,7 @@ class KoolanAppState extends ChangeNotifier {
 
   // ── Comparison ──────────────────────────────────────────────────────────────
   bool compareModeEnabled = false;
-  Set<int> selectedCompareIds = {};
+  Set<String> selectedCompareIds = {};
 
   // ── Data ────────────────────────────────────────────────────────────────────
   List<Listing> allListings = [];
@@ -52,327 +117,87 @@ class KoolanAppState extends ChangeNotifier {
   String postSpec3 = '';
   String postSpec4 = '';
 
-  KoolanAppState() {
-    _prepopulate();
+  // ── Initialization ──────────────────────────────────────────────────────────
+
+  Future<void> _initialize() async {
+    initError = null;
+    try {
+      final savedLang = await app_local.LocalStorage.getLanguage();
+      if (savedLang != null) locale = savedLang;
+
+      if (!isSignedIn) {
+        onboardingPhase = OnboardingPhase.auth;
+        notifyListeners();
+        return;
+      }
+
+      profile = await _repo.ensureProfile();
+      final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
+
+      if (profile?.language != null) {
+        locale = profile!.language!;
+        await app_local.LocalStorage.saveLanguage(locale);
+      }
+
+      if (!sessionRestored || profile?.language == null) {
+        onboardingPhase = OnboardingPhase.language;
+        notifyListeners();
+        return;
+      }
+
+      await _enterApp();
+    } catch (e) {
+      initError = e.toString();
+      onboardingPhase = OnboardingPhase.auth;
+      notifyListeners();
+    }
   }
 
-  // ── Seed data ────────────────────────────────────────────────────────────────
-  void _prepopulate() {
-    allListings = [
-      const Listing(
-        id: 1,
-        category: 'LAND',
-        title: 'Residential Plot in Kebele 02',
-        price: 'ETB 4,200,000',
-        imageUrl:
-            'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=500&q=80',
-        location: 'Kebele 02, Jigjiga, Somali Region',
-        verified: true,
-        conditionOrStatus: 'For Sale',
-        sellerName: 'Ahmed Mohammed',
-        sellerRating: 4.9,
-        sellerReviewsCount: 124,
-        sellerImage:
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-        description:
-            'A wide angle high-resolution photograph of a vast, flat residential land plot in '
-            'Jigjiga under a clear blue sky. Located in the popular and rapidly developing '
-            'Kebele 02 neighborhood of Jigjiga, perfect for family homes or commercial development.',
-        spec1Label: 'Size',
-        spec1Value: '1000 sqm',
-        spec2Label: 'Land Use',
-        spec2Value: 'Residential',
-        spec3Label: 'Title Deed',
-        spec3Value: 'Available',
-        spec4Label: 'Road Access',
-        spec4Value: 'Yes (12m)',
-      ),
-      const Listing(
-        id: 2,
-        category: 'LAND',
-        title: 'Agricultural Plot in Tuli-Guled',
-        price: r'$28,500',
-        imageUrl:
-            'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=500&q=80',
-        location: 'Tuli-Guled, Fafan',
-        conditionOrStatus: 'For Sale',
-        sellerName: 'Ahmed Nur',
-        sellerRating: 4.8,
-        sellerReviewsCount: 31,
-        sellerImage:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-        description:
-            'A lush green agricultural plot at golden hour. Perfect fertile land in the Fafan zone '
-            'with rich soil and reliable irrigation options.',
-        spec1Label: 'Size',
-        spec1Value: '2.5 hectares',
-        spec2Label: 'Land Use',
-        spec2Value: 'Agricultural',
-        spec3Label: 'Title Deed',
-        spec3Value: 'Pending',
-        spec4Label: 'Road Access',
-        spec4Value: 'Yes',
-      ),
-      const Listing(
-        id: 3,
-        category: 'LAND',
-        title: 'Commercial Highway Plot',
-        price: r'$450,000',
-        imageUrl:
-            'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=500&q=80',
-        location: 'Qabribayah Road, Jigjiga',
-        verified: true,
-        conditionOrStatus: 'For Sale',
-        sellerName: 'Ahmed Mohammed',
-        sellerRating: 4.9,
-        sellerReviewsCount: 124,
-        sellerImage:
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-        description:
-            'Outstanding visibility, ideal for gas stations, logistics, warehouses or multi-story '
-            'commercial facilities.',
-        spec1Label: 'Size',
-        spec1Value: '4,800 sqm',
-        spec2Label: 'Land Use',
-        spec2Value: 'Commercial',
-        spec3Label: 'Title Deed',
-        spec3Value: 'Available',
-        spec4Label: 'Road Access',
-        spec4Value: 'Direct Highway',
-      ),
-      const Listing(
-        id: 4,
-        category: 'CARS',
-        title: '2022 Toyota Land Cruiser Prado',
-        price: r'$42,500',
-        imageUrl:
-            'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=500&q=80',
-        location: 'Downtown, Jigjiga',
-        verified: true,
-        conditionOrStatus: 'For Sale',
-        sellerName: 'Ahmed Nur',
-        sellerRating: 4.9,
-        sellerReviewsCount: 124,
-        sellerImage:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-        description:
-            'A sleek, metallic charcoal gray luxury SUV Toyota Land Cruiser Prado TXL in mint '
-            'condition. Fully loaded with modern options, dual zone A/C, leather seats.',
-        spec1Label: 'Year',
-        spec1Value: '2022',
-        spec2Label: 'Mileage',
-        spec2Value: '12,400 km',
-        spec3Label: 'Transmission',
-        spec3Value: 'Automatic',
-        spec4Label: 'Fuel Type',
-        spec4Value: 'Petrol',
-      ),
-      const Listing(
-        id: 5,
-        category: 'CARS',
-        title: '2021 Hyundai Sonata Limited',
-        price: r'$28,900',
-        imageUrl:
-            'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=500&q=80',
-        location: 'Airport Rd, Jigjiga',
-        verified: true,
-        conditionOrStatus: 'For Sale',
-        sellerName: 'Ahmed Nur',
-        sellerRating: 4.8,
-        sellerReviewsCount: 31,
-        sellerImage:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-        description:
-            'A pristine white executive sedan with panorama sunroof, smart adaptive cruise '
-            'control, lane assist and luxurious driving ergonomics.',
-        spec1Label: 'Year',
-        spec1Value: '2021',
-        spec2Label: 'Mileage',
-        spec2Value: '28,000 km',
-        spec3Label: 'Transmission',
-        spec3Value: 'Automatic',
-        spec4Label: 'Fuel Type',
-        spec4Value: 'Petrol',
-      ),
-      const Listing(
-        id: 6,
-        category: 'CARS',
-        title: '2021 Toyota Hilux 2.8 GD-6 Raider',
-        price: r'$42,500',
-        imageUrl:
-            'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=500&q=80',
-        location: 'Jigjiga Central, Somali Region',
-        verified: true,
-        conditionOrStatus: 'Good Condition',
-        sellerName: 'Ahmed Nur',
-        sellerRating: 4.9,
-        sellerReviewsCount: 124,
-        sellerImage:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-        description:
-            'Extremely well-maintained 2021 Toyota Hilux. Single owner since new, full service '
-            'history at certified Toyota dealers.',
-        spec1Label: 'Year',
-        spec1Value: '2021',
-        spec2Label: 'Mileage',
-        spec2Value: '45,000 km',
-        spec3Label: 'Transmission',
-        spec3Value: 'Automatic',
-        spec4Label: 'Fuel Type',
-        spec4Value: 'Diesel',
-      ),
-      const Listing(
-        id: 7,
-        category: 'HOUSES',
-        title: 'Modern 4-Bedroom Villa',
-        price: r'$145,000',
-        imageUrl:
-            'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=500&q=80',
-        location: 'Kebele 04, Jigjiga',
-        verified: true,
-        conditionOrStatus: 'For Sale',
-        sellerName: 'Ahmed Abdullahi',
-        sellerRating: 4.8,
-        sellerReviewsCount: 124,
-        sellerImage:
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-        description:
-            'A stunning ultra-modern villa in Jigjiga with clean white geometric lines, large '
-            'floor-to-ceiling glass windows, and a lush private courtyard.',
-        spec1Label: 'Bedrooms',
-        spec1Value: '4 Bed',
-        spec2Label: 'Bathrooms',
-        spec2Value: '3 Bath',
-        spec3Label: 'Area',
-        spec3Value: '350 m²',
-        spec4Label: 'Security',
-        spec4Value: '24/7',
-      ),
-      const Listing(
-        id: 8,
-        category: 'HOUSES',
-        title: 'Elite Studio Loft',
-        price: r'$450 /mo',
-        imageUrl:
-            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=500&q=80',
-        location: 'City Center, Jigjiga',
-        verified: true,
-        conditionOrStatus: 'For Rent',
-        sellerName: 'Ahmed Abdullahi',
-        sellerRating: 4.8,
-        sellerReviewsCount: 124,
-        sellerImage:
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-        description:
-            'A minimalist luxury studio apartment interior in a high-rise building in Jigjiga.',
-        spec1Label: 'Bedrooms',
-        spec1Value: '1 Bed',
-        spec2Label: 'Bathrooms',
-        spec2Value: '1 Bath',
-        spec3Label: 'Area',
-        spec3Value: '65 m²',
-        spec4Label: 'Security',
-        spec4Value: '24/7',
-      ),
-      const Listing(
-        id: 9,
-        category: 'SKILLS',
-        title: 'Marcus Chen',
-        price: r'$45 /hr',
-        imageUrl:
-            'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=500&q=80',
-        location: 'Silver Valley • 1.2 km away',
-        verified: true,
-        conditionOrStatus: 'Available',
-        sellerName: 'Marcus Chen',
-        sellerRating: 4.9,
-        sellerReviewsCount: 120,
-        sellerImage:
-            'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
-        description:
-            'A professional male electrician with over 5 years of experience. Dedicated to '
-            'thorough residential wiring, appliance setups, testing, and trouble-shooting.',
-        spec1Label: 'Category',
-        spec1Value: 'Electrician',
-        spec2Label: 'Experience',
-        spec2Value: '5 years',
-        spec3Label: 'Skills',
-        spec3Value: 'Wiring, Troubleshooting',
-        spec4Label: 'Verified',
-        spec4Value: 'Yes',
-      ),
-      const Listing(
-        id: 10,
-        category: 'SKILLS',
-        title: 'Hodan Ahmed',
-        price: 'Unlock for 30 ETB',
-        imageUrl:
-            'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80',
-        location: 'Kebele 03, Jigjiga',
-        verified: true,
-        conditionOrStatus: 'Available',
-        sellerName: 'Hodan Ahmed',
-        sellerRating: 5.0,
-        sellerReviewsCount: 48,
-        sellerImage:
-            'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-        description:
-            'Dedicated and thorough professional specialising in comprehensive household '
-            'management. Known for attention to detail, punctuality, and a trust-first approach.',
-        spec1Label: 'Category',
-        spec1Value: 'House Help',
-        spec2Label: 'Experience',
-        spec2Value: '2 years',
-        spec3Label: 'Skills',
-        spec3Value: 'Deep Cleaning, Cooking, Laundry, Organization',
-        spec4Label: 'Verified',
-        spec4Value: 'Koolan Verified',
-      ),
-    ];
+  Future<void> retryInitialization() => _initialize();
 
-    chatSessions = [
-      ChatSession(
-        partnerName: 'Ahmed Nur',
-        partnerAvatar:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-        listingTitle: '2021 Toyota Hilux 2.8 GD-6 Raider',
-        messages: const [
-          ChatMessage(
-            sender: 'Ahmed Nur',
-            text: 'Hello, are you still interested in the Toyota Hilux?',
-            timestamp: '09:30 AM',
-            isMe: false,
-          ),
-          ChatMessage(
-            sender: 'Me',
-            text: 'Yes! Is the price negotiable?',
-            timestamp: '09:32 AM',
-            isMe: true,
-          ),
-          ChatMessage(
-            sender: 'Ahmed Nur',
-            text: 'We can discuss a small discount. Are you available for viewing today?',
-            timestamp: '09:33 AM',
-            isMe: false,
-          ),
-        ],
-        unreadCount: 1,
-      ),
-      ChatSession(
-        partnerName: 'Ahmed Mohammed',
-        partnerAvatar:
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-        listingTitle: 'Residential Plot in Kebele 02',
-        messages: const [
-          ChatMessage(
-            sender: 'Ahmed Mohammed',
-            text: 'Welcome! The land deed is fully verified with the local authorities.',
-            timestamp: 'Yesterday',
-            isMe: false,
-          ),
-        ],
-      ),
-    ];
+  void clearDataError() {
+    dataError = null;
+    notifyListeners();
+  }
+
+  /// Called after fresh sign-in/sign-up (email or OAuth callback).
+  Future<void> onFreshAuth() async {
+    await app_local.LocalStorage.clearSessionRestored();
+    profile = await _repo.ensureProfile();
+    onboardingPhase = OnboardingPhase.language;
+    notifyListeners();
+  }
+
+  Future<void> completeLanguageOnboarding(String language) async {
+    await setLocale(language);
+    await _repo.updateLanguage(language);
+    profile = profile?.copyWith(language: language);
+    await app_local.LocalStorage.markSessionRestored();
+    await _enterApp();
+  }
+
+  Future<void> _enterApp() async {
+    onboardingPhase = OnboardingPhase.ready;
+    navigationStack
+      ..clear()
+      ..add(HomeScreenRoute());
+    await loadAllData();
+    notifyListeners();
+  }
+
+  Future<void> loadAllData() async {
+    isLoadingData = true;
+    dataError = null;
+    notifyListeners();
+    try {
+      allListings = await _repo.fetchListings();
+      chatSessions = await _repo.fetchChatSessions();
+    } catch (e) {
+      dataError = e.toString();
+    } finally {
+      isLoadingData = false;
+      notifyListeners();
+    }
   }
 
   // ── Navigation actions ───────────────────────────────────────────────────────
@@ -425,13 +250,32 @@ class KoolanAppState extends ChangeNotifier {
   List<Listing> getSavedListings() =>
       allListings.where((l) => l.isSaved).toList();
 
+  List<Listing> getMyListings() =>
+      allListings.where((l) => l.isOwnedByCurrentUser).toList();
+
+  Listing? getListingById(String id) {
+    try {
+      return allListings.firstWhere((l) => l.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Save / Bookmark ──────────────────────────────────────────────────────────
-  void toggleSaveListing(int listingId) {
+  Future<void> toggleSaveListing(String listingId) async {
     final index = allListings.indexWhere((l) => l.id == listingId);
-    if (index != -1) {
-      final listing = allListings[index];
-      allListings[index] = listing.copyWith(isSaved: !listing.isSaved);
+    if (index == -1) return;
+    final listing = allListings[index];
+    final newSaved = !listing.isSaved;
+    allListings[index] = listing.copyWith(isSaved: newSaved);
+    notifyListeners();
+    try {
+      await _repo.toggleFavorite(listingId, listing.isSaved);
+    } catch (e) {
+      allListings[index] = listing;
+      dataError = e.toString();
       notifyListeners();
+      rethrow;
     }
   }
 
@@ -442,7 +286,7 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleCompareSelection(int id) {
+  void toggleCompareSelection(String id) {
     if (selectedCompareIds.contains(id)) {
       selectedCompareIds.remove(id);
     } else if (selectedCompareIds.length < 2) {
@@ -452,19 +296,57 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   // ── Chat ─────────────────────────────────────────────────────────────────────
-  void sendChatMessage(int sessionIndex, String text) {
+  Future<void> sendChatMessage(String sessionId, String text) async {
     if (text.trim().isEmpty) return;
-    final session = chatSessions[sessionIndex];
-    final updatedMsgs = List<ChatMessage>.from(session.messages)
-      ..add(ChatMessage(
-        sender: 'Me',
-        text: text,
-        timestamp: 'Just now',
-        isMe: true,
-      ));
-    chatSessions[sessionIndex] =
-        session.copyWith(messages: updatedMsgs, unreadCount: 0);
-    notifyListeners();
+    final index = chatSessions.indexWhere((s) => s.id == sessionId);
+    if (index == -1) return;
+
+    try {
+      final msg = await _repo.sendMessage(threadId: sessionId, text: text);
+      final session = chatSessions[index];
+      chatSessions[index] = session.copyWith(
+        messages: [...session.messages, msg],
+        unreadCount: 0,
+      );
+      notifyListeners();
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<String?> startChatForListing(String listingId) async {
+    final listing = getListingById(listingId);
+    if (listing == null || listing.sellerId == null) return null;
+    try {
+      final threadId = await _repo.getOrCreateThread(
+        listingId: listingId,
+        sellerId: listing.sellerId!,
+      );
+      chatSessions = await _repo.fetchChatSessions();
+      notifyListeners();
+      return threadId;
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // ── Reports ─────────────────────────────────────────────────────────────────
+  Future<void> submitReport({
+    required String reason,
+    String? listingId,
+    String? reportedUserId,
+    String? details,
+  }) async {
+    await _repo.submitReport(
+      reason: reason,
+      listingId: listingId,
+      reportedUserId: reportedUserId,
+      details: details,
+    );
   }
 
   // ── Wizard ───────────────────────────────────────────────────────────────────
@@ -482,7 +364,7 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void submitPost() {
+  Future<void> submitPost() async {
     final titleStr = postTitle.trim().isEmpty
         ? 'Untitled $postCategory Listing'
         : postTitle.trim();
@@ -496,52 +378,69 @@ class KoolanAppState extends ChangeNotifier {
         : postDescription.trim();
 
     final imageStr = _defaultImageForCategory(postCategory);
+    final sellerName = profile?.displayName ?? 'Me';
+    final sellerImage = profile?.avatarUrl ?? '';
 
-    final l1 = _specLabel1(postCategory);
-    final v1 = postSpec1.trim().isEmpty ? _specDefault1(postCategory) : postSpec1.trim();
-    final l2 = _specLabel2(postCategory);
-    final v2 = postSpec2.trim().isEmpty ? _specDefault2(postCategory) : postSpec2.trim();
-    final l3 = _specLabel3(postCategory);
-    final v3 = postSpec3.trim().isEmpty ? _specDefault3(postCategory) : postSpec3.trim();
-    final l4 = _specLabel4(postCategory);
-    final v4 = postSpec4.trim().isEmpty ? _specDefault4(postCategory) : postSpec4.trim();
+    try {
+      final newListing = await _repo.createListing(
+        category: postCategory,
+        title: titleStr,
+        price: priceStr,
+        imageUrl: imageStr,
+        location: '${postLocation.trim()}, Jigjiga',
+        conditionOrStatus: 'Available',
+        description: descStr,
+        spec1Label: _specLabel1(postCategory),
+        spec1Value: postSpec1.trim().isEmpty
+            ? _specDefault1(postCategory)
+            : postSpec1.trim(),
+        spec2Label: _specLabel2(postCategory),
+        spec2Value: postSpec2.trim().isEmpty
+            ? _specDefault2(postCategory)
+            : postSpec2.trim(),
+        spec3Label: _specLabel3(postCategory),
+        spec3Value: postSpec3.trim().isEmpty
+            ? _specDefault3(postCategory)
+            : postSpec3.trim(),
+        spec4Label: _specLabel4(postCategory),
+        spec4Value: postSpec4.trim().isEmpty
+            ? _specDefault4(postCategory)
+            : postSpec4.trim(),
+        sellerName: sellerName,
+        sellerImage: sellerImage,
+      );
 
-    final newListing = Listing(
-      id: allListings.length + 1,
-      category: postCategory,
-      title: titleStr,
-      price: priceStr,
-      imageUrl: imageStr,
-      location: '${postLocation.trim()}, Jigjiga',
-      verified: true,
-      conditionOrStatus: 'Available',
-      sellerName: 'Hodan Ahmed (Me)',
-      sellerRating: 5.0,
-      sellerReviewsCount: 1,
-      sellerImage:
-          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-      description: descStr,
-      spec1Label: l1,
-      spec1Value: v1,
-      spec2Label: l2,
-      spec2Value: v2,
-      spec3Label: l3,
-      spec3Value: v3,
-      spec4Label: l4,
-      spec4Value: v4,
-      isCustom: true,
-    );
+      allListings.insert(0, newListing);
+      resetWizard();
+      selectedCategory = postCategory;
+      navigationStack
+        ..clear()
+        ..add(HomeScreenRoute())
+        ..add(CategoryListScreenRoute(postCategory));
+      notifyListeners();
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
 
-    allListings.insert(0, newListing);
-    resetWizard();
-    selectedCategory = postCategory;
-
+  // ── Auth ─────────────────────────────────────────────────────────────────────
+  Future<void> signOut() async {
+    await Supabase.instance.client.auth.signOut();
+    await app_local.LocalStorage.clearLanguage();
+    await app_local.LocalStorage.clearSessionRestored();
+    profile = null;
+    allListings = [];
+    chatSessions = [];
     navigationStack
       ..clear()
-      ..add(HomeScreenRoute())
-      ..add(CategoryListScreenRoute(postCategory));
+      ..add(HomeScreenRoute());
+    onboardingPhase = OnboardingPhase.auth;
     notifyListeners();
   }
+
+  void markOAuthPending() => _pendingOAuthCompletion = true;
 
   // ── Private helpers ───────────────────────────────────────────────────────────
   String _defaultImageForCategory(String cat) {

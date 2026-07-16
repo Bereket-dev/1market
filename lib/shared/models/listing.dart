@@ -1,5 +1,5 @@
 class Listing {
-  final int id;
+  final String id;
 
   /// Category: CARS, HOUSES, LAND, SKILLS
   final String category;
@@ -23,9 +23,10 @@ class Listing {
   final String? spec3Value;
   final String? spec4Label;
   final String? spec4Value;
+  final String? sellerId;
 
-  /// True when posted by the current user via the wizard.
-  final bool isCustom;
+  /// True when posted by the current user.
+  final bool isOwnedByCurrentUser;
 
   const Listing({
     required this.id,
@@ -50,11 +51,45 @@ class Listing {
     this.spec3Value,
     this.spec4Label,
     this.spec4Value,
-    this.isCustom = false,
+    this.sellerId,
+    this.isOwnedByCurrentUser = false,
   });
 
+  factory Listing.fromJson(
+    Map<String, dynamic> json, {
+    bool isSaved = false,
+    bool isOwnedByCurrentUser = false,
+  }) {
+    return Listing(
+      id: json['id'] as String,
+      category: json['category'] as String,
+      title: json['title'] as String,
+      price: json['price'] as String,
+      imageUrl: json['image_url'] as String,
+      location: json['location'] as String,
+      verified: json['verified'] as bool? ?? false,
+      isSaved: isSaved,
+      conditionOrStatus: json['condition_or_status'] as String,
+      sellerName: json['seller_name'] as String,
+      sellerImage: json['seller_image'] as String? ?? '',
+      sellerRating: (json['seller_rating'] as num?)?.toDouble() ?? 4.8,
+      sellerReviewsCount: json['seller_reviews_count'] as int? ?? 12,
+      description: json['description'] as String? ?? '',
+      spec1Label: json['spec1_label'] as String?,
+      spec1Value: json['spec1_value'] as String?,
+      spec2Label: json['spec2_label'] as String?,
+      spec2Value: json['spec2_value'] as String?,
+      spec3Label: json['spec3_label'] as String?,
+      spec3Value: json['spec3_value'] as String?,
+      spec4Label: json['spec4_label'] as String?,
+      spec4Value: json['spec4_value'] as String?,
+      sellerId: json['seller_id'] as String?,
+      isOwnedByCurrentUser: isOwnedByCurrentUser,
+    );
+  }
+
   Listing copyWith({
-    int? id,
+    String? id,
     String? category,
     String? title,
     String? price,
@@ -76,7 +111,8 @@ class Listing {
     String? spec3Value,
     String? spec4Label,
     String? spec4Value,
-    bool? isCustom,
+    String? sellerId,
+    bool? isOwnedByCurrentUser,
   }) {
     return Listing(
       id: id ?? this.id,
@@ -98,10 +134,10 @@ class Listing {
       spec2Label: spec2Label ?? this.spec2Label,
       spec2Value: spec2Value ?? this.spec2Value,
       spec3Label: spec3Label ?? this.spec3Label,
-      spec3Value: spec3Value ?? this.spec3Value,
       spec4Label: spec4Label ?? this.spec4Label,
       spec4Value: spec4Value ?? this.spec4Value,
-      isCustom: isCustom ?? this.isCustom,
+      sellerId: sellerId ?? this.sellerId,
+      isOwnedByCurrentUser: isOwnedByCurrentUser ?? this.isOwnedByCurrentUser,
     );
   }
 }

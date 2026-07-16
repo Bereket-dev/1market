@@ -11,6 +11,45 @@ class AppStrings {
 
   // ── App-wide ────────────────────────────────────────────────────────────────
   String get appName => _t('Koolan', 'ኩላን', 'Koolan');
+  String get commonRetry => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
+  String get commonLoading => _t('Loading…', 'በመጫን ላይ…', 'Waa la soo rarayaa…');
+
+  // ── Auth / Onboarding ───────────────────────────────────────────────────────
+  String get authTitle => _t('Welcome to Koolan', 'እንኳን ወደ ኩላን በደህና መጡ', 'Ku soo dhawow Koolan');
+  String get authSubtitle => _t(
+    'Sign in to browse, post, and chat in Jigjiga.',
+    'በጂግጂጋ ለማስላት፣ ለመለጠፍ እና ለመወያየት ይግቡ።',
+    'Gal si aad u baarto, u dajiso, oo aad ula sheekaysato Jigjiga.',
+  );
+  String get authSignIn => _t('Sign In', 'ግባ', 'Gal');
+  String get authSignUp => _t('Sign Up', 'ተመዝገብ', 'Is diiwaangeli');
+  String get authEmail => _t('Email', 'ኢሜይል', 'Iimaylka');
+  String get authEmailRequired => _t('Email is required', 'ኢሜይል ያስፈልጋል', 'Iimaylka waa lagama maarmaan');
+  String get authEmailInvalid => _t('Enter a valid email', 'ትክክለኛ ኢሜይል ያስገቡ', 'Geli iimayl sax ah');
+  String get authPassword => _t('Password', 'የይለፍ ቃል', 'Furaha sirta ah');
+  String get authPasswordMin => _t('At least 6 characters', 'ቢያንስ 6 ቁምፊ', 'Ugu yaraan 6 xaraf');
+  String get authPleaseWait => _t('Please wait…', 'እባክዎ ይጠብቁ…', 'Fadlan sug…');
+  String get authCreateAccount => _t('Create Account', 'መለያ ፍጠር', 'Samee akoon');
+  String get authContinue => _t('Continue', 'ቀጥል', 'Sii wad');
+  String get authOrContinue => _t('or continue with', 'ወይም በ', 'ama ku sii wad');
+  String get authGoogle => _t('Continue with Google', 'በ Google ግባ', 'Google ku sii wad');
+  String get authFacebook => _t('Continue with Facebook', 'በ Facebook ግባ', 'Facebook ku sii wad');
+
+  // ── Language onboarding ───────────────────────────────────────────────────────
+  String get languageTitle => _t('Choose your language', 'ቋንቋዎን ይምረጡ', 'Dooro luqaddaada');
+  String get languageSubtitle => _t(
+    'You can change this anytime in Settings.',
+    'በቅንብሮች ውስጥ በማንኛውም ጊዜ መቀየር ይችላሉ።',
+    'Waxaad beddeli kartaa wakhti kasta Dejinta.',
+  );
+  String get languageEnglish => _t('English', 'English', 'English');
+  String get languageAmharic => _t('Amharic', 'አማርኛ', 'Amharic');
+  String get languageSomali => _t('Somali', 'Somali', 'Somali');
+  String get languageContinue => _t('Continue to Koolan', 'ወደ ኩላን ቀጥል', 'U gudub Koolan');
+
+  // ── Listing ─────────────────────────────────────────────────────────────────
+  String get listingNotFound => _t('Listing not found', 'ዝርዝር አልተገኘም', 'Xayaysiiska lama helin');
+  String get listingMyAd => _t('My Ad', 'የኔ ማስታወቂያ', 'Xayaysiiskayga');
 
   // ── Bottom Navigation ───────────────────────────────────────────────────────
   String get navHome => _t('Home', 'ዋና ገጽ', 'Guriga');
