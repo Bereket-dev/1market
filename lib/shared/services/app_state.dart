@@ -33,7 +33,14 @@ class KoolanAppState extends ChangeNotifier {
               _pendingOAuthCompletion) {
             _pendingOAuthCompletion = false;
             await onFreshAuth();
+            return;
           }
+
+          if (event.event == AuthChangeEvent.signedOut) {
+            await _resetAfterAuthStateChange();
+            return;
+          }
+
           notifyListeners();
         });
       } catch (e, st) {
@@ -493,13 +500,10 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
-  Future<void> signOut() async {
-    try {
-      final client = AppSupabaseConfig.clientOrNull();
-      await client?.auth.signOut();
-    } catch (_) {}
+  Future<void> _resetAfterAuthStateChange() async {
     await app_local.LocalStorage.clearLanguage();
     await app_local.LocalStorage.clearSessionRestored();
+    _repo = null;
     profile = null;
     allListings = [];
     chatSessions = [];
@@ -507,7 +511,22 @@ class KoolanAppState extends ChangeNotifier {
       ..clear()
       ..add(HomeScreenRoute());
     onboardingPhase = OnboardingPhase.auth;
+    initError = null;
+    dataError = null;
     notifyListeners();
+  }
+
+  Future<void> signOut() async {
+    final client = AppSupabaseConfig.clientOrNull();
+    try {
+      if (client != null) {
+        await client.auth.signOut();
+      }
+    } catch (e) {
+      print('Sign out failed: $e');
+    } finally {
+      await _resetAfterAuthStateChange();
+    }
   }
 
   void markOAuthPending() => _pendingOAuthCompletion = true;

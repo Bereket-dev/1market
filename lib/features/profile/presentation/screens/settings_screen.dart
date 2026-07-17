@@ -11,6 +11,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationEnabled = true;
+  bool _isSigningOut = false;
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +176,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 32),
 
           ElevatedButton(
-            onPressed: () => appState.popScreen(),
+            onPressed: _isSigningOut
+                ? null
+                : () async {
+                    if (!mounted) return;
+                    setState(() => _isSigningOut = true);
+                    try {
+                      await appState.signOut();
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isSigningOut = false);
+                      }
+                    }
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: cs.errorContainer,
               minimumSize: const Size.fromHeight(52),
