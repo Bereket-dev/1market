@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shared/services/app_state.dart';
@@ -26,6 +29,19 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
+  String _friendlyAuthMessage(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('not authenticated') ||
+        lower.contains('user not confirmed') ||
+        lower.contains('email not confirmed') ||
+        lower.contains('confirmation required') ||
+        lower.contains('verify your email') ||
+        lower.contains('confirm your email')) {
+      return KoolanAppStateScope.of(context).s.authConfirmationRequired;
+    }
+    return message;
+  }
+
   Future<void> _submitEmail() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -45,20 +61,32 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final auth = client.auth;
       if (_isSignUp) {
-        await auth.signUp(
+        final response = await auth.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          emailRedirectTo: AppSupabaseConfig.emailRedirectUrl,
         );
-      } else {
-        await auth.signInWithPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        if (!mounted) return;
+        if (response.session == null) {
+          setState(
+            () => _error = KoolanAppStateScope.of(
+              context,
+            ).s.authConfirmationRequired,
+          );
+          return;
+        }
+        await KoolanAppStateScope.of(context).onFreshAuth();
+        return;
       }
+
+      await auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
       if (!mounted) return;
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = e.message);
+      setState(() => _error = _friendlyAuthMessage(e.message ?? e.toString()));
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -66,7 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _signInWithOAuth(OAuthProvider provider) async {
+  Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -82,13 +110,40 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     try {
-      KoolanAppStateScope.of(context).markOAuthPending();
-      await client.auth.signInWithOAuth(
-        provider,
-        redirectTo: AppSupabaseConfig.redirectUrl,
+      final googleSignIn = GoogleSignIn(
+        serverClientId: AppSupabaseConfig.googleWebClientId,
+        clientId: Platform.isAndroid
+            ? AppSupabaseConfig.googleAndroidClientId
+            : AppSupabaseConfig.googleIosClientId,
+        scopes: const <String>['email', 'profile'],
       );
+
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        setState(() => _error = 'Google sign-in was cancelled.');
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+
+      if (idToken == null || accessToken == null) {
+        throw Exception('Google authentication tokens were not returned.');
+      }
+
+      if (!mounted) return;
+      KoolanAppStateScope.of(context).markOAuthPending();
+      await client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+
+      if (!mounted) return;
+      await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = e.message);
+      setState(() => _error = e.message ?? e.toString());
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -228,9 +283,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: _isLoading
-                      ? null
-                      : () => _signInWithOAuth(OAuthProvider.google),
+                  onPressed: _isLoading ? null : _signInWithGoogle,
                   icon: const Icon(Icons.g_mobiledata, size: 28),
                   label: Text(s.authGoogle),
                 ),
@@ -239,9 +292,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: _isLoading
-                      ? null
-                      : () => _signInWithOAuth(OAuthProvider.facebook),
+                  onPressed: _isLoading ? null : () {},
                   icon: const Icon(Icons.facebook),
                   label: Text(s.authFacebook),
                 ),

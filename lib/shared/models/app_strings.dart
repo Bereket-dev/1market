@@ -35,6 +35,11 @@ class AppStrings {
   String get authPassword => _t('Password', 'የይለፍ ቃል', 'Furaha sirta ah');
   String get authPasswordMin =>
       _t('At least 6 characters', 'ቢያንስ 6 ቁምፊ', 'Ugu yaraan 6 xaraf');
+  String get authConfirmationRequired => _t(
+    'Email confirmation is required. Please verify your email to continue.',
+    'የኢሜይል ማረጋገጫ ያስፈልጋል። የኢሜይልዎን እቃ እባክዎን ያረጋግጡ።',
+    'Xaqiijinta iimaylka waa loo baahan yahay. Fadlan xaqiiji iimaylkaaga si aad u sii wadato.',
+  );
   String get authForgotPassword =>
       _t('Forgot password?', 'የፓስወርድ ይዘው አርጉ?', 'Ilaawi erayga sirta?');
   String get authPleaseWait => _t('Please wait…', 'እባክዎ ይጠብቁ…', 'Fadlan sug…');
