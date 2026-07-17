@@ -18,16 +18,19 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Profiles are viewable by authenticated users" on public.profiles;
 create policy "Profiles are viewable by authenticated users"
   on public.profiles for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can insert their own profile" on public.profiles;
 create policy "Users can insert their own profile"
   on public.profiles for insert
   to authenticated
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update their own profile" on public.profiles;
 create policy "Users can update their own profile"
   on public.profiles for update
   to authenticated
@@ -85,22 +88,26 @@ create table if not exists public.listings (
 
 alter table public.listings enable row level security;
 
+drop policy if exists "Listings are viewable by authenticated users" on public.listings;
 create policy "Listings are viewable by authenticated users"
   on public.listings for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can insert their own listings" on public.listings;
 create policy "Users can insert their own listings"
   on public.listings for insert
   to authenticated
   with check (auth.uid() = seller_id);
 
+drop policy if exists "Users can update their own listings" on public.listings;
 create policy "Users can update their own listings"
   on public.listings for update
   to authenticated
   using (auth.uid() = seller_id)
   with check (auth.uid() = seller_id);
 
+drop policy if exists "Users can delete their own listings" on public.listings;
 create policy "Users can delete their own listings"
   on public.listings for delete
   to authenticated
@@ -117,16 +124,19 @@ create table if not exists public.favorites (
 
 alter table public.favorites enable row level security;
 
+drop policy if exists "Users can view their own favorites" on public.favorites;
 create policy "Users can view their own favorites"
   on public.favorites for select
   to authenticated
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own favorites" on public.favorites;
 create policy "Users can insert their own favorites"
   on public.favorites for insert
   to authenticated
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can delete their own favorites" on public.favorites;
 create policy "Users can delete their own favorites"
   on public.favorites for delete
   to authenticated
@@ -144,11 +154,13 @@ create table if not exists public.chat_threads (
 
 alter table public.chat_threads enable row level security;
 
+drop policy if exists "Participants can view their threads" on public.chat_threads;
 create policy "Participants can view their threads"
   on public.chat_threads for select
   to authenticated
   using (auth.uid() = buyer_id or auth.uid() = seller_id);
 
+drop policy if exists "Buyers can create threads" on public.chat_threads;
 create policy "Buyers can create threads"
   on public.chat_threads for insert
   to authenticated
@@ -165,6 +177,7 @@ create table if not exists public.chat_messages (
 
 alter table public.chat_messages enable row level security;
 
+drop policy if exists "Participants can view messages in their threads" on public.chat_messages;
 create policy "Participants can view messages in their threads"
   on public.chat_messages for select
   to authenticated
@@ -176,6 +189,7 @@ create policy "Participants can view messages in their threads"
     )
   );
 
+drop policy if exists "Participants can send messages in their threads" on public.chat_messages;
 create policy "Participants can send messages in their threads"
   on public.chat_messages for insert
   to authenticated
@@ -201,11 +215,13 @@ create table if not exists public.reports (
 
 alter table public.reports enable row level security;
 
+drop policy if exists "Users can view their own reports" on public.reports;
 create policy "Users can view their own reports"
   on public.reports for select
   to authenticated
   using (auth.uid() = reporter_id);
 
+drop policy if exists "Users can submit reports" on public.reports;
 create policy "Users can submit reports"
   on public.reports for insert
   to authenticated
