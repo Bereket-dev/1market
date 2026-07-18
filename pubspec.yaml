@@ -47,6 +47,7 @@ dependencies:
   path_provider: ^2.1.6
   permission_handler: ^12.0.0
   http: ^1.6.0
+  google_generative_ai: ^0.4.6
 
 dependency_overrides:
   # Flutter 3.32.0's bundled flutter_localizations uses intl.DateSymbols which

@@ -73,7 +73,7 @@ class _SavedScreenState extends State<SavedScreen> {
                               color: cs.onSurface)),
                       const SizedBox(height: 8),
                       Text(
-                        'Tap the bookmark icon on any item you love to save it here.',
+                        state.s.savedEmptySubAlt,
                         style: TextStyle(
                             fontSize: 13,
                             color: cs.onSurfaceVariant
@@ -99,8 +99,8 @@ class _SavedScreenState extends State<SavedScreen> {
                       color: cs.primary.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  'Select up to 2 items to compare. '
-                  '(${state.selectedCompareIds.length}/2 selected)',
+                  state.s.savedCompareInfo.replaceAll(
+                      '{count}', '${state.selectedCompareIds.length}'),
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -184,15 +184,16 @@ class _SavedScreenState extends State<SavedScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${state.selectedCompareIds.length} items selected',
+                          state.s.savedSelectedCount.replaceAll(
+                              '{count}', '${state.selectedCompareIds.length}'),
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: cs.onInverseSurface),
                         ),
                         Text(
                           state.selectedCompareIds.length < 2
-                              ? 'Choose 1 more item'
-                              : 'Ready to analyse',
+                              ? state.s.savedChooseOne
+                              : state.s.savedReadyAnalyse,
                           style: TextStyle(
                               fontSize: 11,
                               color: cs.onInverseSurface

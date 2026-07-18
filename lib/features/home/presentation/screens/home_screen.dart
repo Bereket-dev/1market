@@ -140,7 +140,7 @@ class HomeScreen extends StatelessWidget {
                           Expanded(
                             child: CompactCategoryCard(
                               title: state.s.homeCategoryCars,
-                              subtitle: 'Gawaarida',
+                              subtitle: state.s.homeCategoryCars,
                               icon: Icons.directions_car_filled,
                               color: const Color(0xFF1E40AF),
                               onTap: () => state.pushScreen(
@@ -151,7 +151,7 @@ class HomeScreen extends StatelessWidget {
                           Expanded(
                             child: CompactCategoryCard(
                               title: state.s.homeCategoryHouses,
-                              subtitle: 'Guryaha',
+                              subtitle: state.s.homeCategoryHouses,
                               icon: Icons.home_rounded,
                               color: const Color(0xFF0F766E),
                               onTap: () => state.pushScreen(
@@ -164,7 +164,7 @@ class HomeScreen extends StatelessWidget {
                           Expanded(
                             child: CompactCategoryCard(
                               title: state.s.homeCategoryLand,
-                              subtitle: 'Dhul',
+                              subtitle: state.s.homeCategoryLand,
                               icon: Icons.landscape_rounded,
                               color: const Color(0xFF92400E),
                               onTap: () => state.pushScreen(
@@ -175,7 +175,7 @@ class HomeScreen extends StatelessWidget {
                           Expanded(
                             child: CompactCategoryCard(
                               title: state.s.homeCategorySkills,
-                              subtitle: 'Xirfadlayaasha',
+                              subtitle: state.s.homeCategorySkills,
                               icon: Icons.construction_rounded,
                               color: const Color(0xFF6D28D9),
                               onTap: () => state.pushScreen(
@@ -258,17 +258,15 @@ class HomeScreen extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         padding:
                             const EdgeInsets.symmetric(horizontal: 24),
-                        child: const Row(children: [
+                        child: Row(children: [
                           TrustBadgeCard(
                             icon: Icons.home,
-                            text:
-                                'A homeowner in Kebele 03 just got verified',
+                            text: state.s.homeTrustHomeowner,
                           ),
-                          SizedBox(width: 16),
+                          const SizedBox(width: 16),
                           TrustBadgeCard(
                             icon: Icons.person,
-                            text:
-                                'A security professional driver just joined',
+                            text: state.s.homeTrustDriver,
                           ),
                         ]),
                       ),

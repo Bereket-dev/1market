@@ -16,6 +16,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
+    final s = state.s;
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -27,7 +28,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
             children: [
               const SizedBox(height: 40),
               Text(
-                'Location helps us show nearby listings',
+                s.locationTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -36,7 +37,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'We use your location to show you nearby listings and services. You can continue even if you deny permission.',
+                s.locationBody,
                 style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
               ),
               const Spacer(),
@@ -50,7 +51,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                         setState(() => _isRequesting = false);
                         await state.completeLocationOnboarding();
                       },
-                child: Text(_isRequesting ? 'Requesting...' : 'Continue'),
+                child: Text(_isRequesting ? s.locationRequesting : s.locationContinue),
               ),
               const SizedBox(height: 12),
               Center(
@@ -60,7 +61,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                       : () async {
                           await state.completeLocationOnboarding();
                         },
-                  child: const Text('Skip for now'),
+                  child: Text(s.locationSkip),
                 ),
               ),
             ],

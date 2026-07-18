@@ -34,37 +34,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           // ── Account ──────────────────────────────────────────────────────
-          _sectionLabel(
-            s.isAmharic
-                ? 'የሂሳብ ቅንብሮች'
-                : s.isSomali
-                ? 'Dejinta xisaabta'
-                : 'Account settings',
-            cs,
-          ),
+          _sectionLabel(s.settingsAccountSection, cs),
           const SizedBox(height: 10),
           _SettingsRow(
             icon: Icons.person,
             title: s.settingsProfile,
-            subtitle: s.isAmharic
-                ? 'ስም፣ ባዮ እና ፎቶ ይቀይሩ'
-                : s.isSomali
-                ? 'Beddel magaca, xogta'
-                : 'Change display name, bio, and photos',
+            subtitle: s.settingsProfileSubtitle,
           ),
           const SizedBox(height: 10),
           _SettingsRow(
             icon: Icons.lock,
-            title: s.isAmharic
-                ? 'የፓስወርድ ቀይር'
-                : s.isSomali
-                ? 'Beddel erayga sirta'
-                : 'Change password',
-            subtitle: s.isAmharic
-                ? 'የእርስዎን ፓስወርድ ይቀይሩ'
-                : s.isSomali
-                ? 'Badal eraygaaga sirta'
-                : 'Update your account password',
+            title: s.settingsChangePassword,
+            subtitle: s.settingsChangePasswordSub,
             trailingText: null,
             onTap: () {
               Navigator.of(context).push(
@@ -75,87 +56,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           _SettingsRow(
             icon: Icons.phone,
-            title: s.isAmharic
-                ? 'ስልክ ማረጋገጫ'
-                : s.isSomali
-                ? 'Xaqiijinta telefoonka'
-                : 'Phone Verification',
+            title: s.settingsPhoneVerification,
             subtitle: '+251 912 ****90 verified',
-            trailingText: s.isAmharic
-                ? 'ተረጋግጧል'
-                : s.isSomali
-                ? 'Xaqiijiyey'
-                : 'Verified',
+            trailingText: s.settingsPhoneVerified,
           ),
           const SizedBox(height: 10),
           _SettingsRow(
             icon: Icons.work,
-            title: s.isAmharic
-                ? 'ተመራጭ ምድብ'
-                : s.isSomali
-                ? 'Qaybta la doortay'
-                : 'Preferred Category',
-            subtitle: s.isAmharic
-                ? 'የቤት ውስጥ አገልግሎቶች'
-                : s.isSomali
-                ? 'Adeegyada guriga'
-                : 'Selected: HOUSEHOLD SERVICES',
+            title: s.settingsPrefCategory,
+            subtitle: 'Selected: HOUSEHOLD SERVICES',
           ),
           const SizedBox(height: 24),
 
           // ── Trust & Escrow ────────────────────────────────────────────────
-          _sectionLabel(
-            s.isAmharic
-                ? 'ደህንነት እና ኤስክሮ'
-                : s.isSomali
-                ? 'Ammaan & Escrow'
-                : 'Trust & Escrow Safety',
-            cs,
-          ),
+          _sectionLabel(s.settingsTrustSection, cs),
           const SizedBox(height: 10),
           _SettingsRow(
             icon: Icons.shield,
-            title: s.isAmharic
-                ? 'ዋስትና ማረጋገጫ'
-                : s.isSomali
-                ? 'Xaqiijinta aqoonsiga'
-                : 'ID Document Verification',
-            subtitle: s.isAmharic
-                ? 'የቀበሌ መታወቂያ ተረጋግጧል'
-                : s.isSomali
-                ? 'Aqoonsiga Kebele xaqiijiyey'
-                : 'Kebele ID verified',
-            trailingText: s.isAmharic
-                ? 'ንቁ'
-                : s.isSomali
-                ? 'Firfircoon'
-                : 'Active',
+            title: s.settingsIdVerification,
+            subtitle: s.settingsIdVerified,
+            trailingText: s.settingsIdVerified,
           ),
           const SizedBox(height: 10),
           _SettingsRow(
             icon: Icons.payment,
-            title: s.isAmharic
-                ? 'የኤስክሮ ዋሌት'
-                : s.isSomali
-                ? 'Xisaabta Escrow'
-                : 'Secure Wallet Account',
-            subtitle: s.isAmharic
-                ? 'የክፍያ ባንኮችን ያዋቅሩ'
-                : s.isSomali
-                ? 'Habaynta bangiga'
-                : 'Configure payout banks & escrow conditions',
+            title: s.settingsWallet,
+            subtitle: s.settingsWalletSub,
           ),
           const SizedBox(height: 24),
 
           // ── System preferences ────────────────────────────────────────────
-          _sectionLabel(
-            s.isAmharic
-                ? 'የስርዓት ቅንብሮች'
-                : s.isSomali
-                ? 'Doorashada nidaamka'
-                : 'System preferences',
-            cs,
-          ),
+          _sectionLabel(s.settingsSystemSection, cs),
+          const SizedBox(height: 10),
+          // ── Language selector ──────────────────────────────────────────────
+          _LanguageRow(currentLocale: appState.locale, onChanged: appState.setLocale),
           const SizedBox(height: 10),
           _SettingsToggleRow(
             icon: Icons.notifications,
@@ -198,11 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               elevation: 0,
             ),
             child: Text(
-              s.isAmharic
-                  ? 'ከሂሳብ ውጣ'
-                  : s.isSomali
-                  ? 'Ka bax xisaabta'
-                  : 'Log Out Account',
+              s.settingsLogOut,
               style: TextStyle(
                 color: cs.onErrorContainer,
                 fontWeight: FontWeight.bold,
@@ -340,6 +270,77 @@ class _SettingsToggleRow extends StatelessWidget {
               ),
             ),
             Switch(value: value, onChanged: onChanged),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Language selector row ─────────────────────────────────────────────────────
+
+class _LanguageRow extends StatelessWidget {
+  final String currentLocale;
+  final Future<void> Function(String) onChanged;
+
+  const _LanguageRow({
+    required this.currentLocale,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
+
+    final options = [
+      ('en', s.languageEnglish),
+      ('am', s.languageAmharic),
+      ('so', s.languageSomali),
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: cs.primary.withOpacity(0.1),
+              child: Icon(Icons.language, color: cs.primary),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                s.settingsLanguage,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: currentLocale,
+                isDense: true,
+                borderRadius: BorderRadius.circular(12),
+                items: options
+                    .map((opt) => DropdownMenuItem<String>(
+                          value: opt.$1,
+                          child: Text(
+                            opt.$2,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) onChanged(val);
+                },
+              ),
+            ),
           ],
         ),
       ),

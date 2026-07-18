@@ -54,7 +54,16 @@ class _KoolanAppState extends State<KoolanApp> {
             title: 'Koolan – Jigjiga Marketplace',
             debugShowCheckedModeBanner: false,
             locale: _appState.materialLocale,
-            supportedLocales: const [Locale('en'), Locale('am'), Locale('so')],
+            supportedLocales: const [Locale('en')],
+            localeResolutionCallback: (locale, supportedLocales) {
+              if (locale == null) return const Locale('en');
+              for (final supportedLocale in supportedLocales) {
+                if (supportedLocale.languageCode == locale.languageCode) {
+                  return supportedLocale;
+                }
+              }
+              return const Locale('en');
+            },
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -113,6 +122,10 @@ class _InitializingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     print('Splash build');
     final cs = Theme.of(context).colorScheme;
+    // s is not available via KoolanAppStateScope yet during init,
+    // so we read it directly from the appState passed through _RootGate.
+    final appState = KoolanAppStateScope.of(context);
+    final s = appState.s;
     return Scaffold(
       body: Center(
         child: Padding(
@@ -123,7 +136,10 @@ class _InitializingScreen extends StatelessWidget {
               if (error == null) ...[
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text('Loading…', style: TextStyle(color: cs.onSurfaceVariant)),
+                Text(
+                  s.initLoading,
+                  style: TextStyle(color: cs.onSurfaceVariant),
+                ),
               ] else ...[
                 Icon(Icons.error_outline, color: cs.error, size: 48),
                 const SizedBox(height: 16),
@@ -133,7 +149,7 @@ class _InitializingScreen extends StatelessWidget {
                   style: TextStyle(color: cs.error),
                 ),
                 const SizedBox(height: 16),
-                FilledButton(onPressed: onRetry, child: const Text('Retry')),
+                FilledButton(onPressed: onRetry, child: Text(s.initRetry)),
               ],
             ],
           ),

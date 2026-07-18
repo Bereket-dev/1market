@@ -38,6 +38,19 @@ class Listing with SyncableEntity {
   /// True when posted by the current user.
   final bool isOwnedByCurrentUser;
 
+  // ── Translation fields ──────────────────────────────────────────────────────
+  /// The language code of the original post (e.g. 'en', 'am', 'so').
+  final String originalLanguage;
+
+  /// Machine-translated title variants keyed by locale code.
+  /// e.g. {"en": "Toyota Land Cruiser", "am": "...", "so": "..."}
+  /// Only populated for target languages — the source language value
+  /// is always read from [title] directly, never from this map.
+  final Map<String, String> titleTranslations;
+
+  /// Machine-translated description variants keyed by locale code.
+  final Map<String, String> descriptionTranslations;
+
   // Not const: the initializer list uses DateTime.now(), which is a runtime
   // call and can never be a compile-time constant.
   Listing({
@@ -68,7 +81,28 @@ class Listing with SyncableEntity {
     this.remoteUpdatedAt,
     this.syncStatus = SyncStatus.synced,
     this.isOwnedByCurrentUser = false,
+    this.originalLanguage = 'en',
+    this.titleTranslations = const {},
+    this.descriptionTranslations = const {},
   }) : localUpdatedAt = localUpdatedAt ?? DateTime.now();
+
+  /// Returns the title in [locale], falling back to [title] if no translation
+  /// exists yet for that locale.
+  String titleForLocale(String locale) {
+    if (locale == originalLanguage) return title;
+    return titleTranslations[locale] ?? title;
+  }
+
+  /// Returns the description in [locale], falling back to [description].
+  String descriptionForLocale(String locale) {
+    if (locale == originalLanguage) return description;
+    return descriptionTranslations[locale] ?? description;
+  }
+
+  /// Returns true when [locale] is a machine-translated variant
+  /// (i.e. viewing in a different language than the original).
+  bool isTranslatedFor(String locale) =>
+      locale != originalLanguage && titleTranslations.containsKey(locale);
 
   factory Listing.fromJson(
     Map<String, dynamic> json, {
@@ -77,6 +111,17 @@ class Listing with SyncableEntity {
   }) {
     final createdAt = DateTime.tryParse(json['created_at'] as String? ?? '');
     final updatedAt = DateTime.tryParse(json['updated_at'] as String? ?? '');
+
+    Map<String, String> _parseTranslations(dynamic raw) {
+      if (raw == null) return const {};
+      if (raw is Map) {
+        return Map<String, String>.fromEntries(
+          raw.entries.map((e) => MapEntry(e.key.toString(), e.value.toString())),
+        );
+      }
+      return const {};
+    }
+
     return Listing(
       id: json['id'] as String,
       category: json['category'] as String,
@@ -105,6 +150,9 @@ class Listing with SyncableEntity {
       remoteUpdatedAt: updatedAt,
       syncStatus: SyncStatus.synced,
       isOwnedByCurrentUser: isOwnedByCurrentUser,
+      originalLanguage: json['original_language'] as String? ?? 'en',
+      titleTranslations: _parseTranslations(json['title_translations']),
+      descriptionTranslations: _parseTranslations(json['description_translations']),
     );
   }
 
@@ -134,9 +182,13 @@ class Listing with SyncableEntity {
     'seller_id': sellerId,
     'created_at': localUpdatedAt.toIso8601String(),
     'updated_at': remoteUpdatedAt?.toIso8601String(),
+    'original_language': originalLanguage,
+    'title_translations': titleTranslations,
+    'description_translations': descriptionTranslations,
   };
 
-  Listing copyWith({    String? id,
+  Listing copyWith({
+    String? id,
     String? category,
     String? title,
     String? price,
@@ -163,6 +215,9 @@ class Listing with SyncableEntity {
     DateTime? remoteUpdatedAt,
     SyncStatus? syncStatus,
     bool? isOwnedByCurrentUser,
+    String? originalLanguage,
+    Map<String, String>? titleTranslations,
+    Map<String, String>? descriptionTranslations,
   }) {
     return Listing(
       id: id ?? this.id,
@@ -192,6 +247,9 @@ class Listing with SyncableEntity {
       remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isOwnedByCurrentUser: isOwnedByCurrentUser ?? this.isOwnedByCurrentUser,
+      originalLanguage: originalLanguage ?? this.originalLanguage,
+      titleTranslations: titleTranslations ?? this.titleTranslations,
+      descriptionTranslations: descriptionTranslations ?? this.descriptionTranslations,
     );
   }
 }

@@ -52,7 +52,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       setState(
-        () => _error = 'Supabase is not available. Check configuration.',
+        () => _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable,
       );
       if (mounted) setState(() => _isLoading = false);
       return;
@@ -103,7 +103,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       setState(
-        () => _error = 'Supabase is not available. Check configuration.',
+        () => _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable,
       );
       if (mounted) setState(() => _isLoading = false);
       return;
@@ -120,7 +120,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
-        setState(() => _error = 'Google sign-in was cancelled.');
+        setState(() => _error = KoolanAppStateScope.of(context).s.authGoogleCancelled);
         return;
       }
 

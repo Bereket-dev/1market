@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/services/app_state.dart';
 
 class PostWizardScreen extends StatefulWidget {
@@ -48,7 +49,9 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
                 Text(state.s.wizardTitle,
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w900)),
-                Text('Step ${state.postStep} of 4',
+                Text(
+                    state.s.wizardStepOf.replaceAll(
+                        '{step}', '${state.postStep}'),
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: cs.onSurfaceVariant)),
@@ -134,28 +137,28 @@ class _Step1 extends StatelessWidget {
   const _Step1(
       {required this.state, required this.cs, required this.onRebuild});
 
-  static const _cats = [
-    ('Professional Service', 'Post a skilled worker profile.', Icons.construction, 'SKILLS'),
-    ('Vehicles / Cars', 'Sell or rent cars, motorbikes, machinery.', Icons.directions_car, 'CARS'),
-    ('Real Estate / Houses', 'List houses, apartments, villas.', Icons.home, 'HOUSES'),
-    ('Land / Plots', 'Sell or lease farming fields or commercial sites.', Icons.landscape, 'LAND'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final s = state.s;
+    final cats = [
+      (s.wizardCatSkillsTitle, s.wizardCatSkillsDesc, Icons.construction, 'SKILLS'),
+      (s.wizardCatCarsTitle,   s.wizardCatCarsDesc,   Icons.directions_car, 'CARS'),
+      (s.wizardCatHousesTitle, s.wizardCatHousesDesc, Icons.home,           'HOUSES'),
+      (s.wizardCatLandTitle,   s.wizardCatLandDesc,   Icons.landscape,      'LAND'),
+    ];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Start posting',
+      Text(s.wizardStartPosting,
           style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: cs.onSurface)),
       const SizedBox(height: 8),
       Text(
-        'Select what type of ad you\'d like to list in Jigjiga.',
+        s.wizardSelectType,
         style: TextStyle(color: cs.onSurfaceVariant),
       ),
       const SizedBox(height: 24),
-      ..._cats.map((c) {
+      ...cats.map((c) {
         final (title, desc, icon, key) = c;
         final sel = state.postCategory == key;
         return Padding(
@@ -255,59 +258,53 @@ class _Step2 extends StatelessWidget {
 
   // Returns (titleHint, priceHint, priceLabel) per category
   static ({String titleHint, String priceLabel, String priceHint}) _hints(
-      String cat) {
+      String cat, AppStrings strings) {
     return switch (cat) {
       'CARS' => (
-          titleHint: 'e.g. 2022 Toyota Land Cruiser Prado',
-          priceLabel: 'Asking Price',
-          priceHint: 'e.g. ETB 2,800,000 or \$42,500',
+          titleHint: strings.wizardCarsTitleHint,
+          priceLabel: strings.wizardCarsPriceLabel,
+          priceHint: strings.wizardCarsPriceHint,
         ),
       'HOUSES' => (
-          titleHint: 'e.g. Modern 4-Bedroom Villa in Kebele 04',
-          priceLabel: 'Price / Rent',
-          priceHint: 'e.g. ETB 145,000 or \$450 /mo',
+          titleHint: strings.wizardHousesTitleHint,
+          priceLabel: strings.wizardHousesPriceLabel,
+          priceHint: strings.wizardHousesPriceHint,
         ),
       'LAND' => (
-          titleHint: 'e.g. Residential Plot in Kebele 02',
-          priceLabel: 'Asking Price',
-          priceHint: 'e.g. ETB 4,200,000',
+          titleHint: strings.wizardLandTitleHint,
+          priceLabel: strings.wizardLandPriceLabel,
+          priceHint: strings.wizardLandPriceHint,
         ),
       _ => (
           // SKILLS
-          titleHint: 'e.g. Hodan Ahmed – Professional Housekeeper',
-          priceLabel: 'Rate / Fee',
-          priceHint: 'e.g. \$45 /hr  or  Unlock for 30 ETB',
+          titleHint: strings.wizardSkillsTitleHint,
+          priceLabel: strings.wizardSkillsPriceLabel,
+          priceHint: strings.wizardSkillsPriceHint,
         ),
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    final h = _hints(state.postCategory);
-    final catLabel = switch (state.postCategory) {
-      'CARS' => 'vehicle',
-      'HOUSES' => 'property',
-      'LAND' => 'land plot',
-      _ => 'service',
-    };
+    final h = _hints(state.postCategory, state.s);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Details & Title',
+      Text(state.s.wizardDetailsTitle,
           style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: cs.onSurface)),
       const SizedBox(height: 8),
-      Text('Describe your $catLabel with a clear title and pricing.',
+      Text(state.s.wizardDetailsSubtitle,
           style: TextStyle(color: cs.onSurfaceVariant)),
       const SizedBox(height: 24),
       _field(
-        state.postCategory == 'SKILLS' ? 'Your Name / Title' : 'Title',
+        state.postCategory == 'SKILLS' ? state.s.wizardNameTitleLabel : state.s.wizardTitleLabel,
         state.postTitle,
         h.titleHint,
         (v) => state.postTitle = v,
         validator: (v) =>
-            v == null || v.trim().isEmpty ? 'Title is required' : null,
+            v == null || v.trim().isEmpty ? state.s.wizardTitleRequired : null,
       ),
       const SizedBox(height: 16),
       _field(
@@ -316,10 +313,10 @@ class _Step2 extends StatelessWidget {
         h.priceHint,
         (v) => state.postPrice = v,
         validator: (v) =>
-            v == null || v.trim().isEmpty ? 'Price is required' : null,
+            v == null || v.trim().isEmpty ? state.s.wizardPriceRequired : null,
       ),
       const SizedBox(height: 16),
-      Text('Location Zone',
+      Text(state.s.wizardLocationZone,
           style: TextStyle(
               fontWeight: FontWeight.bold, color: cs.onSurface)),
       const SizedBox(height: 8),
@@ -358,13 +355,13 @@ class _Step3 extends StatelessWidget {
     final cat = state.postCategory;
     final fields = _fieldsFor(cat);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Specifications',
+      Text(state.s.wizardSpecsTitle,
           style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: cs.onSurface)),
       const SizedBox(height: 8),
-      Text('Provide specs for ${cat.toLowerCase()}.',
+      Text(state.s.wizardSpecsSubtitle,
           style: TextStyle(color: cs.onSurfaceVariant)),
       const SizedBox(height: 24),
       ...fields.asMap().entries.expand((e) {
@@ -426,16 +423,16 @@ class _Step4 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Finalize Post',
+      Text(state.s.wizardFinalizeTitle,
           style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: cs.onSurface)),
       const SizedBox(height: 8),
-      Text('Write a detailed description and attach media.',
+      Text(state.s.wizardFinalizeSubtitle,
           style: TextStyle(color: cs.onSurfaceVariant)),
       const SizedBox(height: 24),
-      Text('Description',
+      Text(state.s.wizardDescriptionLabel,
           style: TextStyle(
               fontWeight: FontWeight.bold, color: cs.onSurface)),
       const SizedBox(height: 8),
@@ -445,7 +442,7 @@ class _Step4 extends StatelessWidget {
         maxLines: 4,
         style: TextStyle(color: cs.onSurface),
         decoration: InputDecoration(
-          hintText: 'Briefly explain condition, location merits…',
+          hintText: state.s.wizardDescriptionHint,
           hintStyle: TextStyle(
               color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
           filled: true,
@@ -474,8 +471,8 @@ class _Step4 extends StatelessWidget {
           onTap: () {
             state.postMainPhotoAttached = true;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Mock photo attached successfully!')),
+              SnackBar(
+                  content: Text(state.s.wizardPhotoMock)),
             );
             onRebuild();
           },
@@ -496,13 +493,13 @@ class _Step4 extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   state.postMainPhotoAttached
-                      ? '1 file attached'
-                      : 'Attach media files',
+                      ? state.s.wizardAttached
+                      : state.s.wizardAttachMedia,
                   style: TextStyle(
                       fontWeight: FontWeight.bold, color: cs.onSurface),
                 ),
                 const SizedBox(height: 4),
-                Text('JPG, PNG, MP4 up to 50MB',
+                Text(state.s.wizardMediaHint,
                     style: TextStyle(
                         fontSize: 12,
                         color:

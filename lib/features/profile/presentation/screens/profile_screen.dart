@@ -126,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         fontSize: 16,
                                         color: cs.onSurface)),
                               ]),
-                              Text('12 Reviews',
+                              Text('12 ${state.s.profileReviews}',
                                   style: TextStyle(
                                       fontSize: 10,
                                       color: cs.onSurfaceVariant)),
@@ -141,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                       color: cs.onSurface)),
-                              Text('Jobs Done',
+                              Text(state.s.profileJobsDone,
                                   style: TextStyle(
                                       fontSize: 10,
                                       color: cs.onSurfaceVariant)),
@@ -156,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                       color: cs.tertiary)),
-                              Text('Response Rate',
+                              Text(state.s.profileResponseRate,
                                   style: TextStyle(
                                       fontSize: 10,
                                       color: cs.onSurfaceVariant)),
@@ -171,6 +171,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Row(
                       children: ['Services', 'About', 'Reviews'].map((tab) {
                         final isSel = _activeTab == tab;
+                        final label = switch (tab) {
+                          'Services' => state.s.profileTabServices,
+                          'About'    => state.s.profileTabAbout,
+                          _          => state.s.profileTabReviews,
+                        };
                         return Expanded(
                           child: Padding(
                             padding:
@@ -190,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     borderRadius:
                                         BorderRadius.circular(20)),
                               ),
-                              child: Text(tab,
+                              child: Text(label,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12)),
@@ -237,6 +242,7 @@ class _ServicesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
     if (myListings.isEmpty) {
       return Column(children: [
         const SizedBox(height: 20),
@@ -246,14 +252,14 @@ class _ServicesTab extends StatelessWidget {
           child: Icon(Icons.work_outline, size: 36, color: cs.primary),
         ),
         const SizedBox(height: 16),
-        Text('No services posted yet',
+        Text(s.profileNoServices,
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: cs.onSurface)),
         const SizedBox(height: 4),
         Text(
-          'Tap the central + button to publish your professional service ad instantly.',
+          s.profileNoServicesSub,
           style: TextStyle(
               color: cs.onSurfaceVariant.withValues(alpha: 0.65),
               fontSize: 13),
@@ -337,8 +343,9 @@ class _AboutTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Professional Summary',
+      Text(s.profileProfSummary,
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -367,13 +374,13 @@ class _AboutTab extends StatelessWidget {
               Row(children: [
                 Icon(Icons.shield, color: cs.tertiary),
                 const SizedBox(width: 8),
-                Text('Escrow Safety Vault',
+                Text(s.profileEscrowTitle,
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                         color: cs.onSurface)),
               ]),
-              Text('Active',
+              Text(s.profileEscrowActive,
                   style: TextStyle(
                       color: cs.tertiary,
                       fontWeight: FontWeight.bold,
@@ -383,7 +390,7 @@ class _AboutTab extends StatelessWidget {
             Divider(color: cs.outlineVariant.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Secured Escrow Wallet',
+              Text(s.profileEscrowWallet,
                   style: TextStyle(
                       color: cs.onSurfaceVariant, fontSize: 13)),
               Text('15,400 ETB',
@@ -396,7 +403,7 @@ class _AboutTab extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 20),
-      Text('Verified Specialties',
+      Text(s.profileSpecialties,
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,

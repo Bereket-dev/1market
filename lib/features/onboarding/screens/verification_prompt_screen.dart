@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/services/app_state.dart';
+import 'fayda_verification_screen.dart';
 
 class VerificationPromptScreen extends StatelessWidget {
   const VerificationPromptScreen({super.key});
@@ -7,6 +8,7 @@ class VerificationPromptScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
+    final s = state.s;
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -18,7 +20,7 @@ class VerificationPromptScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 40),
               Text(
-                'Verify your account with Fayda',
+                s.verifyTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -27,18 +29,38 @@ class VerificationPromptScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Verified accounts build trust. You can verify now, or skip and continue using the app immediately.',
+                s.verifyBody,
                 style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
               ),
               const Spacer(),
-              FilledButton(
-                onPressed: () => state.completeVerificationOnboarding(true),
-                child: const Text('Verify now'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    // Navigate to the full Fayda verification UI shell.
+                    // When it completes (verified or skipped), delegate to
+                    // completeVerificationOnboarding which transitions to ready.
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) => KoolanAppStateScope(
+                          notifier: state,
+                          child: FaydaVerificationScreen(
+                            onComplete: state.completeVerificationOnboarding,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(s.verifyNow),
+                ),
               ),
               const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => state.completeVerificationOnboarding(false),
-                child: const Text('Skip for now'),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => state.completeVerificationOnboarding(false),
+                  child: Text(s.verifySkip),
+                ),
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
@@ -61,10 +62,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final appState = KoolanAppStateScope.of(context);
     final profile = appState.profile;
     final cs = Theme.of(context).colorScheme;
+    final s = appState.s;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(s.editProfileTitle),
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
         elevation: 0,
@@ -76,23 +78,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _field('Display name', _nameController),
+              _field(s.editProfileDisplayName, _nameController, s),
               const SizedBox(height: 12),
-              _field('Bio', _bioController, maxLines: 3),
+              _field(s.editProfileBio, _bioController, s, maxLines: 3),
               const SizedBox(height: 12),
               _field(
-                'Phone',
+                s.settingsPhoneLabel,
                 _phoneController,
+                s,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 12),
-              _field('City', _cityController),
+              _field(s.settingsCityLabel, _cityController, s),
               const SizedBox(height: 24),
 
               // ── Save button ───────────────────────────────────────────────
               FilledButton(
                 onPressed: _isSaving ? null : () => _save(appState),
-                child: Text(_isSaving ? 'Saving...' : 'Save changes'),
+                child: Text(_isSaving ? s.editProfileSaving : s.editProfileSaveButton),
               ),
 
               // ── Sync status badge ─────────────────────────────────────────
@@ -118,7 +121,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _field(
     String label,
-    TextEditingController controller, {
+    TextEditingController controller,
+    AppStrings s, {
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
   }) {
@@ -131,9 +135,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
       validator: (value) {
-        if (label == 'Display name' &&
+        if (label == s.editProfileDisplayName &&
             (value == null || value.trim().isEmpty)) {
-          return 'Display name is required';
+          return s.editProfileDisplayNameRequired;
         }
         return null;
       },

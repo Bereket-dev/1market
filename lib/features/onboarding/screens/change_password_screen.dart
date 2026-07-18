@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../shared/services/app_state.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -25,11 +26,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
+    final s = KoolanAppStateScope.of(context).s;
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Supabase not configured')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(s.supabaseNotConfigured)));
       setState(() => _isSaving = false);
       return;
     }
@@ -39,18 +40,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         UserAttributes(password: _passwordController.text),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Password updated')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(KoolanAppStateScope.of(context).s.changePasswordSuccess)));
       Navigator.of(context).pop();
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -58,8 +56,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = KoolanAppStateScope.of(context).s;
     return Scaffold(
-      appBar: AppBar(title: const Text('Change password')),
+      appBar: AppBar(title: Text(s.changePasswordTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -70,12 +69,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               child: TextFormField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'New password',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: s.changePasswordLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) {
-                  if (v == null || v.length < 6) return 'Minimum 6 characters';
+                  if (v == null || v.length < 6) return s.changePasswordMin;
                   return null;
                 },
               ),
@@ -85,7 +84,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: _isSaving ? null : _updatePassword,
-                child: Text(_isSaving ? 'Saving…' : 'Change password'),
+                child: Text(_isSaving ? s.changePasswordSaving : s.changePasswordButton),
               ),
             ),
           ],

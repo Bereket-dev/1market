@@ -183,6 +183,50 @@ class AppStrings {
       _t('Photo attached ✓', 'ፎቶ ተያይዟል ✓', 'Sawirka la daray ✓');
   String get wizardTitleLabel => _t('Title', 'ርዕስ', 'Cinwaan');
   String get wizardPriceLabel => _t('Price', 'ዋጋ', 'Qiimaha');
+  String get wizardCarsTitleHint => _t(
+    'e.g. 2022 Toyota Land Cruiser Prado',
+    'ለምሳሌ 2022 Toyota Land Cruiser Prado',
+    'tusaale 2022 Toyota Land Cruiser Prado',
+  );
+  String get wizardCarsPriceLabel => _t('Asking Price', 'የመጠየቅ ዋጋ', 'Qiimaha la codsaday');
+  String get wizardCarsPriceHint => _t(
+    'e.g. ETB 2,800,000',
+    'ለምሳሌ ETB 2,800,000',
+    'tusaale ETB 2,800,000',
+  );
+  String get wizardHousesTitleHint => _t(
+    'e.g. Modern 4-Bedroom Villa in Kebele 04',
+    'ለምሳሌ 4-መኝታ ቤት በኬቤሌ 04',
+    'tusaale guri 4-qol ah oo ku yaal Kebele 04',
+  );
+  String get wizardHousesPriceLabel => _t('Price / Rent', 'ዋጋ / ኪራይ', 'Qiimaha / Kire');
+  String get wizardHousesPriceHint => _t(
+    'e.g. ETB 145,000 /mo',
+    'ለምሳሌ ETB 145,000 /ወር',
+    'tusaale ETB 145,000 /bil',
+  );
+  String get wizardLandTitleHint => _t(
+    'e.g. Residential Plot in Kebele 02',
+    'ለምሳሌ በኬቤሌ 02 የመኖሪያ መሬት',
+    'tusaale Dhul guri oo ku yaal Kebele 02',
+  );
+  String get wizardLandPriceLabel => _t('Asking Price', 'የመጠየቅ ዋጋ', 'Qiimaha la codsaday');
+  String get wizardLandPriceHint => _t(
+    'e.g. ETB 4,200,000',
+    'ለምሳሌ ETB 4,200,000',
+    'tusaale ETB 4,200,000',
+  );
+  String get wizardSkillsTitleHint => _t(
+    'e.g. Hodan Ahmed – Professional Housekeeper',
+    'ለምሳሌ ሆዳን አህመድ – ባለሙያ ቤት አያያዥ',
+    'tusaale Hodan Ahmed – Nadiifiyihii xirfadlaha',
+  );
+  String get wizardSkillsPriceLabel => _t('Rate / Fee', 'ክፍያ / ክፍል', 'Kharash / Khidmad');
+  String get wizardSkillsPriceHint => _t(
+    'e.g. ETB 45 /hr or unlock for ETB 30',
+    'ለምሳሌ ETB 45 /ሰዓት ወይም ETB 30 ለመክፈት',
+    'tusaale ETB 45 /saac ama furitaanka ETB 30',
+  );
   String get wizardDescLabel => _t('Description', 'መግለጫ', 'Sharaxaad');
   String get wizardLocationLabel => _t('Location', 'ቦታ', 'Goobta');
   String get wizardAddressLabel =>
@@ -237,4 +281,348 @@ class AppStrings {
   String get settingsNameLabel => _t('Full Name', 'ሙሉ ስም', 'Magaca buuxa');
   String get settingsPhoneLabel => _t('Phone', 'ስልክ', 'Telefoonka');
   String get settingsCityLabel => _t('City', 'ከተማ', 'Magaalada');
+
+  // ── Location Permission Screen ───────────────────────────────────────────────
+  String get locationTitle =>
+      _t('Location helps us show nearby listings', 'አቅራቢያዎን ለማሳወቅ ቦታዎን ይጠቀማሉ', 'Goobta waxay na caawisaa inaan kuu tusinno xayaysiisyada agagaarka');
+  String get locationBody => _t(
+    'We use your location to show you nearby listings and services. You can continue even if you deny permission.',
+    'ቦታዎን ለአቅራቢያ ዝርዝሮች እና አገልግሎቶች ለማሳወቅ እንጠቀማለን። ፈቃድ ቢከለከሉም መቀጠል ይችላሉ።',
+    'Goobta waxaan u isticmaalnaa in aan kuu tusno xayaysiisyada iyo adeegyada agagaarka. Waxaad sii wadi kartaa xitaa haddaad diiddo.',
+  );
+  String get locationRequesting => _t('Requesting...', 'በጥያቄ ላይ...', 'Codsanaya...');
+  String get locationContinue => _t('Continue', 'ቀጥል', 'Sii wad');
+  String get locationSkip => _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
+
+  // ── Goal Selection Screen ────────────────────────────────────────────────────
+  String get goalTitle => _t('What are you here to do?', 'ለምን መጡ?', 'Maxaad halkan u timid?');
+  String get goalSubtitle => _t(
+    'Choose one goal to get started. You can still explore all features later.',
+    'ለመጀመር አንድ ግብ ይምረጡ። ሁሉንም ባህሪያት ቆይተው ማሰስ ይችላሉ።',
+    'Dooro hal yool si aad u bilowdo. Waxaad baadi-goob ku samayn kartaa dhammaan astaamaha dambe.',
+  );
+  String get goalPostListing => _t('Post a listing', 'ማስታወቂያ ለጥፍ', 'Ku daji xayaysiis');
+  String get goalHireSkilled => _t('Hire a skilled person', 'ብቃት ያለው ቅጠር', 'Shaqaale xirfadleh kiri');
+  String get goalFindJob => _t('Find a job', 'ሥራ ፈልግ', 'Shaqo raadi');
+  String get goalFindCar => _t('Find a car', 'መኪና ፈልግ', 'Gaari raadi');
+  String get goalRentHome => _t('Rent a home', 'ቤት ተከራይ', 'Guri kiri');
+  String get goalBuyLand => _t('Buy land', 'መሬት ግዛ', 'Dhul iibso');
+  String get goalContinue => _t('Continue', 'ቀጥል', 'Sii wad');
+
+  // ── Verification Prompt Screen ───────────────────────────────────────────────
+  String get verifyTitle =>
+      _t('Verify your account with Fayda', 'መለያዎን በፋይዳ ያረጋግጡ', 'Xaqiiji xisaabtaada Fayda');
+  String get verifyBody => _t(
+    'Verified accounts build trust. You can verify now, or skip and continue using the app immediately.',
+    'የተረጋገጡ መለያዎች እምነት ይፈጥራሉ። አሁን ማረጋገጥ ወይም ዝለው ወዲያውኑ መጠቀም ይችላሉ።',
+    'Xisaabaha la xaqiijiyey waxay dhisaan kalsoonida. Waxaad xaqiijin kartaa hadda, ama ka bood oo isla markiiba isticmaal.',
+  );
+  String get verifyNow => _t('Verify now', 'አሁን ያረጋግጡ', 'Hadda xaqiiji');
+  String get verifySkip => _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
+
+  // ── App init / loading screen ────────────────────────────────────────────────
+  String get initLoading => _t('Loading…', 'በመጫን ላይ…', 'Waa la soo rarayaa…');
+  String get initRetry => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
+
+  // ── Category Picker Sheet ────────────────────────────────────────────────────
+  String get pickerTitle => _t('What would you like to post?', 'ምን ማስታወቂያ ይለጥፋሉ?', 'Maxaad rabta inaad ku dajiso?');
+  String get pickerCancel => _t('Cancel', 'ሰርዝ', 'Jooji');
+
+  // ── Recent Listing Card ──────────────────────────────────────────────────────
+  String get cardTalkToSeller => _t('Talk to Seller', 'ሻጩን ያናግሩ', 'Iibiyaha la hadal');
+  String get cardCallOwner => _t('Call Owner', 'ባለቤቱን ይደውሉ', 'Milkiilaha u wac');
+  String get cardKmAway => _t('2.4 km away', '2.4 ኪ.ሜ ርቀት', '2.4 km fog');
+
+  // ── Post Wizard ─────────────────────────────────────────────────────────────
+  String get wizardStepOf =>
+      _t('Step {step} of 4', 'ደረጃ {step} ከ 4', 'Tallaabo {step} oo ah 4');
+  String get wizardStartPosting => _t('Start posting', 'ማስታወቂያ ጀምር', 'Bilow dajinta');
+  String get wizardSelectType =>
+      _t("Select what type of ad you'd like to list in Jigjiga.", "በጂግጂጋ ምን ዓይነት ማስታወቂያ ማስቀመጥ ይፈልጋሉ?", "Xulo nooca xayaysiiska aad rabto inaad ku dajiso Jigjiga.");
+  String get wizardCatSkillsTitle => _t('Professional Service', 'ሙያዊ አገልግሎት', 'Adeeg xirfadeed');
+  String get wizardCatSkillsDesc => _t('Post a skilled worker profile.', 'የብቃት ሰራተኛ መገለጫ ያስቀምጡ።', 'Ku daji xogta shaqaalaha xirfadlaha ah.');
+  String get wizardCatCarsTitle => _t('Vehicles / Cars', 'ተሽከርካሪዎች / መኪናዎች', 'Baabuurta / Gawaari');
+  String get wizardCatCarsDesc => _t('Sell or rent cars, motorbikes, machinery.', 'መኪናዎች፣ ሞተርሳይክሎች እና ማሽነሪ ይሸጡ ወይም ያከራዩ።', 'Iib ama kiri gawaarida, mootorada, mishiinnada.');
+  String get wizardCatHousesTitle => _t('Real Estate / Houses', 'ሪል ስቴት / ቤቶች', 'Guriyaha / Dhismaha');
+  String get wizardCatHousesDesc => _t('List houses, apartments, villas.', 'ቤቶች፣ አፓርትማዎች እና ቪላዎች ያስቀምጡ።', 'Ku daji guryaha, dabaqyada, villada.');
+  String get wizardCatLandTitle => _t('Land / Plots', 'መሬት / ቦታዎች', 'Dhulka / Goobaha');
+  String get wizardCatLandDesc => _t('Sell or lease farming fields or commercial sites.', 'የእርሻ ቦታዎችን ወይም የንግድ ቦታዎችን ይሸጡ ወይም ያከራዩ።', 'Iib ama kiri beerta beeraha ama goobaha ganacsiga.');
+  String get wizardDetailsTitle => _t('Details & Title', 'ዝርዝሮች እና ርዕስ', 'Faahfaahin & Cinwaan');
+  String get wizardDetailsSubtitle =>
+      _t('Describe your listing with a clear title and pricing.', 'ዝርዝርዎን ግልጽ ርዕስ እና ዋጋ ያስቀምጡ።', 'Si cad uga sheeg xayaysiiskaaga cinwaan iyo qiimaha.');
+  String get wizardTitleRequired => _t('Title is required', 'ርዕስ ያስፈልጋል', 'Cinwaanka waa lagama maarmaan');
+  String get wizardPriceRequired => _t('Price is required', 'ዋጋ ያስፈልጋል', 'Qiimaha waa lagama maarmaan');
+  String get wizardLocationZone => _t('Location Zone', 'የቦታ ዞን', 'Aagga goobta');
+  String get wizardSpecsTitle => _t('Specifications', 'ዝርዝር ባህሪዎች', 'Sifooyinka');
+  String get wizardSpecsSubtitle =>
+      _t('Provide specs for your listing.', 'ለዝርዝርዎ ዝርዝር ባህሪዎች ያስቀምጡ።', 'Ku dar sifooyinka xayaysiiskaaga.');
+  String get wizardFinalizeTitle => _t('Finalize Post', 'ማስታወቂያ ጨርስ', 'Dhamaystir dajinta');
+  String get wizardFinalizeSubtitle =>
+      _t('Write a detailed description and attach media.', 'ዝርዝር መግለጫ ጻፉ እና ሚዲያ ያያይዙ።', 'Qor sharaxaad faahfaahsan oo ku dar warbaahinta.');
+  String get wizardDescriptionLabel => _t('Description', 'መግለጫ', 'Sharaxaad');
+  String get wizardDescriptionHint =>
+      _t('Briefly explain condition, location merits…', 'ሁኔታ እና የቦታ ጥቅሞች ይግለጹ…', 'Si gaaban u sharax xaalada iyo faa\'iidooyinka goobta…');
+  String get wizardAttachMedia => _t('Attach media files', 'ሚዲያ ፋይሎች ያያይዙ', 'Ku dar faylalka warbaahinta');
+  String get wizardAttached => _t('1 file attached', '1 ፋይል ተያይዟል', '1 fayl ayaa la daray');
+  String get wizardMediaHint => _t('JPG, PNG, MP4 up to 50MB', 'JPG, PNG, MP4 እስከ 50MB', 'JPG, PNG, MP4 ilaa 50MB');
+
+  // ── Sync Status Badge ────────────────────────────────────────────────────────
+  String get syncLocal => _t('Saved on this device only', 'በዚህ መሣሪያ ብቻ ተቀምጧል', 'Kaliya ku kaydsan qalabkan');
+  String get syncPending => _t('Sending', 'በመላክ ላይ', 'Waa la diraya');
+  String get syncSynced => _t('Synced', 'ተመሳስሏል', 'La waafajiyey');
+  String get syncFailed => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
+
+  // ── Messages Screen ──────────────────────────────────────────────────────────
+  String get messagesRefreshed => _t('Chat list updated', 'የቻት ዝርዝር ታደሰ', 'Liiska sheekada waa la cusboonaysiiyey');
+  String get messagesSearchHint => _t('Search messages...', 'መልዕክቶች ፈልግ...', 'Raadi farriimaha...');
+  String get messagesFilterAll => _t('All', 'ሁሉም', 'Dhammaan');
+  String get messagesFilterUnread => _t('Unread', 'ያልተነበቡ', 'aan la aqoon');
+  String get messagesFilterArchived => _t('Archived', 'የተቀዱ', 'La kaydiyey');
+  String get messagesJustNow => _t('Just now', 'አሁን ነው', 'Hadda ayuu ahaa');
+  String get messagesNoMessages => _t('No messages yet', 'ምንም መልዕክት የለም', 'Wali farriin ma jirto');
+
+  // ── Active Chat Screen ───────────────────────────────────────────────────────
+  String get chatSharePhone => _t('Share phone number', 'ስልክ ቁጥር ያጋሩ', 'La wadaag lambarka telefoonka');
+  String get chatPhoneShared => _t('Phone number shared with this contact.', 'ስልክ ቁጥር ከዚህ እውቂያ ጋር ተጋርቷል።', 'Lambarka telefoonku wuxuu la wadaagay xiriirkan.');
+
+  // ── Profile Screen ───────────────────────────────────────────────────────────
+  String get profileReviews => _t('Reviews', 'ግምገማዎች', 'Dib-u-eegisyada');
+  String get profileJobsDone => _t('Jobs Done', 'የተጠናቀቁ ሥራዎች', 'Shaqooyinka la dhammeeyey');
+  String get profileResponseRate => _t('Response Rate', 'የምላሽ ደረጃ', 'Heerka jawaabta');
+  String get profileTabServices => _t('Services', 'አገልግሎቶች', 'Adeegyada');
+  String get profileTabAbout => _t('About', 'ስለ', 'Ku saabsan');
+  String get profileTabReviews => _t('Reviews', 'ግምገማዎች', 'Dib-u-eegisyada');
+  String get profileNoServices => _t('No services posted yet', 'ምንም አገልግሎቶች አልተለጠፉም', 'Wali adeeg la ma dajin');
+  String get profileNoServicesSub => _t(
+    'Tap the central + button to publish your professional service ad instantly.',
+    'ወዲያውኑ ሙያዊ አገልግሎት ማስታወቂያ ለማስቀመጥ መሃሉን + ይጫኑ።',
+    'Taabo badhanka dhexe + si aad isla markiiba u daabacdo xayaysiiskaaga adeegga xirfadeed.',
+  );
+  String get profileProfSummary => _t('Professional Summary', 'ሙያዊ ማጠቃለያ', 'Kooban xirfadeed');
+  String get profileEscrowTitle => _t('Escrow Safety Vault', 'የኤስክሮ ደህንነት ካቢኔ', 'Khisaanada Ammaan ee Escrow');
+  String get profileEscrowActive => _t('Active', 'ንቁ', 'Firfircoon');
+  String get profileEscrowWallet => _t('Secured Escrow Wallet', 'የተጠበቀ የኤስክሮ ዋሌት', 'Boorso Escrow oo Ammaan ah');
+  String get profileSpecialties => _t('Verified Specialties', 'የተረጋገጡ ልዩ ሙያዎች', 'Takhasuusyada la Xaqiijiyey');
+
+  // ── Settings Screen ──────────────────────────────────────────────────────────
+  String get settingsAccountSection => _t('Account settings', 'የሂሳብ ቅንብሮች', 'Dejinta xisaabta');
+  String get settingsProfileSubtitle =>
+      _t('Change display name, bio, and photos', 'ስም፣ ባዮ እና ፎቶ ይቀይሩ', 'Beddel magaca, xogta');
+  String get settingsChangePassword => _t('Change password', 'የፓስወርድ ቀይር', 'Beddel erayga sirta');
+  String get settingsChangePasswordSub =>
+      _t('Update your account password', 'የእርስዎን ፓስወርድ ይቀይሩ', 'Badal eraygaaga sirta');
+  String get settingsPhoneVerification => _t('Phone Verification', 'ስልክ ማረጋገጫ', 'Xaqiijinta telefoonka');
+  String get settingsPhoneVerified => _t('Verified', 'ተረጋግጧል', 'Xaqiijiyey');
+  String get settingsPrefCategory => _t('Preferred Category', 'ተመራጭ ምድብ', 'Qaybta la doortay');
+  String get settingsTrustSection => _t('Trust & Escrow Safety', 'ደህንነት እና ኤስክሮ', 'Ammaan & Escrow');
+  String get settingsIdVerification => _t('ID Document Verification', 'ዋስትና ማረጋገጫ', 'Xaqiijinta aqoonsiga');
+  String get settingsIdVerified => _t('Active', 'ንቁ', 'Firfircoon');
+  String get settingsWallet => _t('Secure Wallet Account', 'የኤስክሮ ዋሌት', 'Xisaabta Escrow');
+  String get settingsWalletSub =>
+      _t('Configure payout banks & escrow conditions', 'የክፍያ ባንኮችን ያዋቅሩ', 'Habaynta bangiga');
+  String get settingsSystemSection => _t('System preferences', 'የስርዓት ቅንብሮች', 'Doorashada nidaamka');
+  String get settingsLogOut => _t('Log Out Account', 'ከሂሳብ ውጣ', 'Ka bax xisaabta');
+
+  // ── Saved Screen ─────────────────────────────────────────────────────────────
+  String get savedEmptySubAlt => _t(
+    'Bookmark listings while browsing',
+    'ዝርዝሮችን ሲያስሱ ምልክት ያድርጉባቸው',
+    'Calaamadee xayaysiisyada',
+  );
+  String get savedCompareInfo =>
+      _t('Select up to 2 items to compare. ({count}/2 selected)', 'ለማወዳደር እስከ 2 ዕቃዎች ይምረጡ። ({count}/2 ተመርጠዋል)', 'Dooro ilaa 2 shay si aad u barbardhigto. ({count}/2 la doortay)');
+  String get savedSelectedCount =>
+      _t('{count} items selected', '{count} ዕቃዎች ተመርጠዋል', '{count} shay la doortay');
+  String get savedChooseOne => _t('Choose 1 more item', '1 ተጨማሪ ዕቃ ይምረጡ', 'Dooro 1 shay oo kale');
+  String get savedReadyAnalyse => _t('Ready to analyse', 'ለመተንተን ዝግጁ', 'Diyaar u baadhibaadh');
+
+  // ── Compare Overlay ──────────────────────────────────────────────────────────
+  String get compareClose => _t('Close Comparison', 'ንጽጽር ዝጋ', 'Xidhiidhka xir');
+  String get compareStatus => _t('Status', 'ሁኔታ', 'Xaalad');
+  String get compareSeller => _t('Seller', 'ሻጭ', 'Iibiyaha');
+
+  // ── Auth Screen errors ───────────────────────────────────────────────────────
+  String get authSupabaseUnavailable =>
+      _t('Supabase is not available. Check configuration.', 'Supabase አልተገኘም። ቅንብሮቹን ያረጋግጡ።', 'Supabase ma heli karto. Hubi dejinta.');
+  String get authGoogleCancelled =>
+      _t('Google sign-in was cancelled.', 'የGoogle ግቤት ተሰርዟል።', 'Galitaanka Google waa la joojiyey.');
+
+  // ── Change / Reset Password Screens ─────────────────────────────────────────
+  String get changePasswordTitle => _t('Change password', 'የፓስወርድ ቀይር', 'Beddel erayga sirta');
+  String get changePasswordLabel => _t('New password', 'አዲስ የይለፍ ቃል', 'Erayga sirta cusub');
+  String get changePasswordMin => _t('Minimum 6 characters', 'ቢያንስ 6 ቁምፊ', 'Ugu yaraan 6 xaraf');
+  String get changePasswordButton => _t('Change password', 'ፓስወርድ ቀይር', 'Beddel erayga sirta');
+  String get changePasswordSaving => _t('Saving…', 'በማስቀመጥ ላይ…', 'Waa la kaydiyaa…');
+  String get changePasswordSuccess => _t('Password updated', 'ፓስወርድ ተቀይሯል', 'Erayga sirta waa la cusboonaysiiyey');
+  String get supabaseNotConfigured => _t('Supabase not configured', 'Supabase አልተዋቀረም', 'Supabase lama dejin');
+
+  String get resetPasswordTitle => _t('Reset password', 'ፓስወርድ ዳግም ቀይር', 'Dib u deji erayga sirta');
+  String get resetPasswordEmailSent => _t('Password reset email sent', 'የፓስወርድ ዳግም ማስጀመሪያ ኢሜይል ተልኳል', 'Iimaylka dib-u-dejisku waa la diray');
+  String get resetPasswordButton => _t('Send reset email', 'ዳግም ማስጀመሪያ ኢሜይል ላክ', 'Dir iimaylka dib-u-dejinta');
+  String get resetPasswordSending => _t('Sending…', 'በመላክ ላይ…', 'Waa la diraya…');
+  String get resetPasswordEmailHint => _t('Enter email', 'ኢሜይል ያስገቡ', 'Geli iimayl');
+
+  // ── Edit Profile Screen ──────────────────────────────────────────────────────
+  String get editProfileTitle => _t('Edit Profile', 'መገለጫ ያርትዑ', 'Wax ka beddel xogta');
+  String get editProfileDisplayName => _t('Display name', 'ስም', 'Magaca la muujinayo');
+  String get editProfileBio => _t('Bio', 'ባዮ', 'Xog gaaban');
+  String get editProfileDisplayNameRequired => _t('Display name is required', 'ስም ያስፈልጋል', 'Magaca waa lagama maarmaan');
+  String get editProfileSaving => _t('Saving...', 'በማስቀመጥ ላይ...', 'Waa la kaydiyaa...');
+  String get editProfileSaveButton => _t('Save changes', 'ለውጦችን አስቀምጥ', 'Keydi isbeddelada');
+
+  // ── Listing Detail Screen ────────────────────────────────────────────────────
+  String get detailLinkShared => _t('Link shared!', 'ሊንክ ተጋርቷል!', 'Xiriirka la wadaagay!');
+  String get detailLocationLabel => _t('Location', 'ቦታ', 'Goobta');
+  String get detailOpenMaps => _t('Open in Maps', 'በካርታ ክፈት', 'Ku fur khariidadda');
+  String get detailOpeningMaps => _t('Opening Google Maps...', 'Google Maps እየከፈቱ...', 'Waa la furaya Google Maps...');
+  String get detailContactDetailsTitle => _t('Contact Details', 'የእውቂያ ዝርዝሮች', 'Faahfaahinta xiriirka');
+  String get detailContactHidden => _t(
+    'Contact details are shared after 3 messages are exchanged, or when either party taps "Share phone number" in the chat.',
+    'የእውቂያ ዝርዝሮች ከ3 መልዕክቶች ልውውጥ በኋላ ወይም ማንኛውም ወገን "ስልክ ቁጥር ያጋሩ" ሲጫን ይጋራሉ።',
+    'Faahfaahinta xiriirka waxaa la wadaagaa ka dib 3 farriin oo is-dhaafsiisan, ama marka mid ka mid ah labada dhinac uu garaaco "La wadaag lambarka telefoonka" sheekada.',
+  );
+  String get detailGoToChat => _t('Go to chat', 'ወደ ቻት ሂድ', 'U tag sheekada');
+  String get detailStartChat => _t('Start chat', 'ቻት ጀምር', 'Bilow sheekada');
+  String get detailRequestLogged => _t('Request logged. Partner notified!', 'ጥያቄ ተመዝግቧል። አጋር ተነግሯቸዋል!', 'Codsiga waa la diiwaan galiyey. Iskaashiga ayaa la ogeysiiyey!');
+  String get detailVerifiedListing => _t('Verified Listing', 'የተረጋገጠ ዝርዝር', 'Xayaysiis la xaqiijiyey');
+  String get detailVerifiedPro => _t('Verified Skilled Professional', 'የተረጋገጠ ባለሙያ', 'Xirfadle la xaqiijiyey');
+
+  // ── Category List Screen ─────────────────────────────────────────────────────
+  String get catNoMatchingListings => _t('No matching listings found', 'ተዛማጅ ዝርዝሮች አልተገኙም', 'Xayaysiis ku habboon ma helin');
+  String get catClearFilters => _t('Try clearing your query filters', 'ማጣሪያዎቹን ለማጽዳት ይሞክሩ', 'Isku day nadiifi shaandhaynta');
+  String get catResultsIn => _t('results in Jigjiga', 'ውጤቶች በጂግጂጋ', 'natiijo Jigjiga');
+
+  // ── Compare Overlay rows (dynamic) ──────────────────────────────────────────
+  String get compareSpec1 => _t('Spec 1', 'መስፈርት 1', 'Sifo 1');
+  String get compareSpec2 => _t('Spec 2', 'መስፈርት 2', 'Sifo 2');
+  String get compareSpec3 => _t('Spec 3', 'መስፈርት 3', 'Sifo 3');
+  String get compareConditionLabel => _t('Condition', 'ሁኔታ', 'Xaalad');
+
+  // ── Category List Screen filter chips ────────────────────────────────────────
+  String get catRentBuy => _t('Rent / Buy', 'ለኪራይ / ለሽያጭ', 'Kiradda / Iib');
+  String get catPriceRange => _t('Price Range', 'የዋጋ ክልል', 'Xadka qiimaha');
+  String get catBedrooms => _t('Bedrooms', 'አልጋ ቤቶች', 'Qolalka jiifka');
+  String get catLandUse => _t('Land-use', 'የመሬት አጠቃቀም', 'Isticmaalka dhulka');
+  String get catMore => _t('More', 'ተጨማሪ', 'Wax dheeraad ah');
+  String get catListView => _t('List', 'ዝርዝር', 'Liis');
+  String get catMapView => _t('Map', 'ካርታ', 'Khariidad');
+  String get catSearchHint => _t('Search', 'ፈልግ', 'Raadi');
+  String get catResultsCount => _t('{count} results in Jigjiga', '{count} ውጤቶች በጂግጂጋ', '{count} natiijo Jigjiga');
+
+  // ── Home screen trust badge cards ─────────────────────────────────────────────
+  String get homeTrustHomeowner => _t(
+    'A homeowner in Kebele 03 just got verified',
+    'የቀበሌ 03 ቤት ባለቤት አሁን ተረጋገጠ',
+    'Milkiile guriga Kebele 03 ayaa la xaqiijiyey',
+  );
+  String get homeTrustDriver => _t(
+    'A security professional driver just joined',
+    'የደህንነት ባለሙያ ሾፌር ለቀላቀለ',
+    'Wadaad xirfadleh oo ammaaneed ayaa ku biirtay',
+  );
+
+  // ── Post Wizard step 2/3 hints (English-only data; structural, not translatable) ──
+  // These are placeholder hints for form fields — they describe data format,
+  // not UI chrome, so they intentionally remain in English.
+  // (e.g. 'e.g. 2022 Toyota Land Cruiser Prado')
+
+  // ── Post Wizard step 2 — name/title label for skills ─────────────────────────
+  String get wizardNameTitleLabel => _t('Your Name / Title', 'ስምዎ / ርዕስ', 'Magacaaga / Cinwaanka');
+
+  // ── Translation indicator ─────────────────────────────────────────────────────
+  String get translatedBadge => _t('Translated', 'ተተርጉሟል', 'La turjumay');
+  String get translatedTooltip => _t(
+    'This content was machine-translated from the original language.',
+    'ይህ ይዘት ከዋናው ቋንቋ በማሽን ተተርጉሟል።',
+    'Qoraalkan waxaa turjumay mashiin ka ah luqadda asalka ah.',
+  );
+
+  // ── Fayda ID Verification Screen ─────────────────────────────────────────────
+  String get faydaTitle =>
+      _t('Verify with Fayda ID', 'በፋይዳ መታወቂያ ያረጋግጡ', 'Xaqiiji Fayda ID');
+  String get faydaSubtitle => _t(
+    'Fayda is Ethiopia\'s national digital ID. Verified accounts get a trust badge and higher ranking in Koolan.',
+    'ፋይዳ የኢትዮጵያ ሀገራዊ ዲጂታል መታወቂያ ነው። የተረጋገጡ መለያዎች የእምነት ምልክት እና ከፍተኛ ደረጃ ያገኛሉ።',
+    'Fayda waa aqoonsiga dhijitaalka qaranka Itoobiya. Xisaabaha la xaqiijiyey waxay helaan calaamadda kalsoonida iyo darajada sare.',
+  );
+  String get faydaIdLabel =>
+      _t('Fayda ID Number', 'የፋይዳ መታወቂያ ቁጥር', 'Lambarka Fayda ID');
+  String get faydaIdHint =>
+      _t('Enter your 14-digit Fayda ID', 'የ14-ቁጥር ፋይዳ መታወቂያ ያስገቡ', 'Geli Fayda ID-kaaga 14-lambar');
+  String get faydaIdRequired =>
+      _t('Fayda ID is required', 'የፋይዳ መታወቂያ ያስፈልጋል', 'Fayda ID waa lagama maarmaan');
+  String get faydaIdInvalid => _t(
+    'Enter a valid 14-digit Fayda ID',
+    'ትክክለኛ 14-ቁጥር ፋይዳ መታወቂያ ያስገቡ',
+    'Geli Fayda ID 14-lambar oo sax ah',
+  );
+  String get faydaOtpTitle =>
+      _t('Enter verification code', 'የማረጋገጫ ኮድ ያስገቡ', 'Geli koodhka xaqiijinta');
+  String get faydaOtpSubtitle => _t(
+    'A 6-digit code was sent to your registered phone number.',
+    'ለተመዘገበ ስልክዎ 6-ቁጥር ኮድ ተልኳል።',
+    'Koodh 6-lambar ah ayaa loo diray lambarka telefoonka diiwaan gashan.',
+  );
+  String get faydaOtpLabel =>
+      _t('Verification Code', 'የማረጋገጫ ኮድ', 'Koodhka Xaqiijinta');
+  String get faydaOtpHint =>
+      _t('Enter 6-digit code', '6-ቁጥር ኮድ ያስገቡ', 'Geli koodh 6-lambar');
+  String get faydaOtpRequired =>
+      _t('Verification code is required', 'የማረጋገጫ ኮድ ያስፈልጋል', 'Koodhka xaqiijinta waa lagama maarmaan');
+  String get faydaOtpInvalid =>
+      _t('Enter the 6-digit code', '6-ቁጥር ኮድ ያስገቡ', 'Geli koodh 6-lambar');
+  String get faydaResendCode =>
+      _t('Resend code', 'ኮድ እንደገና ላክ', 'Dib u dir koodhka');
+  String get faydaVerifyButton =>
+      _t('Verify Identity', 'ማንነት ያረጋግጡ', 'Xaqiiji Aqoonsiga');
+  String get faydaSubmitButton =>
+      _t('Confirm Code', 'ኮድ አረጋግጥ', 'Xaqiiji Koodhka');
+  String get faydaVerifying =>
+      _t('Verifying…', 'በማረጋገጥ ላይ…', 'Waa la xaqiijinayaa…');
+  String get faydaSuccess => _t(
+    'Identity verified successfully!',
+    'ማንነቱ በተሳካ ሁኔታ ተረጋግጧል!',
+    'Aqoonsiga si guul leh ayaa loo xaqiijiyey!',
+  );
+  String get faydaSuccessSubtitle => _t(
+    'Your account now has a Fayda Verified badge. Buyers and sellers will see you as a trusted member.',
+    'መለያዎ አሁን የፋይዳ ማረጋገጫ ምልክት አለው። ገዢዎች እና ሻጮች እርስዎን እንደ ታማኝ አባል ያዩዎታል።',
+    'Xisaabtaada hadda waxay leedahay calaamadda Fayda Xaqiijiyey. Iibiyayaasha iyo iibsadeyaashu waxay kugu arki doonaan xubin la믿aha ah.',
+  );
+  String get faydaContinue =>
+      _t('Continue to Koolan', 'ወደ ኩላን ቀጥል', 'U gudub Koolan');
+  String get faydaSkip =>
+      _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
+  String get faydaTrustBadge =>
+      _t('Fayda Verified', 'ፋይዳ ተረጋግጧል', 'Fayda Xaqiijiyey');
+  String get faydaBenefitsTitle =>
+      _t('Benefits of verification', 'የማረጋገጫ ጥቅሞች', 'Faa\'iidooyinka xaqiijinta');
+  String get faydaBenefit1 =>
+      _t('Trusted badge on your profile', 'የሚተማመን ምልክት', 'Calaamadda kalsoonida');
+  String get faydaBenefit2 =>
+      _t('Higher search ranking', 'ከፍተኛ የፍለጋ ደረጃ', 'Darajada raadinta ee sare');
+  String get faydaBenefit3 =>
+      _t('Access to escrow payments', 'ወደ escrow ክፍያዎች ይድረሱ', 'Gelitaanka lacag-bixinta escrow');
+  String get faydaErrorGeneric => _t(
+    'Verification failed. Please try again.',
+    'ማረጋገጥ አልተሳካም። እባክዎ እንደገና ይሞክሩ።',
+    'Xaqiijintu fashilantay. Fadlan isku day mar kale.',
+  );
+  String get faydaErrorNetwork => _t(
+    'Network error. Check your connection and retry.',
+    'የአውታረ መረብ ስህተት። ግንኙነትዎን ያረጋግጡ እና እንደገና ይሞክሩ።',
+    'Khalad shabakadeed. Hubi xiriirkaaga oo isku day mar kale.',
+  );
+  String get faydaStep1of2 => _t('Step 1 of 2', 'ደረጃ 1 ከ 2', 'Tallaabo 1 oo ah 2');
+  String get faydaStep2of2 => _t('Step 2 of 2', 'ደረጃ 2 ከ 2', 'Tallaabo 2 oo ah 2');
+  String get faydaWhatIsFayda => _t(
+    'What is Fayda ID?',
+    'ፋይዳ መታወቂያ ምንድን ነው?',
+    'Maxaa ah Fayda ID?',
+  );
+  String get faydaWhatIsFaydaBody => _t(
+    'Fayda is the Ethiopian National ID system. Your 14-digit ID number is printed on your national ID card.',
+    'ፋይዳ የኢትዮጵያ ሀገራዊ መታወቂያ ስርዓት ነው። 14-ቁጥር መታወቂያ ቁጥርዎ በሀገራዊ መታወቂያ ካርድዎ ላይ ይታያል።',
+    'Fayda waa nidaamka aqoonsiga qaranka Itoobiya. Lambarka aqoonsigaaga 14-lambar ah waxaa lagu daabacay kaadhkaaga aqoonsiga qaranka.',
+  );
 }

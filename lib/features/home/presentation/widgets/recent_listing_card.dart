@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/models/listing.dart';
+import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 
 /// Compact horizontal card shown in the "Recently Added" feed on the home screen.
@@ -16,6 +17,7 @@ class RecentListingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
 
     return Card(
       elevation: 0,
@@ -123,8 +125,8 @@ class RecentListingCard extends StatelessWidget {
                           children: [
                             Text(
                               listing.category == 'SKILLS'
-                                  ? 'Talk to Seller'
-                                  : 'Call Owner',
+                                  ? s.cardTalkToSeller
+                                  : s.cardCallOwner,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,

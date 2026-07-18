@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/utils/icon_for_spec.dart';
+import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 
@@ -141,8 +142,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   cs: cs,
                                   onPressed: () {
                                     ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
-                                            content: Text('Link shared!')));
+                                        .showSnackBar(SnackBar(
+                                            content: Text(state.s.detailLinkShared)));
                                   },
                                 ),
                                 const SizedBox(width: 8),
@@ -185,8 +186,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             ),
                             child: Text(
                               listing.category == 'SKILLS'
-                                  ? 'Verified Skilled Professional'
-                                  : 'Verified Listing',
+                                  ? state.s.detailVerifiedPro
+                                  : state.s.detailVerifiedListing,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -205,13 +206,25 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Text(
-                        listing.title,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: cs.onSurface,
-                        ),
+                      // ── Title + optional Translated badge ─────────────────
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              listing.titleForLocale(state.locale),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                          ),
+                          if (listing.isTranslatedFor(state.locale)) ...[
+                            const SizedBox(width: 8),
+                            _TranslatedBadge(s: state.s),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 6),
                       Row(
@@ -300,9 +313,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        listing.description.isEmpty
+                        listing.descriptionForLocale(state.locale).isEmpty
                             ? 'Dedicated listing in Jigjiga. Authentic and ready for immediate transition.'
-                            : listing.description,
+                            : listing.descriptionForLocale(state.locale),
                         style: TextStyle(
                           fontSize: 14,
                           color: cs.onSurfaceVariant,
@@ -313,7 +326,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
                       // Map widget
                       Text(
-                        'Location',
+                        state.s.detailLocationLabel,
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -359,14 +372,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                     TextButton(
                                       onPressed: () {
                                         ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
+                                            .showSnackBar(SnackBar(
                                           content: Text(
-                                              'Opening Google Maps...'),
+                                              state.s.detailOpeningMaps),
                                         ));
                                       },
                                       child: Row(
                                         children: [
-                                          Text('Open in Maps',
+                                          Text(state.s.detailOpenMaps,
                                               style: TextStyle(
                                                   fontSize: 12,
                                                   color: cs.primary)),
@@ -478,9 +491,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                               content:
-                                  Text('Request logged. Partner notified!')),
+                                  Text(state.s.detailRequestLogged)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -723,6 +736,7 @@ class _ContactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
     return Card(
       color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
@@ -739,7 +753,7 @@ class _ContactCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Contact Details',
+                  s.detailContactDetailsTitle,
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -782,8 +796,7 @@ class _ContactCard extends StatelessWidget {
             ] else ...[
               // ── Hidden state ────────────────────────────────────────────
               Text(
-                'Contact details are shared after 3 messages are exchanged, '
-                'or when either party taps "Share phone number" in the chat.',
+                s.detailContactHidden,
                 style:
                     TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
               ),
@@ -802,7 +815,7 @@ class _ContactCard extends StatelessWidget {
                     Icon(Icons.chat_bubble, color: cs.primary),
                     const SizedBox(width: 8),
                     Text(
-                      sessionId != null ? 'Go to chat' : 'Start chat',
+                      sessionId != null ? s.detailGoToChat : s.detailStartChat,
                       style: TextStyle(color: cs.primary),
                     ),
                   ],
@@ -874,4 +887,45 @@ class _MapPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MapPainter old) => old.cs != cs;
+}
+
+// ── Translated badge ──────────────────────────────────────────────────────────
+// Shown on the listing title (inline) when the current locale differs from
+// the original language and a machine translation is available.
+
+class _TranslatedBadge extends StatelessWidget {
+  final AppStrings s;
+  const _TranslatedBadge({required this.s});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: s.translatedTooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: cs.tertiaryContainer.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: cs.tertiary.withValues(alpha: 0.4), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.translate, size: 11, color: cs.tertiary),
+            const SizedBox(width: 4),
+            Text(
+              s.translatedBadge,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: cs.tertiary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

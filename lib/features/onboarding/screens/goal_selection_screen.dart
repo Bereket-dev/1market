@@ -14,14 +14,16 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
+    final s = state.s;
     final cs = Theme.of(context).colorScheme;
+
     final goals = [
-      'Post a listing',
-      'Hire a skilled person',
-      'Find a job',
-      'Find a car',
-      'Rent a home',
-      'Buy land',
+      s.goalPostListing,
+      s.goalHireSkilled,
+      s.goalFindJob,
+      s.goalFindCar,
+      s.goalRentHome,
+      s.goalBuyLand,
     ];
 
     return Scaffold(
@@ -33,7 +35,7 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
             children: [
               const SizedBox(height: 40),
               Text(
-                'What are you here to do?',
+                s.goalTitle,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -42,7 +44,7 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Choose one goal to get started. You can still explore all features later.',
+                s.goalSubtitle,
                 style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
               ),
               const SizedBox(height: 24),
@@ -65,7 +67,7 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
                           border: Border.all(
                             color: isSelected
                                 ? cs.primary
-                                : cs.outlineVariant.withOpacity(0.4),
+                                : cs.outlineVariant.withValues(alpha: 0.4),
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -101,7 +103,7 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
                     : () {
                         state.completeGoalSelection(_selectedGoal!);
                       },
-                child: const Text('Continue'),
+                child: Text(s.goalContinue),
               ),
             ],
           ),

@@ -14,6 +14,7 @@ import '../models/syncable_entity.dart';
 import 'local_storage.dart' as app_local;
 import 'offline/sync_service.dart';
 import 'supabase_repository.dart';
+import 'translation_service.dart';
 
 enum OnboardingPhase {
   initializing,
@@ -128,14 +129,11 @@ class KoolanAppState extends ChangeNotifier {
   AppStrings get s => AppStrings(locale);
 
   Locale get materialLocale {
-    switch (locale) {
-      case 'am':
-        return const Locale('am');
-      case 'so':
-        return const Locale('so');
-      default:
-        return const Locale('en');
-    }
+    // Flutter's built-in Material localization delegates do not provide
+    // translations for the custom 'am'/'so' codes used by the app. Falling
+    // back to English for framework widgets avoids the runtime crash while
+    // the app's own strings continue to switch correctly via AppStrings.
+    return const Locale('en');
   }
 
   // ── Profile ──────────────────────────────────────────────────────────────────
@@ -193,12 +191,26 @@ class KoolanAppState extends ChangeNotifier {
 
   Future<void> setLocale(String newLocale) async {
     locale = newLocale;
+    // 1. Persist to Hive immediately — available offline on next cold start.
     await app_local.LocalStorage.saveLanguage(newLocale);
-    if (isSignedIn && _repo != null) {
+    // 2. Update in-memory profile optimistically.
+    profile = profile?.copyWith(
+      language: newLocale,
+      syncStatus: SyncStatus.pending,
+    );
+    // 3. Enqueue through SyncService so it reaches Supabase with retry/backoff,
+    //    exactly like submitProfileUpdate does for other profile fields.
+    if (isSignedIn && profile != null) {
+      final now = DateTime.now();
       try {
-        await _repo!.updateLanguage(newLocale);
-        profile = profile?.copyWith(language: newLocale);
+        await syncService.enqueueProfileEdit(
+          userId: profile!.id,
+          payload: {'language': newLocale, 'updated_at': now.toIso8601String()},
+          localUpdatedAt: now,
+        );
+        profile = profile?.copyWith(syncStatus: SyncStatus.synced);
       } catch (e) {
+        profile = profile?.copyWith(syncStatus: SyncStatus.failed);
         dataError = e.toString();
       }
     }
@@ -288,9 +300,7 @@ class KoolanAppState extends ChangeNotifier {
       try {
         resolvedProfile = await _repo!.ensureProfile();
         // Cache the freshly loaded profile for offline use.
-        await app_local.LocalStorage.saveProfileCache(
-          resolvedProfile.toJson(),
-        );
+        await app_local.LocalStorage.saveProfileCache(resolvedProfile.toJson());
       } catch (networkError) {
         debugPrint('Profile fetch failed (likely offline): $networkError');
         // Fall back to locally cached profile.
@@ -311,7 +321,8 @@ class KoolanAppState extends ChangeNotifier {
 
       final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
       final savedPhase = await app_local.LocalStorage.getOnboardingPhase();
-      final onboardingDone = await app_local.LocalStorage.isOnboardingComplete();
+      final onboardingDone =
+          await app_local.LocalStorage.isOnboardingComplete();
 
       // ── Decide which onboarding phase to show ───────────────────────────────
 
@@ -461,6 +472,8 @@ class KoolanAppState extends ChangeNotifier {
     }
     await app_local.LocalStorage.clearOnboardingPhase();
     await loadAllData();
+    // Process any pending translation retry jobs from previous sessions.
+    unawaited(TranslationService.instance.processRetryQueue());
   }
 
   Future<void> loadAllData() async {
@@ -494,7 +507,8 @@ class KoolanAppState extends ChangeNotifier {
     } catch (e) {
       // Check if it's a network-related error by message
       final msg = e.toString().toLowerCase();
-      final isNetworkError = msg.contains('network') ||
+      final isNetworkError =
+          msg.contains('network') ||
           msg.contains('socket') ||
           msg.contains('connection') ||
           msg.contains('host lookup') ||
@@ -528,11 +542,15 @@ class KoolanAppState extends ChangeNotifier {
     final cached = await app_local.LocalStorage.getListingsCache();
     if (cached != null && cached.isNotEmpty) {
       final userId = currentUser?.id;
-      allListings = cached.map((json) => Listing.fromJson(
-        json,
-        isSaved: json['is_saved'] as bool? ?? false,
-        isOwnedByCurrentUser: json['seller_id'] == userId,
-      )).toList();
+      allListings = cached
+          .map(
+            (json) => Listing.fromJson(
+              json,
+              isSaved: json['is_saved'] as bool? ?? false,
+              isOwnedByCurrentUser: json['seller_id'] == userId,
+            ),
+          )
+          .toList();
       dataError = 'Showing cached data — you appear to be offline.';
     } else {
       dataError = 'No internet connection and no cached data available.';
@@ -795,6 +813,7 @@ class KoolanAppState extends ChangeNotifier {
             : postSpec4.trim(),
         sellerName: sellerName,
         sellerImage: sellerImage,
+        originalLanguage: locale,
       );
 
       allListings.insert(0, newListing);
@@ -805,6 +824,16 @@ class KoolanAppState extends ChangeNotifier {
         ..add(HomeScreenRoute())
         ..add(CategoryListScreenRoute(postCategory));
       notifyListeners();
+
+      // ── Fire-and-forget translation after the listing is already live ───────
+      // Only title and description are translated — never price, spec values,
+      // location, phone numbers, or any structured/numeric field.
+      TranslationService.instance.scheduleTranslation(
+        listingId: newListing.id,
+        title: titleStr,
+        description: descStr,
+        originalLanguage: locale,
+      );
     } catch (e) {
       dataError = e.toString();
       notifyListeners();

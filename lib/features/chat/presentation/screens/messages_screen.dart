@@ -30,7 +30,7 @@ class MessagesScreen extends StatelessWidget {
                 icon: Icon(Icons.refresh, color: cs.primary),
                 onPressed: () => ScaffoldMessenger.of(context)
                     .showSnackBar(
-                        const SnackBar(content: Text('Chat list updated'))),
+                        SnackBar(content: Text(state.s.messagesRefreshed))),
               ),
             ],
           ),
@@ -50,7 +50,7 @@ class MessagesScreen extends StatelessWidget {
             child: TextField(
               style: TextStyle(fontSize: 14, color: cs.onSurface),
               decoration: InputDecoration(
-                hintText: 'Search messages...',
+                hintText: state.s.messagesSearchHint,
                 hintStyle: TextStyle(
                     color: cs.onSurfaceVariant.withValues(alpha: 0.55)),
                 prefixIcon:
@@ -67,12 +67,12 @@ class MessagesScreen extends StatelessWidget {
         // ── Quick filter chips ────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(children: const [
-            _FilterChip(label: 'All', isSelected: true),
-            SizedBox(width: 10),
-            _FilterChip(label: 'Unread', isSelected: false),
-            SizedBox(width: 10),
-            _FilterChip(label: 'Archived', isSelected: false),
+          child: Row(children: [
+            _FilterChip(label: state.s.messagesFilterAll, isSelected: true),
+            const SizedBox(width: 10),
+            _FilterChip(label: state.s.messagesFilterUnread, isSelected: false),
+            const SizedBox(width: 10),
+            _FilterChip(label: state.s.messagesFilterArchived, isSelected: false),
           ]),
         ),
         const SizedBox(height: 16),
@@ -154,7 +154,7 @@ class MessagesScreen extends StatelessWidget {
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
                                           color: cs.onSurface)),
-                                  Text(lastMsg?.timestamp ?? 'Just now',
+                                  Text(lastMsg?.timestamp ?? state.s.messagesJustNow,
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: cs.onSurfaceVariant
@@ -171,7 +171,7 @@ class MessagesScreen extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis),
                               const SizedBox(height: 4),
                               Text(
-                                lastMsg?.text ?? 'No messages yet',
+                                lastMsg?.text ?? state.s.messagesNoMessages,
                                 style: TextStyle(
                                     fontSize: 13,
                                     color: session.unreadCount > 0

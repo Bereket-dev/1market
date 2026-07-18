@@ -78,7 +78,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                       style: TextStyle(fontSize: 14, color: cs.onSurface),
                       decoration: InputDecoration(
                         hintText:
-                            'Search ${widget.categoryName.toLowerCase()}...',
+                            '${state.s.catSearchHint} ${widget.categoryName.toLowerCase()}...',
                         hintStyle:
                             TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
                         prefixIcon: Icon(Icons.search,
@@ -119,7 +119,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                               borderRadius: BorderRadius.circular(24),
                             ),
                             child: Text(
-                              'List',
+                              state.s.catListView,
                               style: TextStyle(
                                 color: cs.onPrimary,
                                 fontWeight: FontWeight.bold,
@@ -131,7 +131,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 6),
                             child: Text(
-                              'Map',
+                              state.s.catMapView,
                               style: TextStyle(
                                   color: cs.onSurfaceVariant, fontSize: 12),
                             ),
@@ -163,52 +163,32 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                   child: Row(
                     children: [
                       BrowseFilterChip(
-                        label: state.s.isAmharic
-                            ? '${state.s.catForRent} / ${state.s.catForSale}'
-                            : state.s.isSomali
-                                ? '${state.s.catForRent} / ${state.s.catForSale}'
-                                : 'Rent / Buy',
+                        label: state.s.catRentBuy,
                         selected: _rentBuySelected != 'Buy',
                         onTap: () => setState(() => _rentBuySelected =
                             _rentBuySelected == 'Buy' ? 'Rent' : 'Buy'),
                       ),
                       const SizedBox(width: 8),
                       BrowseFilterChip(
-                        label: state.s.isAmharic
-                            ? 'የዋጋ ክልል'
-                            : state.s.isSomali
-                                ? 'Xadka qiimaha'
-                                : 'Price Range',
+                        label: state.s.catPriceRange,
                       ),
                       const SizedBox(width: 8),
                       if (widget.categoryName == 'HOUSES' ||
                           widget.categoryName == 'ALL') ...[
                         BrowseFilterChip(
-                          label: state.s.isAmharic
-                              ? 'አልጋ ቤቶች'
-                              : state.s.isSomali
-                                  ? 'Qolalka jiifka'
-                                  : 'Bedrooms',
+                          label: state.s.catBedrooms,
                         ),
                         const SizedBox(width: 8),
                       ],
                       if (widget.categoryName == 'LAND' ||
                           widget.categoryName == 'ALL') ...[
                         BrowseFilterChip(
-                          label: state.s.isAmharic
-                              ? 'የመሬት አጠቃቀም'
-                              : state.s.isSomali
-                                  ? 'Isticmaalka dhulka'
-                                  : 'Land-use',
+                          label: state.s.catLandUse,
                         ),
                         const SizedBox(width: 8),
                       ],
                       BrowseFilterChip(
-                        label: state.s.isAmharic
-                            ? 'ተጨማሪ'
-                            : state.s.isSomali
-                                ? 'Wax dheeraad ah'
-                                : 'More',
+                        label: state.s.catMore,
                       ),
                     ],
                   ),
@@ -221,7 +201,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Text(
-              '${results.length} results in Jigjiga',
+              state.s.catResultsCount.replaceAll('{count}', '${results.length}'),
               style: TextStyle(
                 fontSize: 12,
                 color: cs.onSurfaceVariant.withValues(alpha: 0.6),
@@ -244,7 +224,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'No matching listings found',
+                          state.s.catNoMatchingListings,
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -252,7 +232,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Try clearing your query filters',
+                          state.s.catClearFilters,
                           style: TextStyle(
                             fontSize: 13,
                             color: cs.onSurfaceVariant.withValues(alpha: 0.6),

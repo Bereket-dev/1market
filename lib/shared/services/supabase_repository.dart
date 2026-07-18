@@ -114,6 +114,7 @@ class SupabaseRepository {
     String? spec4Value,
     required String sellerName,
     required String sellerImage,
+    String originalLanguage = 'en',
   }) async {
     final userId = currentUserId;
     if (userId == null) throw StateError('Not authenticated');
@@ -142,6 +143,9 @@ class SupabaseRepository {
           'spec3_value': spec3Value,
           'spec4_label': spec4Label,
           'spec4_value': spec4Value,
+          'original_language': originalLanguage,
+          'title_translations': <String, String>{},
+          'description_translations': <String, String>{},
         })
         .select()
         .single();

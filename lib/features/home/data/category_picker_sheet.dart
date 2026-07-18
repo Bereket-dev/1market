@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../shared/models/app_strings.dart';
+import '../../../shared/services/app_state.dart';
 
 class _PickerOption {
-  final String label;
+  final String Function(AppStrings) label;
   final IconData icon;
   final String key;
   const _PickerOption(this.label, this.icon, this.key);
@@ -13,28 +15,27 @@ class CategoryPickerSheet extends StatelessWidget {
 
   const CategoryPickerSheet({super.key, required this.onSelect});
 
-  static const _options = [
-    _PickerOption('Cars', Icons.directions_car, 'CARS'),
-    _PickerOption('Houses', Icons.home, 'HOUSES'),
-    _PickerOption('Land', Icons.landscape, 'LAND'),
-    _PickerOption('Skills', Icons.construction, 'SKILLS'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final s = KoolanAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
+
+    final options = [
+      _PickerOption((s) => s.homeCategoryCars, Icons.directions_car, 'CARS'),
+      _PickerOption((s) => s.homeCategoryHouses, Icons.home, 'HOUSES'),
+      _PickerOption((s) => s.homeCategoryLand, Icons.landscape, 'LAND'),
+      _PickerOption((s) => s.homeCategorySkills, Icons.construction, 'SKILLS'),
+    ];
+
     return Container(
       decoration: BoxDecoration(
-        // Use surface so it adapts to dark/light automatically
         color: cs.surface,
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
           Container(
             width: 40,
             height: 4,
@@ -45,7 +46,7 @@ class CategoryPickerSheet extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'What would you like to post?',
+            s.pickerTitle,
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -55,7 +56,7 @@ class CategoryPickerSheet extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _options.length,
+            itemCount: options.length,
             gridDelegate:
                 const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
@@ -64,7 +65,7 @@ class CategoryPickerSheet extends StatelessWidget {
               childAspectRatio: 1.3,
             ),
             itemBuilder: (context, index) {
-              final opt = _options[index];
+              final opt = options[index];
               return Card(
                 color: cs.surfaceContainerHighest,
                 shape: RoundedRectangleBorder(
@@ -82,7 +83,7 @@ class CategoryPickerSheet extends StatelessWidget {
                         child: Icon(opt.icon, color: cs.primary),
                       ),
                       const SizedBox(height: 8),
-                      Text(opt.label,
+                      Text(opt.label(s),
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: cs.onSurface)),
@@ -95,7 +96,7 @@ class CategoryPickerSheet extends StatelessWidget {
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel',
+            child: Text(s.pickerCancel,
                 style: TextStyle(color: cs.onSurfaceVariant)),
           ),
         ],

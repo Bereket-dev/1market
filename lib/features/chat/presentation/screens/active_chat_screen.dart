@@ -70,15 +70,15 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
         actions: [
           if (!session.contactRevealed)
             Tooltip(
-              message: 'Share phone number',
+              message: state.s.chatSharePhone,
               child: IconButton(
                 icon: Icon(Icons.phone_forwarded_outlined, color: cs.primary),
                 onPressed: () {
                   state.revealContactForThread(session.id);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Phone number shared with this contact.'),
-                      duration: Duration(seconds: 3),
+                    SnackBar(
+                      content: Text(state.s.chatPhoneShared),
+                      duration: const Duration(seconds: 3),
                     ),
                   );
                 },
