@@ -166,7 +166,9 @@ class LocalStorage {
 
   // ── Listings cache ────────────────────────────────────────────────────────────
 
-  static Future<void> saveListingsCache(List<Map<String, dynamic>> listings) async {
+  static Future<void> saveListingsCache(
+    List<Map<String, dynamic>> listings,
+  ) async {
     final prefs = await _prefsOrNull();
     final encoded = jsonEncode(listings);
     if (prefs != null) {
