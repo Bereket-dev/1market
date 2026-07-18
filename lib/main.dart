@@ -6,12 +6,12 @@ import 'app.dart';
 import 'core/config/supabase_config.dart';
 
 Future<void> main() async {
-  print('main start');
+  debugPrint('main start');
   WidgetsFlutterBinding.ensureInitialized();
 
   // Load environment variables from .env file
   await dotenv.load(fileName: '.env');
-  print('✅ Environment variables loaded');
+  debugPrint('✅ Environment variables loaded');
 
   if (AppSupabaseConfig.isConfigured) {
     try {
@@ -23,36 +23,23 @@ Future<void> main() async {
         ),
       ).timeout(const Duration(seconds: 10));
 
-      print('✅ Supabase initialized');
-      print('Client ready: ${AppSupabaseConfig.isAvailable()}');
+      debugPrint('✅ Supabase initialized');
+      debugPrint('Client ready: ${AppSupabaseConfig.isAvailable()}');
       try {
         final client = AppSupabaseConfig.clientOrNull();
-        print('Current user: ${client?.auth.currentUser}');
+        debugPrint('Current user: ${client?.auth.currentUser}');
       } catch (e) {
-        print('Current user check failed: $e');
-      }
-
-      try {
-        final client = AppSupabaseConfig.clientOrNull();
-        final result = await client!
-            .from('profiles')
-            .select()
-            .limit(1)
-            .timeout(const Duration(seconds: 10));
-        print('Database OK: $result');
-      } catch (e, st) {
-        print('Database check failed: $e');
-        print(st);
+        debugPrint('Current user check failed: $e');
       }
     } catch (e, st) {
-      print('Supabase initialization failed: $e');
-      print(st);
+      debugPrint('Supabase initialization failed: $e');
+      debugPrint(st.toString());
     }
   } else {
-    print('Supabase configuration missing; continuing without remote auth');
+    debugPrint('Supabase configuration missing; continuing without remote auth');
   }
 
-  print('before runApp');
+  debugPrint('before runApp');
   runApp(const KoolanApp());
-  print('after runApp');
+  debugPrint('after runApp');
 }

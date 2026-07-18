@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/models/chat.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 class ActiveChatScreen extends StatefulWidget {
   final int sessionIndex;
@@ -32,9 +34,20 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
           onPressed: () => state.popScreen(),
         ),
         title: Row(children: [
-          CircleAvatar(
+          CachedNetworkImage(
+            imageUrl: session.partnerAvatar.isEmpty
+                ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
+                : session.partnerAvatar,
+            cacheManager: KoolanImageCacheManager.instance,
+            imageBuilder: (_, provider) => CircleAvatar(
               radius: 18,
-              backgroundImage: NetworkImage(session.partnerAvatar)),
+              backgroundImage: provider,
+            ),
+            placeholder: (_, __) =>
+                const CircleAvatar(radius: 18, backgroundColor: Colors.grey),
+            errorWidget: (_, __, ___) =>
+                const CircleAvatar(radius: 18, child: Icon(Icons.person)),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -50,6 +63,28 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
             ]),
           ),
         ]),
+        // ── Share phone number action ──────────────────────────────────────
+        // Visible when contact has not yet been revealed. Tapping it triggers
+        // the explicit-reveal path and persists across both parties' views of
+        // the thread via revealContactForThread.
+        actions: [
+          if (!session.contactRevealed)
+            Tooltip(
+              message: 'Share phone number',
+              child: IconButton(
+                icon: Icon(Icons.phone_forwarded_outlined, color: cs.primary),
+                onPressed: () {
+                  state.revealContactForThread(session.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Phone number shared with this contact.'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -63,7 +98,7 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: session.messages.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (_, i) => _ChatBubble(msg: session.messages[i]),
           ),
         ),

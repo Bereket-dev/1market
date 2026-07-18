@@ -123,8 +123,6 @@ class AppStrings {
   String get detailChat => _t('Chat', 'ቻት', 'Sheekeyso');
   String get detailViewProfile =>
       _t('View Profile', 'መገለጫ ይመልከቱ', 'Arag xogta');
-  String get detailUnlockContact =>
-      _t('Unlock Contact', 'ግንኙነት ይክፈቱ', 'Fur xiriirka');
   String get detailRequestHire => _t('Request Hire', 'ቅጠር ጠይቅ', 'Dalbo shaqo');
   String get detailViewProperty =>
       _t('View Property', 'ሪል እስቴት ይመልከቱ', 'Arag hantida');
@@ -132,11 +130,6 @@ class AppStrings {
   String get detailSpecs => _t('Specifications', 'ዝርዝሮች', 'Sifooyinka');
   String get detailVerified => _t('Verified', 'የተረጋገጠ', 'Xaqiijiyey');
   String get detailReviews => _t('reviews', 'ግምገማዎች', 'dib-u-eegis');
-  String get detailContactUnlocked => _t(
-    'Contact unlocked! Phone: +251-XXX-XXXX',
-    'ግንኙነት ተከፍቷል! ስልክ: +251-XXX-XXXX',
-    'Xiriirka la furay! Tel: +251-XXX-XXXX',
-  );
   String get detailProfileVerified => _t(
     'Full profile verification: OK',
     'ሙሉ የመገለጫ ማረጋገጫ: ተሳካ',

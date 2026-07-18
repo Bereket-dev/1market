@@ -1,7 +1,9 @@
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 import '../widgets/lang_pill.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
@@ -29,18 +31,39 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: cs.outlineVariant),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+                  CachedNetworkImage(
+                    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+                    cacheManager: KoolanImageCacheManager.instance,
+                    imageBuilder: (_, provider) => Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: cs.outlineVariant),
+                        image: DecorationImage(
+                          image: provider,
+                          fit: BoxFit.cover,
                         ),
-                        fit: BoxFit.cover,
                       ),
+                    ),
+                    placeholder: (_, __) => Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: cs.outlineVariant),
+                        color: Colors.grey[200],
+                      ),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: cs.outlineVariant),
+                        color: Colors.grey[300],
+                      ),
+                      child: const Icon(Icons.person, size: 20, color: Colors.grey),
                     ),
                   ),
                   const SizedBox(width: 12),

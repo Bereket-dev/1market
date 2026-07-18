@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,27 +10,53 @@ import '../models/app_strings.dart';
 import '../models/chat.dart';
 import '../models/listing.dart';
 import '../models/profile.dart';
+import '../models/syncable_entity.dart';
 import 'local_storage.dart' as app_local;
+import 'offline/sync_service.dart';
 import 'supabase_repository.dart';
 
-enum OnboardingPhase { initializing, auth, language, ready }
+enum OnboardingPhase {
+  initializing,
+  auth,
+  language,
+  location,
+  goal,
+  verification,
+  ready,
+}
 
 /// Central application state. Shared via [KoolanAppStateScope].
 class KoolanAppState extends ChangeNotifier {
   KoolanAppState() {
+    syncService = SyncService(this);
     final client = AppSupabaseConfig.clientOrNull();
     if (client != null) {
       try {
         _repo = SupabaseRepository(client);
-        print('Supabase repository created');
+        debugPrint('Supabase repository created');
       } catch (e, st) {
-        print('Supabase repository unavailable: $e');
-        print(st);
+        debugPrint('Supabase repository unavailable: $e');
+        debugPrint(st.toString());
         _repo = null;
       }
 
       try {
         client.auth.onAuthStateChange.listen((event) async {
+          debugPrint('Auth event: ${event.event}');
+
+          // initialSession fires once on startup when the persisted session is
+          // restored (or when there is no session). This is the correct signal
+          // that the auth state is known and settled.
+          if (event.event == AuthChangeEvent.initialSession) {
+            debugPrint(
+              '[AUTH] initialSession received at ${DateTime.now().millisecondsSinceEpoch}ms',
+            );
+            if (!_sessionReadyCompleter.isCompleted) {
+              _sessionReadyCompleter.complete(event.session);
+            }
+            return;
+          }
+
           if (event.event == AuthChangeEvent.signedIn &&
               event.session != null &&
               _pendingOAuthCompletion) {
@@ -44,22 +73,37 @@ class KoolanAppState extends ChangeNotifier {
           notifyListeners();
         });
       } catch (e, st) {
-        print('Auth listener setup failed: $e');
-        print(st);
+        debugPrint('Auth listener setup failed: $e');
+        debugPrint(st.toString());
+        // Ensure _initialize() is never left hanging if listener setup fails.
+        if (!_sessionReadyCompleter.isCompleted) {
+          _sessionReadyCompleter.complete(null);
+        }
       }
     } else {
-      print('Supabase not initialized yet; skipping repo/auth setup');
+      debugPrint('Supabase not initialized yet; skipping repo/auth setup');
       _repo = null;
+      // No Supabase client — complete immediately so _initialize() doesn't hang.
+      if (!_sessionReadyCompleter.isCompleted) {
+        _sessionReadyCompleter.complete(null);
+      }
     }
     _initialize();
   }
 
   SupabaseRepository? _repo;
 
+  /// Completes when Supabase fires [AuthChangeEvent.initialSession], meaning
+  /// the auth state is fully known. All data fetches must wait for this.
+  final Completer<Session?> _sessionReadyCompleter = Completer<Session?>();
+
   bool _pendingOAuthCompletion = false;
+  late final SyncService syncService;
 
   // ── Auth & onboarding ───────────────────────────────────────────────────────
   OnboardingPhase onboardingPhase = OnboardingPhase.initializing;
+  String? onboardingGoal;
+  bool locationPermissionGranted = false;
   UserProfile? profile;
   String? initError;
   bool isLoadingData = false;
@@ -92,6 +136,59 @@ class KoolanAppState extends ChangeNotifier {
       default:
         return const Locale('en');
     }
+  }
+
+  // ── Profile ──────────────────────────────────────────────────────────────────
+
+  /// Enqueues a profile edit through the offline-first sync queue.
+  /// Updates local [profile] immediately with [SyncStatus.pending] so the UI
+  /// can show pending → synced → failed in real time.
+  Future<void> submitProfileUpdate({
+    required String displayName,
+    required String bio,
+    required String phone,
+    required String city,
+  }) async {
+    final current = profile;
+    if (current == null) return;
+
+    final now = DateTime.now();
+
+    // Optimistic local update — mark pending immediately.
+    profile = current.copyWith(
+      displayName: displayName,
+      bio: bio,
+      phone: phone,
+      city: city,
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: now,
+    );
+    notifyListeners();
+
+    // Payload uses Supabase column names (snake_case) to match _pushEntry.
+    final payload = <String, dynamic>{
+      'display_name': displayName,
+      'bio': bio,
+      'phone': phone,
+      'city': city,
+      'updated_at': now.toIso8601String(),
+    };
+
+    try {
+      await syncService.enqueueProfileEdit(
+        userId: current.id,
+        payload: payload,
+        localUpdatedAt: now,
+      );
+      // syncService.requestSync() is called inside enqueueProfileEdit.
+      // After sync completes the queue entry is deleted; update local profile
+      // to synced so the badge reflects the final state.
+      profile = profile?.copyWith(syncStatus: SyncStatus.synced);
+    } catch (e) {
+      profile = profile?.copyWith(syncStatus: SyncStatus.failed);
+      dataError = e.toString();
+    }
+    notifyListeners();
   }
 
   Future<void> setLocale(String newLocale) async {
@@ -155,12 +252,30 @@ class KoolanAppState extends ChangeNotifier {
   // ── Initialization ──────────────────────────────────────────────────────────
 
   Future<void> _initialize() async {
-    print('Auth check started');
-    print('Repo available: ${_repo != null}');
+    final t0 = DateTime.now().millisecondsSinceEpoch;
+    debugPrint('[AUTH] _initialize started at ${t0}ms');
     initError = null;
     try {
       final savedLang = await app_local.LocalStorage.getLanguage();
       if (savedLang != null) locale = savedLang;
+
+      // Wait for Supabase to confirm the auth state (initialSession event).
+      // This prevents fetching data before the session is actually settled.
+      // Times out after 5 s to avoid hanging forever if Supabase is misconfigured.
+      await _sessionReadyCompleter.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint(
+            '[AUTH] initialSession timed out after '
+            '${DateTime.now().millisecondsSinceEpoch - t0}ms — proceeding with current state',
+          );
+          return null;
+        },
+      );
+      debugPrint(
+        '[AUTH] session ready after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+      );
+      debugPrint('Repo available: ${_repo != null}');
 
       if (!isSignedIn || _repo == null) {
         onboardingPhase = OnboardingPhase.auth;
@@ -168,31 +283,92 @@ class KoolanAppState extends ChangeNotifier {
         return;
       }
 
-      profile = await _repo!.ensureProfile();
-      final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
-
-      if (profile?.language != null) {
-        locale = profile!.language!;
-        await app_local.LocalStorage.saveLanguage(locale);
+      // ── Try to restore profile (network first, cache fallback) ──────────────
+      UserProfile? resolvedProfile;
+      try {
+        resolvedProfile = await _repo!.ensureProfile();
+        // Cache the freshly loaded profile for offline use.
+        await app_local.LocalStorage.saveProfileCache(
+          resolvedProfile.toJson(),
+        );
+      } catch (networkError) {
+        debugPrint('Profile fetch failed (likely offline): $networkError');
+        // Fall back to locally cached profile.
+        final cached = await app_local.LocalStorage.getProfileCache();
+        if (cached != null) {
+          resolvedProfile = UserProfile.fromJson(cached);
+          debugPrint('Restored profile from local cache');
+        }
       }
 
-      if (!sessionRestored || profile?.language == null) {
+      if (resolvedProfile != null) {
+        profile = resolvedProfile;
+        if (resolvedProfile.language != null) {
+          locale = resolvedProfile.language!;
+          await app_local.LocalStorage.saveLanguage(locale);
+        }
+      }
+
+      final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
+      final savedPhase = await app_local.LocalStorage.getOnboardingPhase();
+      final onboardingDone = await app_local.LocalStorage.isOnboardingComplete();
+
+      // ── Decide which onboarding phase to show ───────────────────────────────
+
+      // No language chosen yet (first auth ever).
+      if (!sessionRestored || resolvedProfile?.language == null) {
         onboardingPhase = OnboardingPhase.language;
         notifyListeners();
         return;
       }
 
-      await _enterApp();
+      // Mid-onboarding: resume from where they left off.
+      if (savedPhase != null) {
+        onboardingPhase = _parsePhase(savedPhase) ?? OnboardingPhase.location;
+        notifyListeners();
+        return;
+      }
+
+      // Onboarding already finished (local flag or profile flag).
+      if (onboardingDone || resolvedProfile?.onboardingComplete == true) {
+        await _enterApp();
+        return;
+      }
+
+      // No profile loaded and no local flag — go to location step.
+      if (resolvedProfile == null) {
+        onboardingPhase = OnboardingPhase.location;
+        notifyListeners();
+        return;
+      }
+
+      // Profile exists but onboarding not complete → resume from location.
+      onboardingPhase = OnboardingPhase.location;
+      notifyListeners();
     } catch (e) {
       initError = e.toString();
       onboardingPhase = OnboardingPhase.auth;
       notifyListeners();
     } finally {
-      print('Auth check finished');
+      debugPrint(
+        '[AUTH] _initialize finished after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+      );
     }
   }
 
   Future<void> retryInitialization() => _initialize();
+
+  OnboardingPhase? _parsePhase(String? phase) {
+    return switch (phase) {
+      'auth' => OnboardingPhase.auth,
+      'language' => OnboardingPhase.language,
+      'location' => OnboardingPhase.location,
+      'goal' => OnboardingPhase.goal,
+      'verification' => OnboardingPhase.verification,
+      'ready' => OnboardingPhase.ready,
+      _ => null,
+    };
+  }
 
   void clearDataError() {
     dataError = null;
@@ -209,7 +385,11 @@ class KoolanAppState extends ChangeNotifier {
 
     await app_local.LocalStorage.clearSessionRestored();
     profile = await _repo!.ensureProfile();
+    if (profile != null) {
+      await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+    }
     onboardingPhase = OnboardingPhase.language;
+    await app_local.LocalStorage.saveOnboardingPhase('language');
     notifyListeners();
   }
 
@@ -220,6 +400,50 @@ class KoolanAppState extends ChangeNotifier {
     }
     profile = profile?.copyWith(language: language);
     await app_local.LocalStorage.markSessionRestored();
+    await app_local.LocalStorage.saveOnboardingPhase('location');
+    onboardingPhase = OnboardingPhase.location;
+    notifyListeners();
+  }
+
+  Future<void> completeLocationOnboarding() async {
+    locationPermissionGranted = true;
+    await app_local.LocalStorage.saveOnboardingPhase('goal');
+    onboardingPhase = OnboardingPhase.goal;
+    notifyListeners();
+  }
+
+  Future<void> completeGoalSelection(String goal) async {
+    onboardingGoal = goal;
+    await app_local.LocalStorage.saveOnboardingPhase('verification');
+    onboardingPhase = OnboardingPhase.verification;
+    notifyListeners();
+  }
+
+  Future<void> completeVerificationOnboarding(bool verified) async {
+    if (_repo != null) {
+      try {
+        await _repo!.updateProfile({
+          'onboarding_complete': true,
+          if (onboardingGoal != null) 'preferred_category': onboardingGoal,
+          'language': locale,
+        });
+      } catch (e) {
+        // Profile update failed (network, RLS, etc.) — not fatal for onboarding.
+        // The sync queue will retry when connectivity returns.
+        debugPrint('updateProfile during verification failed: $e');
+      }
+    }
+    profile = profile?.copyWith(
+      onboardingComplete: true,
+      preferredCategory: onboardingGoal,
+      language: locale,
+    );
+    // Persist locally so we never re-show onboarding even when offline.
+    await app_local.LocalStorage.markOnboardingComplete();
+    if (profile != null) {
+      await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+    }
+    await app_local.LocalStorage.clearOnboardingPhase();
     await _enterApp();
   }
 
@@ -228,8 +452,15 @@ class KoolanAppState extends ChangeNotifier {
     navigationStack
       ..clear()
       ..add(HomeScreenRoute());
-    await loadAllData();
+    // Navigate immediately — don't let sync or data loading block the transition.
     notifyListeners();
+    try {
+      await syncService.init();
+    } catch (e) {
+      debugPrint('syncService.init() failed: $e');
+    }
+    await app_local.LocalStorage.clearOnboardingPhase();
+    await loadAllData();
   }
 
   Future<void> loadAllData() async {
@@ -242,13 +473,69 @@ class KoolanAppState extends ChangeNotifier {
         chatSessions = [];
         return;
       }
-      allListings = await _repo!.fetchListings();
-      chatSessions = await _repo!.fetchChatSessions();
+      final listings = await _repo!.fetchListings();
+      allListings = listings;
+      // Cache for offline use.
+      await app_local.LocalStorage.saveListingsCache(
+        listings.map((l) => l.toJson()).toList(),
+      );
+      // Chat sessions are not critical — don't block on failure.
+      try {
+        chatSessions = await _repo!.fetchChatSessions();
+      } catch (e) {
+        debugPrint('fetchChatSessions failed: $e');
+      }
+    } on SocketException catch (e) {
+      debugPrint('fetchListings offline (SocketException): $e');
+      await _serveListingsFromCache();
+    } on HandshakeException catch (e) {
+      debugPrint('fetchListings offline (HandshakeException): $e');
+      await _serveListingsFromCache();
     } catch (e) {
-      dataError = e.toString();
+      // Check if it's a network-related error by message
+      final msg = e.toString().toLowerCase();
+      final isNetworkError = msg.contains('network') ||
+          msg.contains('socket') ||
+          msg.contains('connection') ||
+          msg.contains('host lookup') ||
+          msg.contains('failed host') ||
+          msg.contains('errno = 7') || // ECONNREFUSED
+          msg.contains('errno = 101') || // ENETUNREACH
+          msg.contains('errno = 111'); // ECONNREFUSED
+
+      if (isNetworkError) {
+        debugPrint('fetchListings network error: $e');
+        await _serveListingsFromCache();
+      } else {
+        // Real app error — show it, but still serve any previously loaded data.
+        debugPrint('fetchListings error: $e');
+        dataError = e.toString();
+      }
     } finally {
       isLoadingData = false;
       notifyListeners();
+    }
+  }
+
+  /// Loads cached listings into [allListings] and shows a soft banner.
+  /// If we already have listings in memory (e.g. a background refresh failed),
+  /// we keep those and stay silent.
+  Future<void> _serveListingsFromCache() async {
+    if (allListings.isNotEmpty) {
+      // Already have data in memory — silent failure, no banner needed.
+      return;
+    }
+    final cached = await app_local.LocalStorage.getListingsCache();
+    if (cached != null && cached.isNotEmpty) {
+      final userId = currentUser?.id;
+      allListings = cached.map((json) => Listing.fromJson(
+        json,
+        isSaved: json['is_saved'] as bool? ?? false,
+        isOwnedByCurrentUser: json['seller_id'] == userId,
+      )).toList();
+      dataError = 'Showing cached data — you appear to be offline.';
+    } else {
+      dataError = 'No internet connection and no cached data available.';
     }
   }
 
@@ -367,15 +654,41 @@ class KoolanAppState extends ChangeNotifier {
       }
       final msg = await _repo!.sendMessage(threadId: sessionId, text: text);
       final session = chatSessions[index];
+      final newTotal = session.totalMessages + 1;
+      // Auto-reveal once 3 real messages have been sent in this thread.
+      final shouldReveal = !session.contactRevealed && newTotal >= 3;
       chatSessions[index] = session.copyWith(
         messages: [...session.messages, msg],
         unreadCount: 0,
+        totalMessages: newTotal,
+        contactRevealed: shouldReveal ? true : session.contactRevealed,
       );
       notifyListeners();
     } catch (e) {
       dataError = e.toString();
       notifyListeners();
       rethrow;
+    }
+  }
+
+  /// Explicitly reveals contact details for [sessionId].
+  /// Called when either party taps "Share phone number" in the chat thread.
+  /// No-op if already revealed.
+  void revealContactForThread(String sessionId) {
+    final index = chatSessions.indexWhere((s) => s.id == sessionId);
+    if (index == -1) return;
+    final session = chatSessions[index];
+    if (session.contactRevealed) return;
+    chatSessions[index] = session.copyWith(contactRevealed: true);
+    notifyListeners();
+  }
+
+  /// Returns the chat session for [listingId], or null if none exists yet.
+  ChatSession? getSessionForListing(String listingId) {
+    try {
+      return chatSessions.firstWhere((s) => s.listingId == listingId);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -503,6 +816,8 @@ class KoolanAppState extends ChangeNotifier {
   Future<void> _resetAfterAuthStateChange() async {
     await app_local.LocalStorage.clearLanguage();
     await app_local.LocalStorage.clearSessionRestored();
+    await app_local.LocalStorage.clearOnboardingComplete();
+    await app_local.LocalStorage.clearProfileCache();
     _repo = null;
     profile = null;
     allListings = [];
@@ -523,7 +838,7 @@ class KoolanAppState extends ChangeNotifier {
         await client.auth.signOut();
       }
     } catch (e) {
-      print('Sign out failed: $e');
+      debugPrint('Sign out failed: $e');
     } finally {
       await _resetAfterAuthStateChange();
     }

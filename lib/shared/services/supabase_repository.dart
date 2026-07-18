@@ -211,6 +211,7 @@ class SupabaseRepository {
         partnerName: partner?.displayName ?? 'User',
         partnerAvatar: partner?.avatarUrl ?? '',
         listingTitle: listingTitle,
+        listingId: t['listing_id'] as String?,
         messages: chatMessages,
         unreadCount: unreadCount > 0 ? 1 : 0,
       ));

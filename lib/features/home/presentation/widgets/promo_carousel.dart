@@ -1,4 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
@@ -157,10 +159,12 @@ class _PromoSlideCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(
-            slide.imageUrl,
+          CachedNetworkImage(
+            imageUrl: slide.imageUrl,
+            cacheManager: KoolanImageCacheManager.instance,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(color: slide.accent),
+            placeholder: (_, __) => Container(color: slide.accent),
+            errorWidget: (_, __, ___) => Container(color: slide.accent),
           ),
           Container(
             decoration: BoxDecoration(

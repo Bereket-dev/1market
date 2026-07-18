@@ -37,10 +37,16 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   cached_network_image: ^3.3.1
+  flutter_cache_manager: ^3.4.1
   shared_preferences: ^2.5.3
   supabase_flutter: ^2.15.4
   flutter_dotenv: ^5.1.0
   google_sign_in: ^6.1.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.6
+  permission_handler: ^12.0.0
+  http: ^1.6.0
 
 dependency_overrides:
   # Flutter 3.32.0's bundled flutter_localizations uses intl.DateSymbols which

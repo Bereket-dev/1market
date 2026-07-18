@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 class _RowSpec {
   final String label;
@@ -158,8 +160,18 @@ class _ListingHeader extends StatelessWidget {
     return Column(children: [
       ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(listing.imageUrl,
-            height: 70, width: 100, fit: BoxFit.cover),
+        child: CachedNetworkImage(
+            imageUrl: listing.imageUrl,
+            cacheManager: KoolanImageCacheManager.instance,
+            height: 70, width: 100, fit: BoxFit.cover,
+            placeholder: (_, __) => Container(
+              height: 70, width: 100, color: Colors.grey[200],
+            ),
+            errorWidget: (_, __, ___) => Container(
+              height: 70, width: 100, color: Colors.grey[300],
+              child: const Icon(Icons.image_not_supported, color: Colors.grey),
+            ),
+          ),
       ),
       const SizedBox(height: 4),
       Text(listing.title,

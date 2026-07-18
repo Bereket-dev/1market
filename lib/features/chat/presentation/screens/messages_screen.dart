@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
@@ -102,10 +104,23 @@ class MessagesScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     child: Row(children: [
                       Stack(children: [
-                        CircleAvatar(
-                          radius: 27,
-                          backgroundImage:
-                              NetworkImage(session.partnerAvatar),
+                        CachedNetworkImage(
+                          imageUrl: session.partnerAvatar.isEmpty
+                              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
+                              : session.partnerAvatar,
+                          cacheManager: KoolanImageCacheManager.instance,
+                          imageBuilder: (_, provider) => CircleAvatar(
+                            radius: 27,
+                            backgroundImage: provider,
+                          ),
+                          placeholder: (_, __) => const CircleAvatar(
+                            radius: 27,
+                            backgroundColor: Colors.grey,
+                          ),
+                          errorWidget: (_, __, ___) => const CircleAvatar(
+                            radius: 27,
+                            child: Icon(Icons.person),
+                          ),
                         ),
                         if (isOnline)
                           Positioned(

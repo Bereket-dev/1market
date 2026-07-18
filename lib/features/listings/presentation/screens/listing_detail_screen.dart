@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/utils/icon_for_spec.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
@@ -13,8 +15,6 @@ class ListingDetailScreen extends StatefulWidget {
 }
 
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
-  bool _isContactUnlocked = false;
-
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
@@ -33,6 +33,11 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       );
     }
 
+    // Look up the chat thread for this listing (null if the user hasn't
+    // started a conversation yet).
+    final session = state.getSessionForListing(widget.listingId);
+    final contactRevealed = session?.contactRevealed ?? false;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -48,7 +53,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(listing.imageUrl, fit: BoxFit.cover),
+                      CachedNetworkImage(
+                        imageUrl: listing.imageUrl,
+                        cacheManager: KoolanImageCacheManager.instance,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.image_not_supported,
+                              size: 48, color: Colors.grey),
+                        ),
+                      ),
 
                       // Photo counter pill – bottom left
                       Positioned(
@@ -122,8 +140,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   icon: Icons.share,
                                   cs: cs,
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
                                             content: Text('Link shared!')));
                                   },
                                 ),
@@ -161,7 +179,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: cs.primaryContainer.withValues(alpha: 0.25),
+                              color: cs.primaryContainer
+                                  .withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
@@ -202,7 +221,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           const SizedBox(width: 4),
                           Text(
                             listing.location,
-                            style: TextStyle(color: cs.onSurfaceVariant),
+                            style:
+                                TextStyle(color: cs.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -219,7 +239,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   child: _BentoBox(
                                     label: listing.spec1Label!,
                                     value: listing.spec1Value!,
-                                    icon: iconForSpec(listing.spec1Label!),
+                                    icon:
+                                        iconForSpec(listing.spec1Label!),
                                   ),
                                 ),
                               if (listing.spec1Label != null &&
@@ -231,7 +252,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   child: _BentoBox(
                                     label: listing.spec2Label!,
                                     value: listing.spec2Value!,
-                                    icon: iconForSpec(listing.spec2Label!),
+                                    icon:
+                                        iconForSpec(listing.spec2Label!),
                                   ),
                                 ),
                             ],
@@ -245,7 +267,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   child: _BentoBox(
                                     label: listing.spec3Label!,
                                     value: listing.spec3Value!,
-                                    icon: iconForSpec(listing.spec3Label!),
+                                    icon:
+                                        iconForSpec(listing.spec3Label!),
                                   ),
                                 ),
                               if (listing.spec3Label != null &&
@@ -257,7 +280,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   child: _BentoBox(
                                     label: listing.spec4Label!,
                                     value: listing.spec4Value!,
-                                    icon: iconForSpec(listing.spec4Label!),
+                                    icon:
+                                        iconForSpec(listing.spec4Label!),
                                   ),
                                 ),
                             ],
@@ -302,7 +326,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: cs.outlineVariant.withValues(alpha: 0.4)),
+                              color: cs.outlineVariant
+                                  .withValues(alpha: 0.4)),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Stack(
@@ -347,7 +372,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                                   color: cs.primary)),
                                           const SizedBox(width: 4),
                                           Icon(Icons.open_in_new,
-                                              size: 12, color: cs.primary),
+                                              size: 12,
+                                              color: cs.primary),
                                         ],
                                       ),
                                     ),
@@ -364,12 +390,22 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       _SellerCard(listing: listing, state: state),
                       const SizedBox(height: 24),
 
-                      // Contact card
+                      // Contact card — thread-scoped reveal, no paywall
                       _ContactCard(
-                        isUnlocked: _isContactUnlocked,
-                        unlockLabel: state.s.detailUnlockContact,
-                        onUnlock: () =>
-                            setState(() => _isContactUnlocked = true),
+                        contactRevealed: contactRevealed,
+                        sessionId: session?.id,
+                        onStartChat: () async {
+                          final threadId = await state
+                              .startChatForListing(widget.listingId);
+                          if (!context.mounted) return;
+                          if (threadId != null) {
+                            final idx = state.chatSessions
+                                .indexWhere((s) => s.id == threadId);
+                            if (idx != -1) {
+                              state.pushScreen(ActiveChatScreenRoute(idx));
+                            }
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -403,8 +439,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () =>
-                          state.pushScreen(ActiveChatScreenRoute(0)),
+                      onPressed: () async {
+                        final threadId = await state
+                            .startChatForListing(widget.listingId);
+                        if (!context.mounted) return;
+                        if (threadId != null) {
+                          final idx = state.chatSessions
+                              .indexWhere((s) => s.id == threadId);
+                          if (idx != -1) {
+                            state.pushScreen(ActiveChatScreenRoute(idx));
+                          }
+                        }
+                      },
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
@@ -433,8 +479,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text(
-                                  'Request logged. Partner notified!')),
+                              content:
+                                  Text('Request logged. Partner notified!')),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -528,7 +574,8 @@ class _BentoBox extends StatelessWidget {
             Icon(icon, color: cs.primary, size: 24),
             const SizedBox(height: 4),
             Text(label,
-                style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+                style:
+                    TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
             Text(value,
                 style: TextStyle(
                     fontSize: 14,
@@ -576,10 +623,25 @@ class _SellerCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundImage: NetworkImage(
-                    listing.sellerImage.isEmpty
-                        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
-                        : listing.sellerImage,
+                  backgroundColor: Colors.grey[200],
+                  child: ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: listing.sellerImage.isEmpty
+                          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
+                          : listing.sellerImage,
+                      cacheManager: KoolanImageCacheManager.instance,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => const CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.grey,
+                      ),
+                      errorWidget: (_, __, ___) => const CircleAvatar(
+                        radius: 28,
+                        child: Icon(Icons.person),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -596,12 +658,14 @@ class _SellerCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 16),
+                        const Icon(Icons.star,
+                            color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           '${listing.sellerRating} (${listing.sellerReviewsCount} ${state.s.detailReviews})',
                           style: TextStyle(
-                              fontSize: 12, color: cs.onSurfaceVariant),
+                              fontSize: 12,
+                              color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -613,7 +677,8 @@ class _SellerCard extends StatelessWidget {
             OutlinedButton(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.s.detailProfileVerified)),
+                  SnackBar(
+                      content: Text(state.s.detailProfileVerified)),
                 );
               },
               style: OutlinedButton.styleFrom(
@@ -635,16 +700,24 @@ class _SellerCard extends StatelessWidget {
 }
 
 // ── Contact card ──────────────────────────────────────────────────────────────
+// No paywall, no unlock language. Contact details are revealed per chat thread:
+// automatically after 3 exchanged messages, or when either party explicitly
+// taps "Share phone number" inside the thread.
 
 class _ContactCard extends StatelessWidget {
-  final bool isUnlocked;
-  final String unlockLabel;
-  final VoidCallback onUnlock;
+  /// Whether this thread has already crossed the reveal threshold.
+  final bool contactRevealed;
+
+  /// The thread id, if a thread exists for this listing. Null = not started.
+  final String? sessionId;
+
+  /// Called when the user taps the "Start chat" / "Go to chat" button.
+  final VoidCallback onStartChat;
 
   const _ContactCard({
-    required this.isUnlocked,
-    required this.unlockLabel,
-    required this.onUnlock,
+    required this.contactRevealed,
+    required this.sessionId,
+    required this.onStartChat,
   });
 
   @override
@@ -672,48 +745,70 @@ class _ContactCard extends StatelessWidget {
                       fontSize: 15,
                       color: cs.onSurface),
                 ),
-                Icon(Icons.lock, color: cs.primary, size: 28),
+                Icon(
+                  contactRevealed ? Icons.lock_open : Icons.lock,
+                  color: cs.primary,
+                  size: 28,
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              'Phone numbers and direct emails are protected to avoid '
-              'phishing/spam. Interact safely using escrow.',
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(height: 16),
-            if (isUnlocked) ...[
-              Text(
-                'Phone: +251 91 123 4567',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: cs.primary),
+            if (contactRevealed) ...[
+              // ── Revealed state ──────────────────────────────────────────
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.phone, size: 16, color: cs.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    '+251 91 123 4567',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: cs.primary),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Email: contact@jigjigamarketplace.et',
-                style: TextStyle(color: cs.onSurfaceVariant),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.email_outlined,
+                      size: 16, color: cs.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Text(
+                    'contact@jigjigamarketplace.et',
+                    style: TextStyle(color: cs.onSurfaceVariant),
+                  ),
+                ],
               ),
-            ] else
-              ElevatedButton(
-                onPressed: onUnlock,
-                style: ElevatedButton.styleFrom(
+            ] else ...[
+              // ── Hidden state ────────────────────────────────────────────
+              Text(
+                'Contact details are shared after 3 messages are exchanged, '
+                'or when either party taps "Share phone number" in the chat.',
+                style:
+                    TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: onStartChat,
+                style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
-                  backgroundColor: cs.primary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
+                  side: BorderSide(color: cs.primary),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.payment, color: cs.onPrimary),
+                    Icon(Icons.chat_bubble, color: cs.primary),
                     const SizedBox(width: 8),
                     Text(
-                      unlockLabel,
-                      style: TextStyle(color: cs.onPrimary),
+                      sessionId != null ? 'Go to chat' : 'Start chat',
+                      style: TextStyle(color: cs.primary),
                     ),
                   ],
                 ),
               ),
+            ],
           ],
         ),
       ),

@@ -11,7 +11,10 @@ import 'features/favorites/presentation/screens/saved_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/listings/presentation/screens/listing_detail_screen.dart';
 import 'features/onboarding/screens/auth_screen.dart';
+import 'features/onboarding/screens/goal_selection_screen.dart';
 import 'features/onboarding/screens/language_screen.dart';
+import 'features/onboarding/screens/location_permission_screen.dart';
+import 'features/onboarding/screens/verification_prompt_screen.dart';
 import 'features/post/presentation/screens/post_wizard_screen.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
@@ -88,6 +91,12 @@ class _RootGate extends StatelessWidget {
         return const AuthScreen();
       case OnboardingPhase.language:
         return const LanguageScreen();
+      case OnboardingPhase.location:
+        return const LocationPermissionScreen();
+      case OnboardingPhase.goal:
+        return const GoalSelectionScreen();
+      case OnboardingPhase.verification:
+        return const VerificationPromptScreen();
       case OnboardingPhase.ready:
         return const _AppShell();
     }
