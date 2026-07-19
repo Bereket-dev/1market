@@ -249,6 +249,11 @@ class AppStrings {
     'ምንም ንቁ ቻት የለም',
     'Ma jiraan sheekooyin firfircoon',
   );
+  String get messagesNoResults => _t(
+    'No chats match your search',
+    'ምንም ተዛማጅ ቻት የለም',
+    'Sheeko la midnaysan ma jirto',
+  );
 
   // ── Active Chat Screen ──────────────────────────────────────────────────────
   String get chatInputHint =>
