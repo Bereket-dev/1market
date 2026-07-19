@@ -18,6 +18,19 @@ import 'features/onboarding/screens/verification_prompt_screen.dart';
 import 'features/post/presentation/screens/post_wizard_screen.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
+import 'features/services/presentation/screens/service_browse_screen.dart';
+import 'features/services/presentation/screens/service_detail_screen.dart';
+import 'features/services/presentation/screens/service_edit_screen.dart';
+import 'features/services/presentation/screens/service_management_screen.dart';
+import 'features/services/presentation/screens/service_reviews_screen.dart';
+import 'features/hiring/presentation/screens/hiring_applicant_list_screen.dart';
+import 'features/hiring/presentation/screens/hiring_applicant_detail_screen.dart';
+import 'features/hiring/presentation/screens/hiring_browse_screen.dart';
+import 'features/hiring/presentation/screens/hiring_detail_screen.dart';
+import 'features/hiring/presentation/screens/hiring_edit_screen.dart';
+import 'features/hiring/presentation/screens/hiring_management_screen.dart';
+import 'features/hiring/presentation/screens/my_applications_screen.dart';
+import 'features/hiring/presentation/screens/notifications_screen.dart';
 import 'shared/services/app_state.dart';
 
 class KoolanApp extends StatefulWidget {
@@ -27,19 +40,32 @@ class KoolanApp extends StatefulWidget {
   State<KoolanApp> createState() => _KoolanAppState();
 }
 
-class _KoolanAppState extends State<KoolanApp> {
+class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   late final KoolanAppState _appState;
 
   @override
   void initState() {
     super.initState();
     _appState = KoolanAppState();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _appState.dispose();
     super.dispose();
+  }
+
+  /// Called whenever the app lifecycle state changes.
+  /// On [AppLifecycleState.resumed] we request a sync pass so any items
+  /// queued while the app was backgrounded are flushed immediately.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('[KoolanApp] App foregrounded — triggering sync');
+      _appState.syncService.requestSync();
+    }
   }
 
   @override
@@ -297,6 +323,64 @@ class _AppShell extends StatelessWidget {
       return ActiveChatScreen(
         key: ValueKey('chat_${screen.sessionIndex}'),
         sessionIndex: screen.sessionIndex,
+      );
+    } else if (screen is ServiceManagementScreenRoute) {
+      return const ServiceManagementScreen(key: ValueKey('services'));
+    } else if (screen is ServiceEditScreenRoute) {
+      return ServiceEditScreen(
+        key: ValueKey('service_edit_${screen.serviceId ?? 'new'}'),
+        serviceId: screen.serviceId,
+      );
+    } else if (screen is ServiceBrowseScreenRoute) {
+      return const ServiceBrowseScreen(key: ValueKey('services_browse'));
+    } else if (screen is ServiceDetailScreenRoute) {
+      return ServiceDetailScreen(
+        key: ValueKey('service_detail_${screen.serviceId}'),
+        serviceId: screen.serviceId,
+      );
+    } else if (screen is ServiceReviewsScreenRoute) {
+      return ServiceReviewsScreen(
+        key: ValueKey('service_reviews_${screen.serviceId}'),
+        serviceId: screen.serviceId,
+      );
+    } else if (screen is HiringManagementScreenRoute) {
+      return const HiringManagementScreen(
+        key: ValueKey('hiring_management'),
+      );
+    } else if (screen is HiringEditScreenRoute) {
+      return HiringEditScreen(
+        key: ValueKey('hiring_edit_${screen.postId ?? 'new'}'),
+        postId: screen.postId,
+      );
+    } else if (screen is HiringApplicantListScreenRoute) {
+      return HiringApplicantListScreen(
+        key: ValueKey('hiring_applicants_${screen.postId}'),
+        postId: screen.postId,
+      );
+    } else if (screen is HiringApplicantDetailScreenRoute) {
+      return HiringApplicantDetailScreen(
+        key: ValueKey(
+          'hiring_applicant_detail_${screen.applicationId}',
+        ),
+        applicationId: screen.applicationId,
+        postId: screen.postId,
+      );
+    } else if (screen is HiringBrowseScreenRoute) {
+      return const HiringBrowseScreen(
+        key: ValueKey('hiring_browse'),
+      );
+    } else if (screen is HiringDetailScreenRoute) {
+      return HiringDetailScreen(
+        key: ValueKey('hiring_detail_${screen.postId}'),
+        postId: screen.postId,
+      );
+    } else if (screen is MyApplicationsScreenRoute) {
+      return const MyApplicationsScreen(
+        key: ValueKey('my_applications'),
+      );
+    } else if (screen is NotificationsScreenRoute) {
+      return const NotificationsScreen(
+        key: ValueKey('notifications'),
       );
     } else if (screen is SettingsScreenRoute) {
       return const SettingsScreen(key: ValueKey('settings'));

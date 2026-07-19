@@ -86,7 +86,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = _friendlyAuthMessage(e.message ?? e.toString()));
+      setState(() => _error = _friendlyAuthMessage(e.message));
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -143,7 +143,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = e.message ?? e.toString());
+      setState(() => _error = e.message);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {

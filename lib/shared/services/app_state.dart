@@ -7,9 +7,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/router/routes.dart';
 import '../models/app_strings.dart';
+import '../models/application.dart';
 import '../models/chat.dart';
+import '../models/hiring_post.dart';
 import '../models/listing.dart';
 import '../models/profile.dart';
+import '../models/service.dart';
+import '../models/service_review.dart';
 import '../models/syncable_entity.dart';
 import 'local_storage.dart' as app_local;
 import 'offline/sync_service.dart';
@@ -245,7 +249,11 @@ class KoolanAppState extends ChangeNotifier {
 
   // ── Data ────────────────────────────────────────────────────────────────────
   List<Listing> allListings = [];
+  List<Service> allServices = [];
   List<ChatSession> chatSessions = [];
+  List<HiringPost> allHiringPosts = [];
+  List<Application> myApplications = [];
+  List<Map<String, dynamic>> notifications = [];
 
   // ── Post-wizard state ────────────────────────────────────────────────────────
   int postStep = 1;
@@ -492,11 +500,41 @@ class KoolanAppState extends ChangeNotifier {
       await app_local.LocalStorage.saveListingsCache(
         listings.map((l) => l.toJson()).toList(),
       );
+      final services = await _repo!.fetchServices();
+      allServices = services;
+      await app_local.LocalStorage.saveServicesCache(
+        services.map((s) => s.toJson()).toList(),
+      );
       // Chat sessions are not critical — don't block on failure.
       try {
         chatSessions = await _repo!.fetchChatSessions();
       } catch (e) {
         debugPrint('fetchChatSessions failed: $e');
+      }
+      // Hiring posts and applications — non-blocking, fail silently.
+      try {
+        final posts = await _repo!.fetchHiringPosts();
+        final myPostIds = posts
+            .where((p) => p.posterId == currentUser?.id)
+            .map((p) => p.id)
+            .toList();
+        final counts = await _repo!.fetchApplicantCounts(myPostIds);
+        allHiringPosts = posts.map((p) {
+          final count = counts[p.id] ?? 0;
+          return count > 0 ? p.copyWith(applicantCount: count) : p;
+        }).toList();
+      } catch (e) {
+        debugPrint('fetchHiringPosts failed: $e');
+      }
+      try {
+        myApplications = await _repo!.fetchMyApplications();
+      } catch (e) {
+        debugPrint('fetchMyApplications failed: $e');
+      }
+      try {
+        notifications = await _repo!.fetchNotifications();
+      } catch (e) {
+        debugPrint('fetchNotifications failed: $e');
       }
     } on SocketException catch (e) {
       debugPrint('fetchListings offline (SocketException): $e');
@@ -535,14 +573,14 @@ class KoolanAppState extends ChangeNotifier {
   /// If we already have listings in memory (e.g. a background refresh failed),
   /// we keep those and stay silent.
   Future<void> _serveListingsFromCache() async {
-    if (allListings.isNotEmpty) {
+    if (allListings.isNotEmpty || allServices.isNotEmpty) {
       // Already have data in memory — silent failure, no banner needed.
       return;
     }
-    final cached = await app_local.LocalStorage.getListingsCache();
-    if (cached != null && cached.isNotEmpty) {
+    final listingsCached = await app_local.LocalStorage.getListingsCache();
+    if (listingsCached != null && listingsCached.isNotEmpty) {
       final userId = currentUser?.id;
-      allListings = cached
+      allListings = listingsCached
           .map(
             (json) => Listing.fromJson(
               json,
@@ -551,6 +589,16 @@ class KoolanAppState extends ChangeNotifier {
             ),
           )
           .toList();
+    }
+    final servicesCached = await app_local.LocalStorage.getServicesCache();
+    if (servicesCached != null && servicesCached.isNotEmpty) {
+      final userId = currentUser?.id;
+      allServices = servicesCached
+          .map((json) => Service.fromJson(json))
+          .where((service) => service.ownerId == userId || service.availability)
+          .toList();
+    }
+    if (allListings.isNotEmpty || allServices.isNotEmpty) {
       dataError = 'Showing cached data — you appear to be offline.';
     } else {
       dataError = 'No internet connection and no cached data available.';
@@ -613,9 +661,643 @@ class KoolanAppState extends ChangeNotifier {
 
   Listing? getListingById(String id) {
     try {
-      return allListings.firstWhere((l) => l.id == id);
+      return allListings.firstWhere((listing) => listing.id == id);
     } catch (_) {
       return null;
+    }
+  }
+
+  List<Service> getMyServices() {
+    final userId = currentUser?.id;
+    if (userId == null) return [];
+    return allServices.where((service) => service.ownerId == userId).toList();
+  }
+
+  Service? getServiceById(String id) {
+    try {
+      return allServices.firstWhere((s) => s.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> submitServiceEdit(Service service) async {
+    final current = currentUser;
+    if (current == null) return;
+
+    final now = DateTime.now();
+    final updated = service.copyWith(
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: now,
+    );
+
+    final existingIndex = allServices.indexWhere((s) => s.id == updated.id);
+    if (existingIndex == -1) {
+      allServices.add(updated);
+    } else {
+      allServices[existingIndex] = updated;
+    }
+    notifyListeners();
+
+    final payload = {
+      'owner_id': updated.ownerId,
+      'title': updated.title,
+      'category': updated.category,
+      'description': updated.description,
+      'cover_description': updated.coverDescription,
+      'cv_file_url': updated.cvFileUrl,
+      'years_of_experience': updated.yearsOfExperience,
+      'price_range': updated.priceRange,
+      'location': updated.location,
+      'availability': updated.availability,
+      'created_at': updated.createdAt.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
+
+    try {
+      await syncService.enqueueServiceEdit(
+        serviceId: updated.id,
+        payload: payload,
+        localUpdatedAt: now,
+      );
+      // Item stays 'pending' in-memory until the sync pass completes and
+      // either replaceServiceId (new) or a regular push (edit) marks it synced.
+    } catch (e) {
+      allServices = allServices.map((s) {
+        if (s.id == updated.id) {
+          return s.copyWith(syncStatus: SyncStatus.failed);
+        }
+        return s;
+      }).toList();
+      dataError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  /// Called by SyncService after a successful push for an existing item.
+  /// Updates the in-memory sync status badge without a full reload.
+  void markEntitySynced(SyncEntityType type, String id) {
+    switch (type) {
+      case SyncEntityType.service:
+        final idx = allServices.indexWhere((s) => s.id == id);
+        if (idx != -1) {
+          allServices[idx] =
+              allServices[idx].copyWith(syncStatus: SyncStatus.synced);
+          notifyListeners();
+        }
+        break;
+      case SyncEntityType.hiringPost:
+        final idx = allHiringPosts.indexWhere((p) => p.id == id);
+        if (idx != -1) {
+          allHiringPosts[idx] =
+              allHiringPosts[idx].copyWith(syncStatus: SyncStatus.synced);
+          notifyListeners();
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  /// Called by SyncService after a new service is inserted into Supabase and
+  /// we receive the real UUID. Replaces the temporary local_* id in-memory so
+  /// subsequent edits/deletes target the correct row.
+  void replaceServiceId(String localId, String realId) {
+    final idx = allServices.indexWhere((s) => s.id == localId);
+    if (idx == -1) return;
+    allServices[idx] = allServices[idx].copyWith(
+      id: realId,
+      syncStatus: SyncStatus.synced,
+    );
+    notifyListeners();
+  }
+
+  /// Called by SyncService after a new hiring post is inserted into Supabase.
+  void replaceHiringPostId(String localId, String realId) {
+    final idx = allHiringPosts.indexWhere((p) => p.id == localId);
+    if (idx == -1) return;
+    allHiringPosts[idx] = allHiringPosts[idx].copyWith(
+      id: realId,
+      syncStatus: SyncStatus.synced,
+    );
+    notifyListeners();
+  }
+
+  Future<void> deleteService(String id) async {
+    final index = allServices.indexWhere((s) => s.id == id);
+    if (index == -1) return;
+    // Remove from local list immediately (optimistic delete).
+    allServices.removeAt(index);
+    notifyListeners();
+    // Queue a delete operation via sync service.
+    try {
+      await syncService.enqueueServiceDelete(serviceId: id);
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> toggleServiceAvailability(String id, bool available) async {
+    final index = allServices.indexWhere((s) => s.id == id);
+    if (index == -1) return;
+    final service = allServices[index];
+    final updated = service.copyWith(
+      availability: available,
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: DateTime.now(),
+    );
+    allServices[index] = updated;
+    notifyListeners();
+    try {
+      await syncService.enqueueServiceEdit(
+        serviceId: updated.id,
+        payload: {
+          'owner_id': updated.ownerId,
+          'title': updated.title,
+          'category': updated.category,
+          'description': updated.description,
+          'cover_description': updated.coverDescription,
+          'cv_file_url': updated.cvFileUrl,
+          'years_of_experience': updated.yearsOfExperience,
+          'price_range': updated.priceRange,
+          'location': updated.location,
+          'availability': updated.availability,
+          'created_at': updated.createdAt.toIso8601String(),
+          'updated_at': updated.localUpdatedAt.toIso8601String(),
+        },
+        localUpdatedAt: updated.localUpdatedAt,
+      );
+      allServices[index] = updated.copyWith(syncStatus: SyncStatus.synced);
+    } catch (e) {
+      allServices[index] = updated.copyWith(syncStatus: SyncStatus.failed);
+      dataError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // ── Hiring posts ─────────────────────────────────────────────────────────────
+
+  List<HiringPost> getMyHiringPosts() {
+    final userId = currentUser?.id;
+    if (userId == null) return [];
+    return allHiringPosts.where((p) => p.posterId == userId).toList();
+  }
+
+  List<HiringPost> getBrowsableHiringPosts() =>
+      allHiringPosts.where((p) => p.isOpen).toList();
+
+  HiringPost? getHiringPostById(String id) {
+    try {
+      return allHiringPosts.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Updates the in-memory applicant count badge on a hiring post.
+  /// Called after loading the applicant list so the management screen badge
+  /// stays accurate without a full data reload.
+  void updateHiringPostApplicantCount(String postId, int count) {
+    final idx = allHiringPosts.indexWhere((p) => p.id == postId);
+    if (idx == -1) return;
+    allHiringPosts[idx] =
+        allHiringPosts[idx].copyWith(applicantCount: count);
+    notifyListeners();
+  }
+
+  Future<void> submitHiringPostEdit(HiringPost post) async {
+    final current = currentUser;
+    if (current == null) return;
+
+    final now = DateTime.now();
+    final updated = post.copyWith(
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: now,
+    );
+
+    final existingIndex = allHiringPosts.indexWhere((p) => p.id == updated.id);
+    if (existingIndex == -1) {
+      allHiringPosts.add(updated);
+    } else {
+      allHiringPosts[existingIndex] = updated;
+    }
+    notifyListeners();
+
+    final payload = {
+      'poster_id': updated.posterId,
+      'title': updated.title,
+      'description': updated.description,
+      'category': updated.category,
+      'location': updated.location,
+      'price_range': updated.priceRange,
+      'status': updated.status,
+      'created_at': updated.createdAt.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
+
+    try {
+      await syncService.enqueueHiringPostEdit(
+        postId: updated.id,
+        payload: payload,
+        localUpdatedAt: now,
+      );
+      // Item stays 'pending' until the sync pass completes.
+    } catch (e) {
+      final idx = allHiringPosts.indexWhere((p) => p.id == updated.id);
+      if (idx != -1) {
+        allHiringPosts[idx] = updated.copyWith(syncStatus: SyncStatus.failed);
+      }
+      dataError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  Future<void> deleteHiringPost(String id) async {
+    allHiringPosts.removeWhere((p) => p.id == id);
+    notifyListeners();
+    try {
+      await syncService.enqueueHiringPostDelete(postId: id);
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> toggleHiringPostStatus(String id, String newStatus) async {
+    final index = allHiringPosts.indexWhere((p) => p.id == id);
+    if (index == -1) return;
+    final post = allHiringPosts[index];
+    final updated = post.copyWith(
+      status: newStatus,
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: DateTime.now(),
+    );
+    allHiringPosts[index] = updated;
+    notifyListeners();
+    try {
+      await syncService.enqueueHiringPostEdit(
+        postId: updated.id,
+        payload: {
+          'poster_id': updated.posterId,
+          'title': updated.title,
+          'description': updated.description,
+          'category': updated.category,
+          'location': updated.location,
+          'price_range': updated.priceRange,
+          'status': updated.status,
+          'created_at': updated.createdAt.toIso8601String(),
+          'updated_at': updated.localUpdatedAt.toIso8601String(),
+        },
+        localUpdatedAt: updated.localUpdatedAt,
+      );
+      allHiringPosts[index] = updated.copyWith(syncStatus: SyncStatus.synced);
+    } catch (e) {
+      allHiringPosts[index] = updated.copyWith(syncStatus: SyncStatus.failed);
+      dataError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // ── Applications ─────────────────────────────────────────────────────────────
+
+  /// Returns applications for a specific hiring post (poster's view).
+  /// Fetches fresh from Supabase if online; returns in-memory cache otherwise.
+  final Map<String, List<Application>> _applicantsCache = {};
+
+  List<Application> getApplicationsForPost(String hiringPostId) =>
+      _applicantsCache[hiringPostId] ?? [];
+
+  Future<List<Application>> loadApplicationsForPost(
+    String hiringPostId,
+  ) async {
+    if (_repo == null) return [];
+    try {
+      final apps = await _repo!.fetchApplicationsForPost(hiringPostId);
+      _applicantsCache[hiringPostId] = apps;
+      notifyListeners();
+      return apps;
+    } catch (e) {
+      debugPrint('loadApplicationsForPost error: $e');
+      return _applicantsCache[hiringPostId] ?? [];
+    }
+  }
+
+  /// Returns the applicant's own applications grouped by serviceId.
+  Map<String, List<Application>> getMyApplicationsGroupedByService() {
+    final result = <String, List<Application>>{};
+    for (final app in myApplications) {
+      result.putIfAbsent(app.serviceId, () => []).add(app);
+    }
+    return result;
+  }
+
+  /// Submits an application (applicant action). Goes through SyncService queue.
+  Future<void> submitApplication({
+    required String hiringPostId,
+    required String serviceId,
+  }) async {
+    final userId = currentUser?.id;
+    if (userId == null) return;
+
+    final now = DateTime.now();
+    final applicationId = 'local_${now.millisecondsSinceEpoch}';
+
+    final application = Application(
+      id: applicationId,
+      hiringPostId: hiringPostId,
+      applicantId: userId,
+      serviceId: serviceId,
+      status: ApplicationStatus.submitted,
+      submittedAt: now,
+      localUpdatedAt: now,
+      syncStatus: SyncStatus.pending,
+    );
+
+    myApplications.add(application);
+    notifyListeners();
+
+    final payload = {
+      'hiring_post_id': hiringPostId,
+      'applicant_id': userId,
+      'service_id': serviceId,
+      'status': 'submitted',
+      'submitted_at': now.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
+
+    try {
+      await syncService.enqueueApplication(
+        applicationId: applicationId,
+        payload: payload,
+        localUpdatedAt: now,
+      );
+      // After sync we'd get the real Supabase ID, but the local ID is fine
+      // for offline use. The sync pass will insert with a new UUID on reconnect.
+      final idx = myApplications.indexWhere((a) => a.id == applicationId);
+      if (idx != -1) {
+        myApplications[idx] =
+            application.copyWith(syncStatus: SyncStatus.synced);
+      }
+
+      // Fire notification to the hiring post owner (online only — best-effort).
+      unawaited(_notifyNewApplication(hiringPostId: hiringPostId, application: application));
+    } catch (e) {
+      final idx = myApplications.indexWhere((a) => a.id == applicationId);
+      if (idx != -1) {
+        myApplications[idx] =
+            application.copyWith(syncStatus: SyncStatus.failed);
+      }
+      dataError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  /// Updates application status (poster action). Goes through SyncService.
+  Future<void> updateApplicationStatus({
+    required String applicationId,
+    required String hiringPostId,
+    required ApplicationStatus newStatus,
+  }) async {
+    final now = DateTime.now();
+
+    // Update in applicants cache.
+    final postApps = _applicantsCache[hiringPostId];
+    if (postApps != null) {
+      final idx = postApps.indexWhere((a) => a.id == applicationId);
+      if (idx != -1) {
+        postApps[idx] = postApps[idx].copyWith(
+          status: newStatus,
+          statusUpdatedAt: now,
+          syncStatus: SyncStatus.pending,
+        );
+        notifyListeners();
+      }
+    }
+
+    try {
+      await syncService.enqueueApplicationStatusUpdate(
+        applicationId: applicationId,
+        newStatus: newStatus.name,
+        localUpdatedAt: now,
+      );
+      // After success, update cache to synced.
+      final postApps2 = _applicantsCache[hiringPostId];
+      if (postApps2 != null) {
+        final idx = postApps2.indexWhere((a) => a.id == applicationId);
+        if (idx != -1) {
+          postApps2[idx] =
+              postApps2[idx].copyWith(syncStatus: SyncStatus.synced);
+        }
+      }
+      // Notify the applicant.
+      unawaited(
+        _notifyStatusChanged(
+          applicationId: applicationId,
+          hiringPostId: hiringPostId,
+          newStatus: newStatus,
+        ),
+      );
+    } catch (e) {
+      final postApps2 = _applicantsCache[hiringPostId];
+      if (postApps2 != null) {
+        final idx = postApps2.indexWhere((a) => a.id == applicationId);
+        if (idx != -1) {
+          postApps2[idx] =
+              postApps2[idx].copyWith(syncStatus: SyncStatus.failed);
+        }
+      }
+      dataError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  /// Called by [SyncService] after an application status update has been
+  /// successfully written to Supabase.
+  ///
+  /// Updates [myApplications] in-memory so the applicant sees the new status
+  /// immediately the next time they look at their "My Applications" screen —
+  /// without requiring a full data reload.
+  void onApplicationStatusSynced({
+    required String applicationId,
+    required ApplicationStatus newStatus,
+    required DateTime statusUpdatedAt,
+  }) {
+    final idx = myApplications.indexWhere((a) => a.id == applicationId);
+    if (idx != -1) {
+      myApplications[idx] = myApplications[idx].copyWith(
+        status: newStatus,
+        statusUpdatedAt: statusUpdatedAt,
+        syncStatus: SyncStatus.synced,
+      );
+      notifyListeners();
+    }
+    // Also update the applicant's entry inside _applicantsCache so the
+    // poster's applicant list stays consistent.
+    for (final postApps in _applicantsCache.values) {
+      final cidx = postApps.indexWhere((a) => a.id == applicationId);
+      if (cidx != -1) {
+        postApps[cidx] = postApps[cidx].copyWith(
+          status: newStatus,
+          statusUpdatedAt: statusUpdatedAt,
+          syncStatus: SyncStatus.synced,
+        );
+      }
+    }
+  }
+
+  // ── Notifications ────────────────────────────────────────────────────────────
+
+  int get unreadNotificationCount =>
+      notifications.where((n) => n['is_read'] != true).length;
+
+  Future<void> markNotificationRead(String notificationId) async {
+    final idx = notifications.indexWhere((n) => n['id'] == notificationId);
+    if (idx != -1) {
+      notifications[idx] = Map<String, dynamic>.from(notifications[idx])
+        ..['is_read'] = true;
+      notifyListeners();
+    }
+    try {
+      await _repo?.markNotificationRead(notificationId);
+    } catch (e) {
+      debugPrint('markNotificationRead error: $e');
+    }
+  }
+
+  /// Best-effort: insert a notification for the hiring post owner when a new
+  /// application arrives. Runs fire-and-forget, never blocks the apply flow.
+  Future<void> _notifyNewApplication({
+    required String hiringPostId,
+    required Application application,
+  }) async {
+    if (_repo == null) return;
+    try {
+      final post = getHiringPostById(hiringPostId);
+      if (post == null) return;
+      await _repo!.insertNotification(
+        recipientUserId: post.posterId,
+        type: 'new_application',
+        title: s.notificationNewApplication,
+        body: post.title,
+        payload: {
+          'hiringPostId': hiringPostId,
+          'applicationId': application.id,
+          'screen': 'applicantList',
+        },
+      );
+      // Reload notifications if we are the recipient.
+      if (post.posterId == currentUser?.id) {
+        notifications = await _repo!.fetchNotifications();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('_notifyNewApplication error: $e');
+    }
+  }
+
+  /// Best-effort: insert a notification for the applicant when the poster
+  /// changes the application status.
+  Future<void> _notifyStatusChanged({
+    required String applicationId,
+    required String hiringPostId,
+    required ApplicationStatus newStatus,
+  }) async {
+    if (_repo == null) return;
+    try {
+      // Find the applicant from the cache.
+      final postApps = _applicantsCache[hiringPostId] ?? [];
+      final app = postApps.firstWhere(
+        (a) => a.id == applicationId,
+        orElse: () => Application(
+          id: applicationId,
+          hiringPostId: hiringPostId,
+          applicantId: '',
+          serviceId: '',
+        ),
+      );
+      if (app.applicantId.isEmpty) return;
+      final post = getHiringPostById(hiringPostId);
+      await _repo!.insertNotification(
+        recipientUserId: app.applicantId,
+        type: 'status_changed',
+        title: s.notificationStatusChanged,
+        body: post?.title ?? '',
+        payload: {
+          'applicationId': applicationId,
+          'hiringPostId': hiringPostId,
+          'serviceId': app.serviceId,
+          'status': newStatus.name,
+          'screen': 'myApplications',
+        },
+      );
+      // Reload notifications if we are the applicant.
+      if (app.applicantId == currentUser?.id) {
+        notifications = await _repo!.fetchNotifications();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('_notifyStatusChanged error: $e');
+    }
+  }
+
+  // ── Reviews ──────────────────────────────────────────────────────────────────
+
+  /// In-memory reviews cache keyed by service id.
+  final Map<String, List<ServiceReview>> _reviewsCache = {};
+
+  List<ServiceReview> getReviewsForService(String serviceId) =>
+      _reviewsCache[serviceId] ?? [];
+
+  Future<List<ServiceReview>> loadReviewsForService(String serviceId) async {
+    if (_repo == null) return [];
+    try {
+      final reviews = await _repo!.fetchReviewsForService(serviceId);
+      _reviewsCache[serviceId] = reviews;
+      notifyListeners();
+      return reviews;
+    } catch (e) {
+      debugPrint('loadReviewsForService error: $e');
+      return _reviewsCache[serviceId] ?? [];
+    }
+  }
+
+  /// Submits a review for [serviceId].
+  ///
+  /// TODO (Phase C Part 2): Gate this on a completed HiringApplication.
+  /// For Part 1, any authenticated user can leave a review.
+  Future<void> submitReview({
+    required String serviceId,
+    required int rating,
+    required String comment,
+  }) async {
+    if (_repo == null) {
+      dataError = 'Supabase unavailable';
+      notifyListeners();
+      return;
+    }
+    try {
+      final review = await _repo!.submitReview(
+        serviceId: serviceId,
+        rating: rating,
+        comment: comment,
+      );
+      final existing = List<ServiceReview>.from(
+        _reviewsCache[serviceId] ?? [],
+      );
+      // Replace existing review by same user, or prepend.
+      final idx = existing.indexWhere((r) => r.reviewerId == review.reviewerId);
+      if (idx >= 0) {
+        existing[idx] = review;
+      } else {
+        existing.insert(0, review);
+      }
+      _reviewsCache[serviceId] = existing;
+      notifyListeners();
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+      rethrow;
     }
   }
 
@@ -722,6 +1404,33 @@ class KoolanAppState extends ChangeNotifier {
       final threadId = await _repo!.getOrCreateThread(
         listingId: listingId,
         sellerId: listing.sellerId!,
+      );
+      chatSessions = await _repo!.fetchChatSessions();
+      notifyListeners();
+      return threadId;
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Opens (or reuses) a direct chat thread between the poster and an
+  /// applicant for a hiring application. Returns the thread id on success,
+  /// or null on failure.
+  Future<String?> startChatForApplication({
+    required String applicantId,
+    required String posterId,
+  }) async {
+    try {
+      if (_repo == null) {
+        dataError = 'Supabase unavailable';
+        notifyListeners();
+        return null;
+      }
+      final threadId = await _repo!.getOrCreateApplicationThread(
+        applicantId: applicantId,
+        posterId: posterId,
       );
       chatSessions = await _repo!.fetchChatSessions();
       notifyListeners();
@@ -875,16 +1584,10 @@ class KoolanAppState extends ChangeNotifier {
 
   void markOAuthPending() => _pendingOAuthCompletion = true;
 
-  /// Skips real authentication for demo/simulation — no Supabase call needed.
-  Future<void> simulateAuth() async {
-    profile = const UserProfile(
-      id: 'demo-user',
-      displayName: 'Demo User',
-      rating: 5.0,
-      reviewsCount: 0,
-    );
-    onboardingPhase = OnboardingPhase.language;
-    notifyListeners();
+  @override
+  void dispose() {
+    syncService.dispose();
+    super.dispose();
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────────

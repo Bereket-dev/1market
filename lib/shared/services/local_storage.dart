@@ -10,6 +10,7 @@ class LocalStorage {
   static const _onboardingCompleteKey = 'koolan_onboarding_complete';
   static const _profileCacheKey = 'koolan_profile_cache';
   static const _listingsCacheKey = 'koolan_listings_cache';
+  static const _servicesCacheKey = 'koolan_services_cache';
 
   static final Map<String, Object?> _memoryStore = {};
 
@@ -183,6 +184,32 @@ class LocalStorage {
     final raw = prefs != null
         ? prefs.getString(_listingsCacheKey)
         : _memoryStore[_listingsCacheKey] as String?;
+    if (raw == null) return null;
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveServicesCache(
+    List<Map<String, dynamic>> services,
+  ) async {
+    final prefs = await _prefsOrNull();
+    final encoded = jsonEncode(services);
+    if (prefs != null) {
+      await prefs.setString(_servicesCacheKey, encoded);
+    } else {
+      _memoryStore[_servicesCacheKey] = encoded;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>?> getServicesCache() async {
+    final prefs = await _prefsOrNull();
+    final raw = prefs != null
+        ? prefs.getString(_servicesCacheKey)
+        : _memoryStore[_servicesCacheKey] as String?;
     if (raw == null) return null;
     try {
       final list = jsonDecode(raw) as List;

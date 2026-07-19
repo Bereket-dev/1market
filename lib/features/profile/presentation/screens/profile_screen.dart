@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/listing.dart';
+import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 
@@ -220,9 +221,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     switch (_activeTab) {
       case 'Services':
         return _ServicesTab(
-          myListings: myListings,
-          onListingTap: (id) =>
-              state.pushScreen(ListingDetailScreenRoute(id)),
+          services: state.getMyServices(),
+          onManageTap: () => state.pushScreen(ServiceManagementScreenRoute()),
+          onMyHiringPostsTap: () =>
+              state.pushScreen(HiringManagementScreenRoute()),
+          onMyApplicationsTap: () =>
+              state.pushScreen(MyApplicationsScreenRoute()),
+          hiringPostCount: state.getMyHiringPosts().length,
+          applicationCount: state.myApplications.length,
         );
       case 'About':
         return const _AboutTab();
@@ -235,102 +241,157 @@ class _ProfileScreenState extends State<ProfileScreen> {
 // ── Services tab ──────────────────────────────────────────────────────────────
 
 class _ServicesTab extends StatelessWidget {
-  final List<Listing> myListings;
-  final void Function(String) onListingTap;
-  const _ServicesTab({required this.myListings, required this.onListingTap});
+  final List<Service> services;
+  final VoidCallback onManageTap;
+  final VoidCallback onMyHiringPostsTap;
+  final VoidCallback onMyApplicationsTap;
+  final int hiringPostCount;
+  final int applicationCount;
+
+  const _ServicesTab({
+    required this.services,
+    required this.onManageTap,
+    required this.onMyHiringPostsTap,
+    required this.onMyApplicationsTap,
+    required this.hiringPostCount,
+    required this.applicationCount,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = KoolanAppStateScope.of(context).s;
-    if (myListings.isEmpty) {
-      return Column(children: [
-        const SizedBox(height: 20),
-        CircleAvatar(
-          radius: 40,
-          backgroundColor: cs.primaryContainer.withValues(alpha: 0.2),
-          child: Icon(Icons.work_outline, size: 36, color: cs.primary),
-        ),
-        const SizedBox(height: 16),
-        Text(s.profileNoServices,
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: cs.onSurface)),
-        const SizedBox(height: 4),
-        Text(
-          s.profileNoServicesSub,
-          style: TextStyle(
-              color: cs.onSurfaceVariant.withValues(alpha: 0.65),
-              fontSize: 13),
-          textAlign: TextAlign.center,
-        ),
-      ]);
-    }
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: myListings.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = myListings[index];
-        return Card(
-          color: cs.surfaceContainerHighest,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side:
-                BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── My Services manage button ──────────────────────────────────
+        if (services.isEmpty) ...[
+          const SizedBox(height: 20),
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: cs.primaryContainer.withValues(alpha: 0.2),
+            child: Icon(Icons.work_outline, size: 36, color: cs.primary),
           ),
-          elevation: 0,
-          child: InkWell(
-            onTap: () => onListingTap(item.id),
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedImageWidget(
-                    imageUrl: item.imageUrl,
-                    width: 72,
-                    height: 72,
-                    fit: BoxFit.cover,
-                  ),
+          const SizedBox(height: 16),
+          Text(
+            s.profileNoServices,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: cs.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            s.profileNoServicesSub,
+            style: TextStyle(
+              color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+              fontSize: 13,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: onManageTap,
+            child: Text(s.servicesAddNew),
+          ),
+        ] else ...[
+          FilledButton(
+            onPressed: onManageTap,
+            child: Text(s.servicesTitle),
+          ),
+          const SizedBox(height: 16),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: services.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final service = services[index];
+              return Card(
+                color: cs.surfaceContainerHighest,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                      color: cs.outlineVariant.withValues(alpha: 0.3)),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.title,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: cs.onSurface),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      Text(item.price,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: cs.primary,
-                              fontSize: 13)),
-                      const SizedBox(height: 4),
+                      Text(
+                        service.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: cs.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        service.coverDescription,
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 8),
                       Row(children: [
-                        Icon(Icons.location_on, color: cs.primary, size: 14),
+                        Icon(Icons.location_on,
+                            color: cs.primary, size: 14),
                         const SizedBox(width: 4),
-                        Text(item.location.split(',')[0],
-                            style: TextStyle(
-                                color: cs.onSurfaceVariant, fontSize: 11)),
+                        Text(
+                          service.location,
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 11),
+                        ),
+                        const Spacer(),
+                        Text(
+                          service.availability
+                              ? s.servicesAvailable
+                              : s.servicesUnavailable,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: service.availability
+                                ? cs.primary
+                                : cs.error,
+                            fontSize: 11,
+                          ),
+                        ),
                       ]),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
-              ]),
-            ),
+              );
+            },
           ),
-        );
-      },
+        ],
+
+        // ── Hiring section divider ─────────────────────────────────────
+        const SizedBox(height: 20),
+        Divider(color: cs.outlineVariant.withValues(alpha: 0.4)),
+        const SizedBox(height: 8),
+
+        // ── My Hiring Posts row ────────────────────────────────────────
+        _ProfileActionRow(
+          icon: Icons.work_outline,
+          label: s.profileMyHiringPosts,
+          badge: hiringPostCount > 0 ? '$hiringPostCount' : null,
+          onTap: onMyHiringPostsTap,
+        ),
+        const SizedBox(height: 4),
+
+        // ── My Applications row ────────────────────────────────────────
+        _ProfileActionRow(
+          icon: Icons.send_outlined,
+          label: s.profileMyApplications,
+          badge: applicationCount > 0 ? '$applicationCount' : null,
+          onTap: onMyApplicationsTap,
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
@@ -527,6 +588,87 @@ class _ReviewCard extends StatelessWidget {
               style: TextStyle(
                   fontSize: 13, color: cs.onSurfaceVariant, height: 1.4)),
         ]),
+      ),
+    );
+  }
+}
+
+// ── Profile action row ─────────────────────────────────────────────────────────
+
+/// A labelled tap-able row used in the Profile Services tab for
+/// dual-role navigation (hiring posts and applications).
+/// Never icon-only — always shows a text label alongside the icon.
+class _ProfileActionRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  /// Optional count badge shown after the label.
+  final String? badge;
+  final VoidCallback onTap;
+
+  const _ProfileActionRow({
+    required this.icon,
+    required this.label,
+    this.badge,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: cs.primary, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: cs.onSurface,
+                ),
+              ),
+            ),
+            if (badge != null) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  badge!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -113,7 +113,94 @@ create policy "Users can delete their own listings"
   to authenticated
   using (auth.uid() = seller_id);
 
--- ── Favorites ─────────────────────────────────────────────────────────────────
+-- ── Services ─────────────────────────────────────────────────────────────────
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles (id) on delete cascade,
+  title text not null,
+  category text not null,
+  description text not null default '',
+  cover_description text not null default '',
+  cv_file_url text,
+  years_of_experience int not null default 0,
+  price_range text not null default '',
+  location text not null default '',
+  availability boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.services enable row level security;
+
+drop policy if exists "Services are viewable by authenticated users" on public.services;
+create policy "Services are viewable by authenticated users"
+  on public.services for select
+  to authenticated
+  using (true);
+
+drop policy if exists "Users can insert their own services" on public.services;
+create policy "Users can insert their own services"
+  on public.services for insert
+  to authenticated
+  with check (auth.uid() = owner_id);
+
+drop policy if exists "Users can update their own services" on public.services;
+create policy "Users can update their own services"
+  on public.services for update
+  to authenticated
+  using (auth.uid() = owner_id)
+  with check (auth.uid() = owner_id);
+
+drop policy if exists "Users can delete their own services" on public.services;
+create policy "Users can delete their own services"
+  on public.services for delete
+  to authenticated
+  using (auth.uid() = owner_id);
+
+-- ── Service Reviews ──────────────────────────────────────────────────────────
+-- TODO (Phase C Part 2): Reviews should be gated on a completed job engagement
+-- (i.e. reviewer must have a closed HiringApplication for this service).
+-- For Phase C Part 1 any authenticated user can submit a review.
+-- Once the HiringApplications table is added in Part 2, add a FK constraint:
+--   FOREIGN KEY (application_id) REFERENCES hiring_applications(id) ON DELETE CASCADE
+-- and enforce it in RLS.
+create table if not exists public.service_reviews (
+  id uuid primary key default gen_random_uuid(),
+  service_id uuid not null references public.services (id) on delete cascade,
+  reviewer_id uuid not null references public.profiles (id) on delete cascade,
+  rating int not null check (rating between 1 and 5),
+  comment text not null default '',
+  created_at timestamptz not null default now(),
+  -- Each reviewer can only leave one review per service.
+  unique (service_id, reviewer_id)
+);
+
+alter table public.service_reviews enable row level security;
+
+drop policy if exists "Reviews are viewable by authenticated users" on public.service_reviews;
+create policy "Reviews are viewable by authenticated users"
+  on public.service_reviews for select
+  to authenticated
+  using (true);
+
+drop policy if exists "Users can insert their own reviews" on public.service_reviews;
+create policy "Users can insert their own reviews"
+  on public.service_reviews for insert
+  to authenticated
+  with check (auth.uid() = reviewer_id);
+
+drop policy if exists "Users can update their own reviews" on public.service_reviews;
+create policy "Users can update their own reviews"
+  on public.service_reviews for update
+  to authenticated
+  using (auth.uid() = reviewer_id)
+  with check (auth.uid() = reviewer_id);
+
+drop policy if exists "Users can delete their own reviews" on public.service_reviews;
+create policy "Users can delete their own reviews"
+  on public.service_reviews for delete
+  to authenticated
+  using (auth.uid() = reviewer_id);
 create table if not exists public.favorites (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles (id) on delete cascade,
@@ -271,3 +358,167 @@ insert into public.listings (
    5.0, 48, 'Professional housekeeper and plumber.',
    'Category', 'House Help', 'Experience', '2 years', 'Skills', 'Cleaning, Cooking', 'Verified', 'Koolan Verified')
 on conflict do nothing;
+
+-- ── Hiring Posts ──────────────────────────────────────────────────────────────
+-- Phase C Part 2
+-- Visibility design:
+--   status = 'open'   → visible to all authenticated users (public read).
+--   status = 'closed' → visible only to the poster in their management screen.
+-- This is enforced in the SELECT policy below and mirrored in the Flutter
+-- browse filter (only open posts shown in the browse list).
+create table if not exists public.hiring_posts (
+  id uuid primary key default gen_random_uuid(),
+  poster_id uuid not null references public.profiles (id) on delete cascade,
+  title text not null,
+  description text not null default '',
+  category text not null default '',
+  location text not null default '',
+  price_range text not null default '',
+  status text not null default 'open' check (status in ('open', 'closed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.hiring_posts enable row level security;
+
+drop policy if exists "Open hiring posts viewable by authenticated users" on public.hiring_posts;
+create policy "Open hiring posts viewable by authenticated users"
+  on public.hiring_posts for select
+  to authenticated
+  using (status = 'open' or auth.uid() = poster_id);
+
+drop policy if exists "Users can insert their own hiring posts" on public.hiring_posts;
+create policy "Users can insert their own hiring posts"
+  on public.hiring_posts for insert
+  to authenticated
+  with check (auth.uid() = poster_id);
+
+drop policy if exists "Users can update their own hiring posts" on public.hiring_posts;
+create policy "Users can update their own hiring posts"
+  on public.hiring_posts for update
+  to authenticated
+  using (auth.uid() = poster_id)
+  with check (auth.uid() = poster_id);
+
+drop policy if exists "Users can delete their own hiring posts" on public.hiring_posts;
+create policy "Users can delete their own hiring posts"
+  on public.hiring_posts for delete
+  to authenticated
+  using (auth.uid() = poster_id);
+
+-- ── Applications ──────────────────────────────────────────────────────────────
+-- Phase C Part 2
+-- RLS rules:
+--   SELECT  → only the applicant or the hiring post's poster can read.
+--   INSERT  → applicant can create (auth.uid() = applicant_id).
+--   UPDATE  → only the status field should be updated by the poster; the
+--             applicant cannot change status. We enforce this by allowing
+--             UPDATE only when the current user is the poster of the linked
+--             hiring post. The applicant has no UPDATE access at all.
+--   DELETE  → applicant can withdraw (delete) their own application.
+-- Duplicate prevention: unique constraint on (hiring_post_id, applicant_id, service_id).
+create table if not exists public.applications (
+  id uuid primary key default gen_random_uuid(),
+  hiring_post_id uuid not null references public.hiring_posts (id) on delete cascade,
+  applicant_id uuid not null references public.profiles (id) on delete cascade,
+  service_id uuid not null references public.services (id) on delete cascade,
+  status text not null default 'submitted'
+    check (status in ('submitted', 'reviewed', 'accepted', 'rejected')),
+  submitted_at timestamptz not null default now(),
+  status_updated_at timestamptz,
+  updated_at timestamptz not null default now(),
+  -- Prevent the same applicant from applying twice with the same service
+  -- to the same post.
+  unique (hiring_post_id, applicant_id, service_id)
+);
+
+alter table public.applications enable row level security;
+
+drop policy if exists "Applicant and poster can view applications" on public.applications;
+create policy "Applicant and poster can view applications"
+  on public.applications for select
+  to authenticated
+  using (
+    auth.uid() = applicant_id
+    or auth.uid() = (
+      select poster_id from public.hiring_posts hp
+      where hp.id = hiring_post_id
+    )
+  );
+
+drop policy if exists "Applicants can submit applications" on public.applications;
+create policy "Applicants can submit applications"
+  on public.applications for insert
+  to authenticated
+  with check (auth.uid() = applicant_id);
+
+drop policy if exists "Poster can update application status" on public.applications;
+create policy "Poster can update application status"
+  on public.applications for update
+  to authenticated
+  using (
+    auth.uid() = (
+      select poster_id from public.hiring_posts hp
+      where hp.id = hiring_post_id
+    )
+  )
+  with check (
+    auth.uid() = (
+      select poster_id from public.hiring_posts hp
+      where hp.id = hiring_post_id
+    )
+  );
+
+drop policy if exists "Applicants can delete their own applications" on public.applications;
+create policy "Applicants can delete their own applications"
+  on public.applications for delete
+  to authenticated
+  using (auth.uid() = applicant_id);
+
+-- ── In-app notifications ──────────────────────────────────────────────────────
+-- Phase C Part 2
+-- Lightweight notifications table:
+--   type     → 'new_application' | 'status_changed'
+--   user_id  → the recipient of the notification
+--   payload  → JSON with relevant IDs for deep-linking
+-- SELECT → user can only read their own notifications.
+-- INSERT → any authenticated user can insert (system/trigger style).
+-- UPDATE → user can mark their own notifications read.
+-- DELETE → user can delete their own notifications.
+create table if not exists public.app_notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  type text not null check (type in ('new_application', 'status_changed')),
+  title text not null default '',
+  body text not null default '',
+  payload jsonb not null default '{}'::jsonb,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.app_notifications enable row level security;
+
+drop policy if exists "Users can view their own notifications" on public.app_notifications;
+create policy "Users can view their own notifications"
+  on public.app_notifications for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists "Authenticated users can create notifications" on public.app_notifications;
+create policy "Authenticated users can create notifications"
+  on public.app_notifications for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "Users can update their own notifications" on public.app_notifications;
+create policy "Users can update their own notifications"
+  on public.app_notifications for update
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete their own notifications" on public.app_notifications;
+create policy "Users can delete their own notifications"
+  on public.app_notifications for delete
+  to authenticated
+  using (auth.uid() = user_id);

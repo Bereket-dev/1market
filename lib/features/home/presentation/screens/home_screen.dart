@@ -77,12 +77,50 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ]),
                 Row(children: [
-                  IconButton(
-                    icon: Icon(Icons.notifications_none,
-                        color: cs.onSurfaceVariant),
-                    onPressed: () => ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                            SnackBar(content: Text(state.s.homeNoNotifications))),
+                  // ── Notification bell with unread badge ───────────────────
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.notifications_none,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        tooltip: state.s.notificationsTitle,
+                        onPressed: () =>
+                            state.pushScreen(NotificationsScreenRoute()),
+                      ),
+                      if (state.unreadNotificationCount > 0)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: IgnorePointer(
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: cs.error,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                state.unreadNotificationCount > 9
+                                    ? '9+'
+                                    : '${state.unreadNotificationCount}',
+                                style: TextStyle(
+                                  color: cs.onError,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   // Language toggle pill
                   GestureDetector(
@@ -271,6 +309,73 @@ class HomeScreen extends StatelessWidget {
                         ]),
                       ),
                     ],
+                  ),
+
+                  // ── Find Jobs banner ─────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+                    child: InkWell(
+                      onTap: () =>
+                          state.pushScreen(HiringBrowseScreenRoute()),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              cs.primary,
+                              cs.primary.withValues(alpha: 0.75),
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.work_outline,
+                              color: cs.onPrimary,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    state.s.hiringBrowseTitle,
+                                    style: TextStyle(
+                                      color: cs.onPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    state.s.hiringBrowseSearchHint,
+                                    style: TextStyle(
+                                      color: cs.onPrimary
+                                          .withValues(alpha: 0.8),
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: cs.onPrimary.withValues(alpha: 0.8),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
 
                   // Recently Added

@@ -26,4 +26,57 @@ class ActiveChatScreenRoute extends KoolanScreen {
   ActiveChatScreenRoute(this.sessionIndex);
 }
 
+class ServiceManagementScreenRoute extends KoolanScreen {}
+
+class ServiceEditScreenRoute extends KoolanScreen {
+  final String? serviceId;
+  ServiceEditScreenRoute(this.serviceId);
+}
+
+class ServiceBrowseScreenRoute extends KoolanScreen {}
+
+class ServiceDetailScreenRoute extends KoolanScreen {
+  final String serviceId;
+  ServiceDetailScreenRoute(this.serviceId);
+}
+
+class ServiceReviewsScreenRoute extends KoolanScreen {
+  final String serviceId;
+  ServiceReviewsScreenRoute(this.serviceId);
+}
+
 class SettingsScreenRoute extends KoolanScreen {}
+
+// ── Phase C Part 2: Hiring posts ─────────────────────────────────────────────
+
+class HiringManagementScreenRoute extends KoolanScreen {}
+
+class HiringEditScreenRoute extends KoolanScreen {
+  final String? postId;
+  HiringEditScreenRoute(this.postId);
+}
+
+class HiringApplicantListScreenRoute extends KoolanScreen {
+  final String postId;
+  HiringApplicantListScreenRoute(this.postId);
+}
+
+class HiringApplicantDetailScreenRoute extends KoolanScreen {
+  final String applicationId;
+  final String postId;
+  HiringApplicantDetailScreenRoute({
+    required this.applicationId,
+    required this.postId,
+  });
+}
+
+class HiringBrowseScreenRoute extends KoolanScreen {}
+
+class HiringDetailScreenRoute extends KoolanScreen {
+  final String postId;
+  HiringDetailScreenRoute(this.postId);
+}
+
+class MyApplicationsScreenRoute extends KoolanScreen {}
+
+class NotificationsScreenRoute extends KoolanScreen {}
