@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
-import '../widgets/lang_pill.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/trust_badge_card.dart';
@@ -24,133 +23,7 @@ class HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header ─────────────────────────────────────────────────────────
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(children: [
-                  CachedNetworkImage(
-                    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-                    cacheManager: KoolanImageCacheManager.instance,
-                    imageBuilder: (_, provider) => Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cs.outlineVariant),
-                        image: DecorationImage(
-                          image: provider,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    placeholder: (_, __) => Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cs.outlineVariant),
-                        color: Colors.grey[200],
-                      ),
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: cs.outlineVariant),
-                        color: Colors.grey[300],
-                      ),
-                      child: const Icon(Icons.person, size: 20, color: Colors.grey),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Koolan',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: cs.primary,
-                    ),
-                  ),
-                ]),
-                Row(children: [
-                  // ── Notification bell with unread badge ───────────────────
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.notifications_none,
-                          color: cs.onSurfaceVariant,
-                        ),
-                        tooltip: state.s.notificationsTitle,
-                        onPressed: () =>
-                            state.pushScreen(NotificationsScreenRoute()),
-                      ),
-                      if (state.unreadNotificationCount > 0)
-                        Positioned(
-                          top: 6,
-                          right: 6,
-                          child: IgnorePointer(
-                            child: Container(
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                color: cs.error,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                state.unreadNotificationCount > 9
-                                    ? '9+'
-                                    : '${state.unreadNotificationCount}',
-                                style: TextStyle(
-                                  color: cs.onError,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  height: 1,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  // Language toggle pill
-                  GestureDetector(
-                    onTap: state.toggleLocale,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: cs.outlineVariant.withValues(alpha: 0.5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          LangPillSegment(
-                              label: 'EN', isActive: state.locale == 'en'),
-                          LangPillSegment(
-                              label: 'አማ', isActive: state.locale == 'am'),
-                          LangPillSegment(
-                              label: 'SO', isActive: state.locale == 'so'),
-                        ],
-                      ),
-                    ),
-                  ),
-                ]),
-              ],
-            ),
-          ),
+          _HomeHeader(),
 
           // ── Scrollable body ─────────────────────────────────────────────────
           Expanded(
@@ -399,7 +272,7 @@ class HomeScreen extends StatelessWidget {
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount:
                               math.min(state.allListings.length, 3),
-                          separatorBuilder: (_, __) =>
+                          separatorBuilder: (context2, idx) =>
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final listing = state.allListings[index];
@@ -455,6 +328,194 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: cs.primaryContainer,
         shape: const CircleBorder(),
         child: Icon(Icons.add, color: cs.onPrimaryContainer, size: 28),
+      ),
+    );
+  }
+}
+
+// ── Home header ───────────────────────────────────────────────────────────────
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = KoolanAppStateScope.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final profile = state.profile;
+    final avatarUrl = profile?.avatarUrl;
+    final displayName = profile?.displayName;
+    final initials = displayName != null && displayName.isNotEmpty
+        ? displayName[0].toUpperCase()
+        : 'K';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.25),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // ── Brand mark ─────────────────────────────────────────────────────
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: cs.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              'K',
+              style: TextStyle(
+                color: cs.onPrimary,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                height: 1,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // ── App name ───────────────────────────────────────────────────────
+          Expanded(
+            child: Text(
+              'Koolan',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: cs.primary,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+
+          // ── Notification bell ──────────────────────────────────────────────
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(24),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () => state.pushScreen(NotificationsScreenRoute()),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      state.unreadNotificationCount > 0
+                          ? Icons.notifications
+                          : Icons.notifications_none_outlined,
+                      color: state.unreadNotificationCount > 0
+                          ? cs.primary
+                          : cs.onSurfaceVariant,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+              if (state.unreadNotificationCount > 0)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: cs.error,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: cs.surface,
+                          width: 1.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        state.unreadNotificationCount > 9
+                            ? '9+'
+                            : '${state.unreadNotificationCount}',
+                        style: TextStyle(
+                          color: cs.onError,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 4),
+
+          // ── Profile avatar ─────────────────────────────────────────────────
+          GestureDetector(
+            onTap: () => state.pushScreen(ProfileScreenRoute()),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: cs.primary.withValues(alpha: 0.35),
+                  width: 2,
+                ),
+              ),
+              child: ClipOval(
+                child: avatarUrl != null && avatarUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: avatarUrl,
+                        cacheManager: KoolanImageCacheManager.instance,
+                        imageBuilder: (ctx, provider) => Image(
+                          image: provider,
+                          fit: BoxFit.cover,
+                          width: 38,
+                          height: 38,
+                        ),
+                        placeholder: (ctx, url) => _AvatarPlaceholder(
+                          initials: initials,
+                          cs: cs,
+                        ),
+                        errorWidget: (ctx, url, err) => _AvatarPlaceholder(
+                          initials: initials,
+                          cs: cs,
+                        ),
+                      )
+                    : _AvatarPlaceholder(initials: initials, cs: cs),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvatarPlaceholder extends StatelessWidget {
+  final String initials;
+  final ColorScheme cs;
+  const _AvatarPlaceholder({required this.initials, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 38,
+      height: 38,
+      color: cs.primaryContainer,
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: cs.onPrimaryContainer,
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+        ),
       ),
     );
   }
