@@ -2,7 +2,13 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../shared/models/app_strings.dart';
+import '../../../../shared/models/hiring_post.dart';
+import '../../../../shared/models/listing.dart';
+import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/services/recommendation_engine.dart';
+import '../../../../shared/services/scorable_adapters.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
@@ -250,6 +256,9 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  // ── Recommended for you ──────────────────────────────────
+                  const _RecommendedSection(),
 
                   // Recently Added
                   Padding(
@@ -519,4 +528,364 @@ class _AvatarPlaceholder extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Recommended for You section ───────────────────────────────────────────────
+//
+// Caching strategy: recommendations are computed once when the widget first
+// builds and cached in [_recommendations]. They are recomputed only when
+// [_dataVersion] changes — detected by tracking the combined length of
+// allListings + allServices + allHiringPosts at last compute time.
+// This prevents re-scoring on every widget rebuild / scroll frame.
+
+class _RecommendedSection extends StatefulWidget {
+  const _RecommendedSection();
+
+  @override
+  State<_RecommendedSection> createState() => _RecommendedSectionState();
+}
+
+class _RecommendedSectionState extends State<_RecommendedSection> {
+  static const _engine = RecommendationEngine();
+
+  // Cached output — list of (id, type) records so we can tap back to the
+  // correct detail screen. We store them as a sealed record-like class.
+  List<_RecItem> _recommendations = [];
+  // Data version stamp: length of listings + services + hiringPosts at last compute.
+  int _lastDataVersion = -1;
+
+  /// Returns the current data version from [state] (sum of list lengths).
+  static int _dataVersion(KoolanAppState state) =>
+      state.allListings.length +
+      state.allServices.length +
+      state.allHiringPosts.length;
+
+  void _computeIfStale(KoolanAppState state) {
+    final version = _dataVersion(state);
+    if (version == _lastDataVersion) return;
+    _lastDataVersion = version;
+
+    final user = state.buildUserContext();
+    final currentUserId = state.currentUser?.id;
+
+    // Build scored listings.
+    final excludeOwned = currentUserId == null
+        ? <String>{}
+        : state.allListings
+            .where((l) => l.isOwnedByCurrentUser)
+            .map((l) => l.id)
+            .toSet();
+
+    final scoredListings = _engine.rankForUser<ScorableListing>(
+      candidates:
+          state.allListings.map((l) => ScorableListing(l)).toList(),
+      user: user,
+      excludeIds: excludeOwned,
+    );
+
+    // Build scored services.
+    final excludeOwnedServices = currentUserId == null
+        ? <String>{}
+        : state.allServices
+            .where((s) => s.ownerId == currentUserId)
+            .map((s) => s.id)
+            .toSet();
+
+    final scoredServices = _engine.rankForUser<ScorableService>(
+      candidates: state.allServices.map((s) {
+        final reviews = state.getReviewsForService(s.id);
+        final avg = reviews.isEmpty
+            ? 0.0
+            : reviews.map((r) => r.rating).reduce((a, b) => a + b) /
+                reviews.length;
+        return ScorableService(s, reviewRating: avg);
+      }).toList(),
+      user: user,
+      excludeIds: excludeOwnedServices,
+    );
+
+    // Build scored hiring posts — only open posts.
+    final excludeOwnedPosts = currentUserId == null
+        ? <String>{}
+        : state.allHiringPosts
+            .where((p) => p.posterId == currentUserId)
+            .map((p) => p.id)
+            .toSet();
+
+    final scoredPosts = _engine.rankForUser<ScorableHiringPost>(
+      candidates: state.allHiringPosts
+          .where((p) => p.isOpen)
+          .map((p) => ScorableHiringPost(p))
+          .toList(),
+      user: user,
+      excludeIds: excludeOwnedPosts,
+    );
+
+    // Interleave top results: take up to 4 listings, 3 services, 3 posts
+    // then trim to kMaxRecommendations total.
+    final merged = <_RecItem>[
+      ...scoredListings.take(4).map((s) => _RecItem.listing(s.listing)),
+      ...scoredServices.take(3).map((s) => _RecItem.service(s.service)),
+      ...scoredPosts.take(3).map((s) => _RecItem.hiring(s.post)),
+    ];
+
+    _recommendations = merged.take(kMaxRecommendations).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = KoolanAppStateScope.of(context);
+    final s = state.s;
+    final cs = Theme.of(context).colorScheme;
+
+    _computeIfStale(state);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.homeRecommendedTitle,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_recommendations.isEmpty)
+            // Empty state — graceful, not broken.
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                s.homeRecommendedEmpty,
+                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              ),
+            )
+          else
+            // Horizontal scroll of recommendation cards.
+            SizedBox(
+              height: 180,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _recommendations.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final item = _recommendations[index];
+                  return _RecommendationCard(
+                    item: item,
+                    onTap: () {
+                      state.recordItemViewed(item.id);
+                      switch (item.type) {
+                        case _RecType.listing:
+                          state.pushScreen(
+                              ListingDetailScreenRoute(item.id));
+                        case _RecType.service:
+                          state.pushScreen(
+                              ServiceDetailScreenRoute(item.id));
+                        case _RecType.hiring:
+                          state.pushScreen(
+                              HiringDetailScreenRoute(item.id));
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Recommendation card ───────────────────────────────────────────────────────
+
+class _RecommendationCard extends StatelessWidget {
+  final _RecItem item;
+  final VoidCallback onTap;
+
+  const _RecommendationCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 160,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: cs.outlineVariant.withValues(alpha: 0.35),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Thumbnail / icon area
+            SizedBox(
+              height: 96,
+              width: double.infinity,
+              child: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                  ? CachedImageWidget(
+                      imageUrl: item.imageUrl!,
+                      width: 160,
+                      height: 96,
+                      fit: BoxFit.cover,
+                      errorWidget: _CategoryIconPlaceholder(
+                          category: item.category, cs: cs),
+                    )
+                  : _CategoryIconPlaceholder(
+                      category: item.category, cs: cs),
+            ),
+            // Content
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        // Type badge (accessible — text label, not icon only)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: cs.primaryContainer.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _typeLabel(item.type, s),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (item.price != null)
+                          Flexible(
+                            child: Text(
+                              item.price!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: cs.primary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _typeLabel(_RecType type, AppStrings s) {
+    return switch (type) {
+      _RecType.listing => s.catAll, // "All" / generic listing label
+      _RecType.service => s.servicesTitle,
+      _RecType.hiring => s.hiringBrowseTitle,
+    };
+  }
+}
+
+class _CategoryIconPlaceholder extends StatelessWidget {
+  final String category;
+  final ColorScheme cs;
+
+  const _CategoryIconPlaceholder(
+      {required this.category, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = switch (category.toUpperCase()) {
+      'CARS' => Icons.directions_car_filled,
+      'HOUSES' => Icons.home_rounded,
+      'LAND' => Icons.landscape_rounded,
+      'SKILLS' => Icons.construction_rounded,
+      _ => Icons.inventory_2_outlined,
+    };
+    return Container(
+      color: cs.primaryContainer.withValues(alpha: 0.25),
+      alignment: Alignment.center,
+      child: Icon(icon, color: cs.primary, size: 36),
+    );
+  }
+}
+
+// ── Data model ────────────────────────────────────────────────────────────────
+
+enum _RecType { listing, service, hiring }
+
+class _RecItem {
+  final String id;
+  final _RecType type;
+  final String title;
+  final String category;
+  final String? imageUrl;
+  final String? price;
+
+  const _RecItem({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.category,
+    this.imageUrl,
+    this.price,
+  });
+
+  factory _RecItem.listing(Listing l) => _RecItem(
+        id: l.id,
+        type: _RecType.listing,
+        title: l.title,
+        category: l.category,
+        imageUrl: l.imageUrl,
+        price: l.price,
+      );
+
+  factory _RecItem.service(Service s) => _RecItem(
+        id: s.id,
+        type: _RecType.service,
+        title: s.title,
+        category: s.category,
+        imageUrl: null,
+        price: s.priceRange,
+      );
+
+  factory _RecItem.hiring(HiringPost p) => _RecItem(
+        id: p.id,
+        type: _RecType.hiring,
+        title: p.title,
+        category: p.category,
+        imageUrl: null,
+        price: p.priceRange,
+      );
 }

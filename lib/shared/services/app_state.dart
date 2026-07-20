@@ -17,6 +17,7 @@ import '../models/service_review.dart';
 import '../models/syncable_entity.dart';
 import 'local_storage.dart' as app_local;
 import 'offline/sync_service.dart';
+import 'recommendation_engine.dart';
 import 'supabase_repository.dart';
 import 'translation_service.dart';
 
@@ -254,6 +255,12 @@ class KoolanAppState extends ChangeNotifier {
   List<HiringPost> allHiringPosts = [];
   List<Application> myApplications = [];
   List<Map<String, dynamic>> notifications = [];
+
+  /// In-memory set of item IDs the user has viewed this session.
+  /// Not persisted — signals collected across phases A–C (save/apply) are the
+  /// primary durable signals. This is the minimal addition for the "viewed"
+  /// interaction penalty described in Phase D spec.
+  final Set<String> recentlyViewedIds = {};
 
   // ── Post-wizard state ────────────────────────────────────────────────────────
   int postStep = 1;
@@ -658,6 +665,51 @@ class KoolanAppState extends ChangeNotifier {
 
   List<Listing> getMyListings() =>
       allListings.where((l) => l.isOwnedByCurrentUser).toList();
+
+  // ── Recommendation helpers ───────────────────────────────────────────────────
+
+  /// Records that the user navigated to an item detail screen.
+  /// In-memory only — resets on app restart. Used as a soft interaction signal
+  /// to deprioritise already-viewed items in recommendations.
+  void recordItemViewed(String id) {
+    recentlyViewedIds.add(id);
+    // No notifyListeners() — this is a background signal, not UI state.
+  }
+
+  /// Builds a [UserContext] snapshot from the current app state.
+  ///
+  /// Combines all available signals:
+  /// - Preferred category from onboarding goal (via [UserContext.categoryFromGoal])
+  ///   or profile.preferredCategory as a fallback.
+  /// - Location city from profile; hasLocation from [locationPermissionGranted].
+  /// - Saved listing IDs.
+  /// - Applied hiring post IDs.
+  /// - In-memory recently viewed IDs.
+  UserContext buildUserContext() {
+    // Category: onboardingGoal takes priority (freshest intent), then profile.
+    final rawGoal = onboardingGoal ?? profile?.preferredCategory;
+    final category = UserContext.categoryFromGoal(rawGoal);
+
+    // Saved listing IDs.
+    final savedIds = allListings
+        .where((l) => l.isSaved)
+        .map((l) => l.id)
+        .toSet();
+
+    // Applied hiring post IDs.
+    final appliedIds = myApplications
+        .map((a) => a.hiringPostId)
+        .toSet();
+
+    return UserContext(
+      preferredCategory: category,
+      userLocation: profile?.city,
+      hasLocation: locationPermissionGranted && (profile?.city?.isNotEmpty ?? false),
+      savedIds: savedIds,
+      appliedPostIds: appliedIds,
+      recentlyViewedIds: Set.unmodifiable(recentlyViewedIds),
+    );
+  }
 
   Listing? getListingById(String id) {
     try {

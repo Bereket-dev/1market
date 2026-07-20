@@ -5,6 +5,7 @@ import '../../../../core/utils/icon_for_spec.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
+import '../../../../shared/widgets/similar_section.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
@@ -16,6 +17,13 @@ class ListingDetailScreen extends StatefulWidget {
 }
 
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Record this view for the interaction penalty in recommendations.
+    KoolanAppStateScope.of(context).recordItemViewed(widget.listingId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
@@ -58,11 +66,11 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         imageUrl: listing.imageUrl,
                         cacheManager: KoolanImageCacheManager.instance,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
+                        placeholder: (_, _) => Container(
                           color: Colors.grey[200],
                           child: const Center(child: CircularProgressIndicator()),
                         ),
-                        errorWidget: (_, __, ___) => Container(
+                        errorWidget: (_, _, _) => Container(
                           color: Colors.grey[300],
                           child: const Icon(Icons.image_not_supported,
                               size: 48, color: Colors.grey),
@@ -420,6 +428,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           }
                         },
                       ),
+                      // ── Similar listings ─────────────────────────────────
+                      const SizedBox(height: 8),
+                      SimilarListingsSection(anchor: listing),
                     ],
                   ),
                 ),
@@ -646,11 +657,11 @@ class _SellerCard extends StatelessWidget {
                       width: 56,
                       height: 56,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => const CircleAvatar(
+                      placeholder: (_, _) => const CircleAvatar(
                         radius: 28,
                         backgroundColor: Colors.grey,
                       ),
-                      errorWidget: (_, __, ___) => const CircleAvatar(
+                      errorWidget: (_, _, _) => const CircleAvatar(
                         radius: 28,
                         child: Icon(Icons.person),
                       ),

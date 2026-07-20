@@ -2,21 +2,34 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/similar_section.dart';
 
 /// Read-only detail view for a service.
 ///
 /// Shows all fields before any further action.
 /// Full apply/hiring linkage is Phase C Part 2 — see TODO comment below.
-class ServiceDetailScreen extends StatelessWidget {
+class ServiceDetailScreen extends StatefulWidget {
   final String serviceId;
   const ServiceDetailScreen({super.key, required this.serviceId});
+
+  @override
+  State<ServiceDetailScreen> createState() => _ServiceDetailScreenState();
+}
+
+class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Record this view for the interaction penalty in recommendations.
+    KoolanAppStateScope.of(context).recordItemViewed(widget.serviceId);
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
-    final service = state.getServiceById(serviceId);
+    final service = state.getServiceById(widget.serviceId);
 
     if (service == null) {
       return Scaffold(
@@ -166,7 +179,7 @@ class ServiceDetailScreen extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 12),
             // ── Reviews section ────────────────────────────────────────────
-            _ReviewsSectionHeader(serviceId: serviceId),
+            _ReviewsSectionHeader(serviceId: widget.serviceId),
             const SizedBox(height: 24),
             // ── Phase C Part 2 note ────────────────────────────────────────
             Container(
@@ -198,6 +211,8 @@ class ServiceDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+            // ── Similar services ───────────────────────────────────────────
+            SimilarServicesSection(anchor: service),
           ],
         ),
       ),

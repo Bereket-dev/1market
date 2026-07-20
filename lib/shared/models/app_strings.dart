@@ -109,6 +109,22 @@ class AppStrings {
     'Wax ogeysiis cusub ma jiraan',
   );
 
+  // ── Recommendations ─────────────────────────────────────────────────────────
+  String get homeRecommendedTitle =>
+      _t('Recommended for You', 'ለእርስዎ የተዘጋጀ', 'Loogu talagalay adiga');
+  String get homeRecommendedEmpty => _t(
+    'No recommendations yet — explore a category to get started.',
+    'ምንም ምክረ-ሃሳብ የለም — ለመጀመር ምድብ ያስሱ።',
+    'Wali ma jiraan talooyinkii — sahami qaybta si aad u bilowdo.',
+  );
+  String get detailSimilarTitle =>
+      _t('Similar to This', 'ተመሳሳይ', 'La mid ah kan');
+  String get detailSimilarEmpty => _t(
+    'No similar items found yet.',
+    'ተመሳሳይ ዕቃዎች አልተገኙም።',
+    'Wax la mid ah lama helin.',
+  );
+
   // ── Category List Screen ────────────────────────────────────────────────────
   String get catVerifiedOnly =>
       _t('Verified only', 'የተረጋገጡ ብቻ', 'Kuwa xaqiijiyey oo kaliya');

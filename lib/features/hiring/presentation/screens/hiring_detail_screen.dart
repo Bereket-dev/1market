@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/similar_section.dart';
 
 /// Full detail view for a hiring post.
 /// Shows all fields. User must read the full post before applying.
@@ -30,6 +31,8 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _checkAlreadyApplied();
+    // Record this view for the interaction penalty in recommendations.
+    KoolanAppStateScope.of(context).recordItemViewed(widget.postId);
   }
 
   void _checkAlreadyApplied() {
@@ -342,6 +345,9 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
                 ),
               ),
             ],
+            // ── Similar hiring posts ──────────────────────────────────
+            const SizedBox(height: 8),
+            SimilarHiringSection(anchor: post),
           ],
         ),
       ),
