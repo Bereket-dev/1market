@@ -75,6 +75,7 @@ class AppStrings {
   // ── Bottom Navigation ───────────────────────────────────────────────────────
   String get navHome => _t('Home', 'ዋና ገጽ', 'Guriga');
   String get navSaved => _t('Saved', 'የተቀመጡ', 'La kaydiyey');
+  String get navSave => _t('Save', 'አስቀምጥ', 'Keydi');
   String get navPost => _t('Post', 'አስተዋውቅ', 'Ku daji');
   String get navMessages => _t('Messages', 'መልዕክቶች', 'Farriimaha');
   String get navProfile => _t('Profile', 'መገለጫ', 'Xogta');
@@ -816,6 +817,47 @@ class AppStrings {
   String get catMapView => _t('Map', 'ካርታ', 'Khariidad');
   String get catSearchHint => _t('Search', 'ፈልግ', 'Raadi');
   String get catResultsCount => _t('{count} results in Jigjiga', '{count} ውጤቶች በጂግጂጋ', '{count} natiijo Jigjiga');
+
+  // Filter option labels
+  String get catFilterAll  => _t('All',      'ሁሉም',    'Dhammaan');
+  String get catFilterSale => _t('For Sale', 'ለሽያጭ',  'Iib');
+  String get catFilterRent => _t('For Rent', 'ለኪራይ',  'Kiradda');
+  String get catFilterNew  => _t('New only', 'አዲስ ብቻ', 'Cusub oo kaliya');
+  // Grid / compact layout toggle
+  String get catGridView   => _t('Grid', 'ግሪድ', 'Shabag');
+  // Sort
+  String get catSortLabel    => _t('Sort', 'አስቀምጥ', 'Kala sooc');
+  String get catSortNewest   => _t('Newest', 'አዲሱ', 'Cusub');
+  String get catSortPriceAsc => _t('Price: Low→High', 'ዋጋ: ዝቅ→ከፍ', 'Qiimaha: Hoose→Sareeye');
+  String get catSortPriceDsc => _t('Price: High→Low', 'ዋጋ: ከፍ→ዝቅ', 'Qiimaha: Sareeye→Hoose');
+  // Legacy alias kept for compatibility
+  String get catSortPrice  => catSortPriceAsc;
+  // Price range sheet labels
+  String get catPriceMin   => _t('Min price', 'ዝቅተኛ ዋጋ', 'Qiimaha ugu hooseeya');
+  String get catPriceMax   => _t('Max price', 'ከፍተኛ ዋጋ', 'Qiimaha ugu sarreeya');
+  String get catApply      => _t('Apply', 'ተግብር', 'Codso');
+  String get catReset      => _t('Reset', 'ዳግም ጀምር', 'Dib u dejiso');
+  // Bedroom options
+  String get catBed1Plus   => _t('1+', '1+', '1+');
+  String get catBed2Plus   => _t('2+', '2+', '2+');
+  String get catBed3Plus   => _t('3+', '3+', '3+');
+  String get catBed4Plus   => _t('4+', '4+', '4+');
+  // Land-use options
+  String get catLandResidential  => _t('Residential',  'መኖሪያ',    'Deganaanshaha');
+  String get catLandAgricultural => _t('Agricultural', 'ግብርና',    'Beeraha');
+  String get catLandCommercial   => _t('Commercial',   'ንግዳዊ',    'Ganacsi');
+  // Car-specific filter labels
+  String get catCarFuelType     => _t('Fuel Type',     'የነዳጅ አይነት',  'Nooca shidaalka');
+  String get catCarTransmission => _t('Transmission',  'ማስተላለፊያ',    'Wareejinta');
+  String get catCarYearRange    => _t('Year',          'ዓ.ም.',        'Sannadka');
+  // Fuel-type options
+  String get catFuelPetrol   => _t('Petrol',   'ቤንዚን',   'Petrol');
+  String get catFuelDiesel   => _t('Diesel',   'ዲዘል',    'Diesel');
+  String get catFuelHybrid   => _t('Hybrid',   'ሃይብሪድ',  'Hybrid');
+  String get catFuelElectric => _t('Electric', 'ኤሌክትሪክ', 'Korontada');
+  // Transmission options
+  String get catTransAuto   => _t('Automatic', 'አውቶማቲክ', 'Otomaatig');
+  String get catTransManual => _t('Manual',    'ማኑዋል',    'Gacanta');
 
   // ── Home screen trust badge cards ─────────────────────────────────────────────
   String get homeTrustHomeowner => _t(

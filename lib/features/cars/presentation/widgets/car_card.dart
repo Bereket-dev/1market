@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/utils/icon_for_spec.dart';
 import '../../../../core/widgets/verified_badge.dart';
 import '../../../../shared/models/listing.dart';
+import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 
-/// Full-size vertical listing card. Used across all category browse screens.
+// ── Full card (original) ──────────────────────────────────────────────────────
+
+/// Full-size vertical listing card. Used in grid-off (single-column) mode.
 class PremiumClassifiedCard extends StatelessWidget {
   final Listing listing;
   final VoidCallback onSaveToggle;
@@ -25,7 +28,7 @@ class PremiumClassifiedCard extends StatelessWidget {
       elevation: 0,
       color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       clipBehavior: Clip.antiAlias,
@@ -34,9 +37,9 @@ class PremiumClassifiedCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Image ───────────────────────────────────────────────────────
+            // ── Image ─────────────────────────────────────────────────────
             SizedBox(
-              height: 200,
+              height: 120,
               width: double.infinity,
               child: Stack(
                 fit: StackFit.expand,
@@ -45,14 +48,14 @@ class PremiumClassifiedCard extends StatelessWidget {
                     imageUrl: listing.imageUrl,
                     fit: BoxFit.cover,
                     width: double.infinity,
-                    height: 200,
-                    errorWidget: Container(
-                        color: cs.surfaceContainerHighest),
+                    height: 120,
+                    errorWidget:
+                        Container(color: cs.surfaceContainerHighest),
                   ),
                   Positioned(
-                    top: 12,
-                    left: 12,
-                    right: 12,
+                    top: 10,
+                    left: 10,
+                    right: 10,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -60,45 +63,16 @@ class PremiumClassifiedCard extends StatelessWidget {
                           children: [
                             if (listing.verified) ...[
                               const VerifiedBadge(),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                             ],
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: cs.primaryContainer
-                                    .withValues(alpha: 0.92),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Text(
-                                listing.conditionOrStatus,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: cs.onPrimaryContainer,
-                                ),
-                              ),
-                            ),
+                            _ConditionPill(
+                                status: listing.conditionOrStatus, cs: cs),
                           ],
                         ),
-                        // Bookmark button
-                        InkWell(
-                          onTap: onSaveToggle,
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor:
-                                cs.surface.withValues(alpha: 0.88),
-                            child: Icon(
-                              listing.isSaved
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
-                              color: listing.isSaved
-                                  ? Colors.redAccent
-                                  : cs.onSurfaceVariant,
-                              size: 20,
-                            ),
-                          ),
-                        ),
+                        _SaveButton(
+                            isSaved: listing.isSaved,
+                            onTap: onSaveToggle,
+                            cs: cs),
                       ],
                     ),
                   ),
@@ -106,9 +80,9 @@ class PremiumClassifiedCard extends StatelessWidget {
               ),
             ),
 
-            // ── Content ──────────────────────────────────────────────────────
+            // ── Content ────────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -118,96 +92,171 @@ class PremiumClassifiedCard extends StatelessWidget {
                       Text(
                         listing.price,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                           color: cs.primary,
                         ),
                       ),
                       if (listing.isOwnedByCurrentUser)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: cs.primaryContainer
-                                .withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'My Ad',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: cs.primary,
-                            ),
-                          ),
-                        ),
+                        _MyAdBadge(cs: cs),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     listing.title,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: cs.onSurface,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 8),
                   // Specs row
+                  _SpecsRow(listing: listing),
+                  const SizedBox(height: 8),
+                  Divider(
+                      color: cs.outlineVariant.withValues(alpha: 0.4),
+                      height: 1),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      if (listing.spec1Label != null &&
-                          listing.spec1Value != null) ...[
-                        _SpecIconLabel(
-                          label: listing.spec1Value!,
-                          icon: iconForSpec(listing.spec1Label!),
+                      Icon(Icons.location_on,
+                          color: cs.outline, size: 14),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          listing.location.split(',')[0],
+                          style: TextStyle(
+                              fontSize: 12, color: cs.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 16),
-                      ],
-                      if (listing.spec2Label != null &&
-                          listing.spec2Value != null) ...[
-                        _SpecIconLabel(
-                          label: listing.spec2Value!,
-                          icon: iconForSpec(listing.spec2Label!),
-                        ),
-                        const SizedBox(width: 16),
-                      ],
-                      if (listing.spec3Label != null &&
-                          listing.spec3Value != null)
-                        _SpecIconLabel(
-                          label: listing.spec3Value!,
-                          icon: iconForSpec(listing.spec3Label!),
-                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Divider(color: cs.outlineVariant.withValues(alpha: 0.4)),
-                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-                  // Location
+// ── Compact card (grid / 2-column mode) ──────────────────────────────────────
+
+/// Compact listing card designed for 2-column grid layouts.
+/// Shows the essential info without a large hero image.
+class ListingCompactCard extends StatelessWidget {
+  final Listing listing;
+  final VoidCallback onSaveToggle;
+  final VoidCallback onTap;
+
+  const ListingCompactCard({
+    super.key,
+    required this.listing,
+    required this.onSaveToggle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      color: cs.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Thumbnail ───────────────────────────────────────────────
+            Stack(
+              children: [
+                CachedImageWidget(
+                  imageUrl: listing.imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 110,
+                  errorWidget: Container(
+                    height: 110,
+                    color: cs.primaryContainer.withValues(alpha: 0.2),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      _categoryIcon(listing.category),
+                      color: cs.primary,
+                      size: 32,
+                    ),
+                  ),
+                ),
+                // Save + verified overlay
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: _SaveButton(
+                      isSaved: listing.isSaved, onTap: onSaveToggle, cs: cs),
+                ),
+                if (listing.verified)
+                  const Positioned(top: 6, left: 6, child: VerifiedBadge()),
+              ],
+            ),
+
+            // ── Info ─────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    listing.price,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    listing.title,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Condition pill + location on same row to save vertical space
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.location_on,
-                              color: cs.outline, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            listing.location.split(',')[0],
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: cs.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '2.4 km away',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: cs.secondary,
-                          fontWeight: FontWeight.bold,
+                      _ConditionPill(status: listing.conditionOrStatus, cs: cs),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                color: cs.outline, size: 11),
+                            const SizedBox(width: 2),
+                            Expanded(
+                              child: Text(
+                                listing.location.split(',')[0],
+                                style: TextStyle(
+                                    fontSize: 10, color: cs.onSurfaceVariant),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -241,16 +290,17 @@ class BrowseFilterChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? cs.primaryContainer : cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
+          color: selected
+              ? cs.primaryContainer
+              : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
-                ? Colors.transparent
+                ? cs.primary.withValues(alpha: 0.5)
                 : cs.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
@@ -261,16 +311,15 @@ class BrowseFilterChip extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 3),
             Icon(
               Icons.expand_more,
-              size: 16,
-              color:
-                  selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+              size: 14,
+              color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
             ),
           ],
         ),
@@ -279,27 +328,166 @@ class BrowseFilterChip extends StatelessWidget {
   }
 }
 
-class _SpecIconLabel extends StatelessWidget {
-  final String label;
-  final IconData icon;
+// ── Shared small widgets ──────────────────────────────────────────────────────
 
-  const _SpecIconLabel({required this.label, required this.icon});
+class _ConditionPill extends StatelessWidget {
+  final String status;
+  final ColorScheme cs;
+  const _ConditionPill({required this.status, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: cs.onPrimaryContainer,
+        ),
+      ),
+    );
+  }
+}
+
+class _SaveButton extends StatelessWidget {
+  final bool isSaved;
+  final VoidCallback onTap;
+  final ColorScheme cs;
+  const _SaveButton(
+      {required this.isSaved, required this.onTap, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = KoolanAppStateScope.of(context).s;
+    // Use fully opaque backgrounds so the label is always legible
+    // regardless of what image or colour sits behind the button.
+    final bgColor   = isSaved ? const Color(0xFFE53935) : cs.surface;
+    final fgColor   = isSaved ? Colors.white            : cs.onSurface;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: bgColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSaved ? Icons.bookmark : Icons.bookmark_border,
+              color: fgColor,
+              size: 15,
+              semanticLabel: isSaved ? 'Remove from saved' : 'Save listing',
+            ),
+            const SizedBox(width: 4),
+            Text(
+              isSaved ? s.navSaved : s.navSave,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: fgColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MyAdBadge extends StatelessWidget {
+  final ColorScheme cs;
+  const _MyAdBadge({required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = KoolanAppStateScope.of(context).s;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        s.catAll, // reuse "All" → falls back nicely; TODO: add catMyAd string
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: cs.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _SpecsRow extends StatelessWidget {
+  final Listing listing;
+  const _SpecsRow({required this.listing});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final specs = <Widget>[];
+    void add(String? label, String? value) {
+      if (label != null && value != null && specs.length < 3) {
+        if (specs.isNotEmpty) specs.add(const SizedBox(width: 12));
+        specs.add(_SpecIconLabel(
+            label: value, icon: iconForSpec(label), cs: cs));
+      }
+    }
+
+    add(listing.spec1Label, listing.spec1Value);
+    add(listing.spec2Label, listing.spec2Value);
+    add(listing.spec3Label, listing.spec3Value);
+    if (specs.isEmpty) return const SizedBox.shrink();
+    return Row(children: specs);
+  }
+}
+
+class _SpecIconLabel extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final ColorScheme cs;
+  const _SpecIconLabel(
+      {required this.label, required this.icon, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon,
-            color: cs.onSurfaceVariant.withValues(alpha: 0.5), size: 18),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style:
-              TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-        ),
+            color: cs.onSurfaceVariant.withValues(alpha: 0.5), size: 14),
+        const SizedBox(width: 3),
+        Text(label,
+            style:
+                TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
       ],
     );
   }
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+IconData _categoryIcon(String cat) => switch (cat.toUpperCase()) {
+      'CARS' => Icons.directions_car_filled,
+      'HOUSES' => Icons.home_rounded,
+      'LAND' => Icons.landscape_rounded,
+      'SKILLS' => Icons.construction_rounded,
+      _ => Icons.inventory_2_outlined,
+    };
