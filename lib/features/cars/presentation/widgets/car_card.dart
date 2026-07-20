@@ -491,3 +491,38 @@ IconData _categoryIcon(String cat) => switch (cat.toUpperCase()) {
       'SKILLS' => Icons.construction_rounded,
       _ => Icons.inventory_2_outlined,
     };
+
+// ── Saved listing image helper ────────────────────────────────────────────────
+
+/// A simple cached image widget sized for the horizontal saved-screen tile.
+class SavedListingImage extends StatelessWidget {
+  final String imageUrl;
+  final double width;
+  final double height;
+
+  const SavedListingImage({
+    super.key,
+    required this.imageUrl,
+    this.width = 90,
+    this.height = 90,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return CachedImageWidget(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      width: width,
+      height: height,
+      errorWidget: Container(
+        width: width,
+        height: height,
+        color: cs.surfaceContainerHighest,
+        alignment: Alignment.center,
+        child: Icon(Icons.image_not_supported_rounded,
+            color: cs.outline, size: 24),
+      ),
+    );
+  }
+}
