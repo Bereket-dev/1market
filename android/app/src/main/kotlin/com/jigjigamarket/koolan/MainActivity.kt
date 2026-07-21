@@ -1,4 +1,4 @@
-package com.example.koolan
+package com.jigjigamarket.koolan
 
 import io.flutter.embedding.android.FlutterActivity
 

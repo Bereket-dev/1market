@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../onboarding/screens/change_password_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -36,8 +37,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             s.isAmharic
                 ? 'የሂሳብ ቅንብሮች'
                 : s.isSomali
-                    ? 'Dejinta xisaabta'
-                    : 'Account settings',
+                ? 'Dejinta xisaabta'
+                : 'Account settings',
             cs,
           ),
           const SizedBox(height: 10),
@@ -47,8 +48,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: s.isAmharic
                 ? 'ስም፣ ባዮ እና ፎቶ ይቀይሩ'
                 : s.isSomali
-                    ? 'Beddel magaca, xogta'
-                    : 'Change display name, bio, and photos',
+                ? 'Beddel magaca, xogta'
+                : 'Change display name, bio, and photos',
+          ),
+          const SizedBox(height: 10),
+          _SettingsRow(
+            icon: Icons.lock,
+            title: s.isAmharic
+                ? 'የፓስወርድ ቀይር'
+                : s.isSomali
+                ? 'Beddel erayga sirta'
+                : 'Change password',
+            subtitle: s.isAmharic
+                ? 'የእርስዎን ፓስወርድ ይቀይሩ'
+                : s.isSomali
+                ? 'Badal eraygaaga sirta'
+                : 'Update your account password',
+            trailingText: null,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+              );
+            },
           ),
           const SizedBox(height: 10),
           _SettingsRow(
@@ -56,14 +77,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: s.isAmharic
                 ? 'ስልክ ማረጋገጫ'
                 : s.isSomali
-                    ? 'Xaqiijinta telefoonka'
-                    : 'Phone Verification',
+                ? 'Xaqiijinta telefoonka'
+                : 'Phone Verification',
             subtitle: '+251 912 ****90 verified',
             trailingText: s.isAmharic
                 ? 'ተረጋግጧል'
                 : s.isSomali
-                    ? 'Xaqiijiyey'
-                    : 'Verified',
+                ? 'Xaqiijiyey'
+                : 'Verified',
           ),
           const SizedBox(height: 10),
           _SettingsRow(
@@ -71,13 +92,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: s.isAmharic
                 ? 'ተመራጭ ምድብ'
                 : s.isSomali
-                    ? 'Qaybta la doortay'
-                    : 'Preferred Category',
+                ? 'Qaybta la doortay'
+                : 'Preferred Category',
             subtitle: s.isAmharic
                 ? 'የቤት ውስጥ አገልግሎቶች'
                 : s.isSomali
-                    ? 'Adeegyada guriga'
-                    : 'Selected: HOUSEHOLD SERVICES',
+                ? 'Adeegyada guriga'
+                : 'Selected: HOUSEHOLD SERVICES',
           ),
           const SizedBox(height: 24),
 
@@ -86,8 +107,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             s.isAmharic
                 ? 'ደህንነት እና ኤስክሮ'
                 : s.isSomali
-                    ? 'Ammaan & Escrow'
-                    : 'Trust & Escrow Safety',
+                ? 'Ammaan & Escrow'
+                : 'Trust & Escrow Safety',
             cs,
           ),
           const SizedBox(height: 10),
@@ -96,18 +117,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: s.isAmharic
                 ? 'ዋስትና ማረጋገጫ'
                 : s.isSomali
-                    ? 'Xaqiijinta aqoonsiga'
-                    : 'ID Document Verification',
+                ? 'Xaqiijinta aqoonsiga'
+                : 'ID Document Verification',
             subtitle: s.isAmharic
                 ? 'የቀበሌ መታወቂያ ተረጋግጧል'
                 : s.isSomali
-                    ? 'Aqoonsiga Kebele xaqiijiyey'
-                    : 'Kebele ID verified',
+                ? 'Aqoonsiga Kebele xaqiijiyey'
+                : 'Kebele ID verified',
             trailingText: s.isAmharic
                 ? 'ንቁ'
                 : s.isSomali
-                    ? 'Firfircoon'
-                    : 'Active',
+                ? 'Firfircoon'
+                : 'Active',
           ),
           const SizedBox(height: 10),
           _SettingsRow(
@@ -115,13 +136,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: s.isAmharic
                 ? 'የኤስክሮ ዋሌት'
                 : s.isSomali
-                    ? 'Xisaabta Escrow'
-                    : 'Secure Wallet Account',
+                ? 'Xisaabta Escrow'
+                : 'Secure Wallet Account',
             subtitle: s.isAmharic
                 ? 'የክፍያ ባንኮችን ያዋቅሩ'
                 : s.isSomali
-                    ? 'Habaynta bangiga'
-                    : 'Configure payout banks & escrow conditions',
+                ? 'Habaynta bangiga'
+                : 'Configure payout banks & escrow conditions',
           ),
           const SizedBox(height: 24),
 
@@ -130,8 +151,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             s.isAmharic
                 ? 'የስርዓት ቅንብሮች'
                 : s.isSomali
-                    ? 'Doorashada nidaamka'
-                    : 'System preferences',
+                ? 'Doorashada nidaamka'
+                : 'System preferences',
             cs,
           ),
           const SizedBox(height: 10),
@@ -159,17 +180,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: cs.errorContainer,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 0,
             ),
             child: Text(
               s.isAmharic
                   ? 'ከሂሳብ ውጣ'
                   : s.isSomali
-                      ? 'Ka bax xisaabta'
-                      : 'Log Out Account',
+                  ? 'Ka bax xisaabta'
+                  : 'Log Out Account',
               style: TextStyle(
-                  color: cs.onErrorContainer, fontWeight: FontWeight.bold),
+                color: cs.onErrorContainer,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -181,7 +205,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Text(
       label,
       style: TextStyle(
-          fontWeight: FontWeight.bold, color: cs.primary, fontSize: 12),
+        fontWeight: FontWeight.bold,
+        color: cs.primary,
+        fontSize: 12,
+      ),
     );
   }
 }
@@ -193,65 +220,73 @@ class _SettingsRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final String? trailingText;
+  final VoidCallback? onTap;
 
   const _SettingsRow({
     required this.icon,
     required this.title,
     required this.subtitle,
     this.trailingText,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: cs.primary.withOpacity(0.1),
-              child: Icon(icon, color: cs.primary),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14)),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurfaceVariant.withOpacity(0.7)),
-                  ),
-                ],
-              ),
-            ),
-            if (trailingText != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  trailingText!,
-                  style: TextStyle(
-                    color: cs.primary,
-                    fontSize: 11,
+    final content = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: cs.primary.withOpacity(0.1),
+            child: Icon(icon, color: cs.primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
-              )
-            else
-              Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
-          ],
-        ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: cs.onSurfaceVariant.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailingText != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                trailingText!,
+                style: TextStyle(
+                  color: cs.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          else
+            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+        ],
       ),
+    );
+
+    return Card(
+      child: onTap == null ? content : InkWell(onTap: onTap, child: content),
     );
   }
 }
@@ -286,13 +321,12 @@ class _SettingsToggleRow extends StatelessWidget {
               child: Text(
                 title,
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-            ),
+            Switch(value: value, onChanged: onChanged),
           ],
         ),
       ),

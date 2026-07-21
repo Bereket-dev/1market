@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/config/supabase_config.dart';
 import '../../core/router/routes.dart';
 import '../models/app_strings.dart';
 import '../models/chat.dart';
@@ -14,20 +15,39 @@ enum OnboardingPhase { initializing, auth, language, ready }
 /// Central application state. Shared via [KoolanAppStateScope].
 class KoolanAppState extends ChangeNotifier {
   KoolanAppState() {
-    Supabase.instance.client.auth.onAuthStateChange.listen((event) async {
-      if (event.event == AuthChangeEvent.signedIn &&
-          event.session != null &&
-          _pendingOAuthCompletion) {
-        _pendingOAuthCompletion = false;
-        await onFreshAuth();
+    final client = AppSupabaseConfig.clientOrNull();
+    if (client != null) {
+      try {
+        _repo = SupabaseRepository(client);
+        print('Supabase repository created');
+      } catch (e, st) {
+        print('Supabase repository unavailable: $e');
+        print(st);
+        _repo = null;
       }
-      notifyListeners();
-    });
+
+      try {
+        client.auth.onAuthStateChange.listen((event) async {
+          if (event.event == AuthChangeEvent.signedIn &&
+              event.session != null &&
+              _pendingOAuthCompletion) {
+            _pendingOAuthCompletion = false;
+            await onFreshAuth();
+          }
+          notifyListeners();
+        });
+      } catch (e, st) {
+        print('Auth listener setup failed: $e');
+        print(st);
+      }
+    } else {
+      print('Supabase not initialized yet; skipping repo/auth setup');
+      _repo = null;
+    }
     _initialize();
   }
 
-  final SupabaseRepository _repo =
-      SupabaseRepository(Supabase.instance.client);
+  SupabaseRepository? _repo;
 
   bool _pendingOAuthCompletion = false;
 
@@ -38,7 +58,15 @@ class KoolanAppState extends ChangeNotifier {
   bool isLoadingData = false;
   String? dataError;
 
-  User? get currentUser => Supabase.instance.client.auth.currentUser;
+  User? get currentUser {
+    try {
+      final client = AppSupabaseConfig.clientOrNull();
+      return client?.auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
   bool get isSignedIn => currentUser != null;
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -62,9 +90,9 @@ class KoolanAppState extends ChangeNotifier {
   Future<void> setLocale(String newLocale) async {
     locale = newLocale;
     await app_local.LocalStorage.saveLanguage(newLocale);
-    if (isSignedIn) {
+    if (isSignedIn && _repo != null) {
       try {
-        await _repo.updateLanguage(newLocale);
+        await _repo!.updateLanguage(newLocale);
         profile = profile?.copyWith(language: newLocale);
       } catch (e) {
         dataError = e.toString();
@@ -120,18 +148,20 @@ class KoolanAppState extends ChangeNotifier {
   // ── Initialization ──────────────────────────────────────────────────────────
 
   Future<void> _initialize() async {
+    print('Auth check started');
+    print('Repo available: ${_repo != null}');
     initError = null;
     try {
       final savedLang = await app_local.LocalStorage.getLanguage();
       if (savedLang != null) locale = savedLang;
 
-      if (!isSignedIn) {
+      if (!isSignedIn || _repo == null) {
         onboardingPhase = OnboardingPhase.auth;
         notifyListeners();
         return;
       }
 
-      profile = await _repo.ensureProfile();
+      profile = await _repo!.ensureProfile();
       final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
 
       if (profile?.language != null) {
@@ -150,6 +180,8 @@ class KoolanAppState extends ChangeNotifier {
       initError = e.toString();
       onboardingPhase = OnboardingPhase.auth;
       notifyListeners();
+    } finally {
+      print('Auth check finished');
     }
   }
 
@@ -162,18 +194,22 @@ class KoolanAppState extends ChangeNotifier {
 
   /// Called after fresh sign-in/sign-up (email or OAuth callback).
   Future<void> onFreshAuth() async {
+    if (_repo == null) {
+      onboardingPhase = OnboardingPhase.auth;
+      notifyListeners();
+      return;
+    }
+
     await app_local.LocalStorage.clearSessionRestored();
-    profile = await _repo.ensureProfile();
+    profile = await _repo!.ensureProfile();
     onboardingPhase = OnboardingPhase.language;
     notifyListeners();
   }
 
   Future<void> completeLanguageOnboarding(String language) async {
     await setLocale(language);
-    try {
-      await _repo.updateLanguage(language);
-    } catch (_) {
-      // No-op in simulation mode — no real DB connection needed.
+    if (_repo != null) {
+      await _repo!.updateLanguage(language);
     }
     profile = profile?.copyWith(language: language);
     await app_local.LocalStorage.markSessionRestored();
@@ -194,8 +230,13 @@ class KoolanAppState extends ChangeNotifier {
     dataError = null;
     notifyListeners();
     try {
-      allListings = await _repo.fetchListings();
-      chatSessions = await _repo.fetchChatSessions();
+      if (_repo == null) {
+        allListings = [];
+        chatSessions = [];
+        return;
+      }
+      allListings = await _repo!.fetchListings();
+      chatSessions = await _repo!.fetchChatSessions();
     } catch (e) {
       dataError = e.toString();
     } finally {
@@ -243,7 +284,8 @@ class KoolanAppState extends ChangeNotifier {
       final matchesCategory =
           selectedCategory == 'ALL' || listing.category == selectedCategory;
       final q = searchQuery.toLowerCase();
-      final matchesQuery = q.isEmpty ||
+      final matchesQuery =
+          q.isEmpty ||
           listing.title.toLowerCase().contains(q) ||
           listing.location.toLowerCase().contains(q) ||
           listing.description.toLowerCase().contains(q);
@@ -274,7 +316,12 @@ class KoolanAppState extends ChangeNotifier {
     allListings[index] = listing.copyWith(isSaved: newSaved);
     notifyListeners();
     try {
-      await _repo.toggleFavorite(listingId, listing.isSaved);
+      if (_repo == null) {
+        dataError = 'Supabase unavailable';
+        notifyListeners();
+        return;
+      }
+      await _repo!.toggleFavorite(listingId, listing.isSaved);
     } catch (e) {
       allListings[index] = listing;
       dataError = e.toString();
@@ -306,7 +353,12 @@ class KoolanAppState extends ChangeNotifier {
     if (index == -1) return;
 
     try {
-      final msg = await _repo.sendMessage(threadId: sessionId, text: text);
+      if (_repo == null) {
+        dataError = 'Supabase unavailable';
+        notifyListeners();
+        return;
+      }
+      final msg = await _repo!.sendMessage(threadId: sessionId, text: text);
       final session = chatSessions[index];
       chatSessions[index] = session.copyWith(
         messages: [...session.messages, msg],
@@ -324,11 +376,16 @@ class KoolanAppState extends ChangeNotifier {
     final listing = getListingById(listingId);
     if (listing == null || listing.sellerId == null) return null;
     try {
-      final threadId = await _repo.getOrCreateThread(
+      if (_repo == null) {
+        dataError = 'Supabase unavailable';
+        notifyListeners();
+        return null;
+      }
+      final threadId = await _repo!.getOrCreateThread(
         listingId: listingId,
         sellerId: listing.sellerId!,
       );
-      chatSessions = await _repo.fetchChatSessions();
+      chatSessions = await _repo!.fetchChatSessions();
       notifyListeners();
       return threadId;
     } catch (e) {
@@ -345,7 +402,8 @@ class KoolanAppState extends ChangeNotifier {
     String? reportedUserId,
     String? details,
   }) async {
-    await _repo.submitReport(
+    if (_repo == null) return;
+    await _repo!.submitReport(
       reason: reason,
       listingId: listingId,
       reportedUserId: reportedUserId,
@@ -375,8 +433,8 @@ class KoolanAppState extends ChangeNotifier {
     final priceStr = postPrice.trim().isEmpty
         ? 'Contact for price'
         : (postPrice.startsWith('ETB') || postPrice.startsWith(r'$'))
-            ? postPrice.trim()
-            : 'ETB ${postPrice.trim()}';
+        ? postPrice.trim()
+        : 'ETB ${postPrice.trim()}';
     final descStr = postDescription.trim().isEmpty
         ? 'No description provided.'
         : postDescription.trim();
@@ -386,7 +444,12 @@ class KoolanAppState extends ChangeNotifier {
     final sellerImage = profile?.avatarUrl ?? '';
 
     try {
-      final newListing = await _repo.createListing(
+      if (_repo == null) {
+        dataError = 'Supabase unavailable';
+        notifyListeners();
+        return;
+      }
+      final newListing = await _repo!.createListing(
         category: postCategory,
         title: titleStr,
         price: priceStr,
@@ -431,7 +494,10 @@ class KoolanAppState extends ChangeNotifier {
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
   Future<void> signOut() async {
-    await Supabase.instance.client.auth.signOut();
+    try {
+      final client = AppSupabaseConfig.clientOrNull();
+      await client?.auth.signOut();
+    } catch (_) {}
     await app_local.LocalStorage.clearLanguage();
     await app_local.LocalStorage.clearSessionRestored();
     profile = null;
@@ -472,25 +538,65 @@ class KoolanAppState extends ChangeNotifier {
     }
   }
 
-  String _specLabel1(String cat) =>
-      cat == 'CARS' ? 'Year' : cat == 'HOUSES' ? 'Bedrooms' : cat == 'LAND' ? 'Size' : 'Category';
-  String _specDefault1(String cat) =>
-      cat == 'CARS' ? '2023' : cat == 'HOUSES' ? '3 Bed' : cat == 'LAND' ? '500 sqm' : 'Worker';
+  String _specLabel1(String cat) => cat == 'CARS'
+      ? 'Year'
+      : cat == 'HOUSES'
+      ? 'Bedrooms'
+      : cat == 'LAND'
+      ? 'Size'
+      : 'Category';
+  String _specDefault1(String cat) => cat == 'CARS'
+      ? '2023'
+      : cat == 'HOUSES'
+      ? '3 Bed'
+      : cat == 'LAND'
+      ? '500 sqm'
+      : 'Worker';
 
-  String _specLabel2(String cat) =>
-      cat == 'CARS' ? 'Mileage' : cat == 'HOUSES' ? 'Bathrooms' : cat == 'LAND' ? 'Land Use' : 'Experience';
-  String _specDefault2(String cat) =>
-      cat == 'CARS' ? '5,000 km' : cat == 'HOUSES' ? '2 Bath' : cat == 'LAND' ? 'Residential' : '3 years';
+  String _specLabel2(String cat) => cat == 'CARS'
+      ? 'Mileage'
+      : cat == 'HOUSES'
+      ? 'Bathrooms'
+      : cat == 'LAND'
+      ? 'Land Use'
+      : 'Experience';
+  String _specDefault2(String cat) => cat == 'CARS'
+      ? '5,000 km'
+      : cat == 'HOUSES'
+      ? '2 Bath'
+      : cat == 'LAND'
+      ? 'Residential'
+      : '3 years';
 
-  String _specLabel3(String cat) =>
-      cat == 'CARS' ? 'Transmission' : cat == 'HOUSES' ? 'Area' : cat == 'LAND' ? 'Title Deed' : 'Skills';
-  String _specDefault3(String cat) =>
-      cat == 'CARS' ? 'Automatic' : cat == 'HOUSES' ? '150m²' : cat == 'LAND' ? 'Available' : 'General Support';
+  String _specLabel3(String cat) => cat == 'CARS'
+      ? 'Transmission'
+      : cat == 'HOUSES'
+      ? 'Area'
+      : cat == 'LAND'
+      ? 'Title Deed'
+      : 'Skills';
+  String _specDefault3(String cat) => cat == 'CARS'
+      ? 'Automatic'
+      : cat == 'HOUSES'
+      ? '150m²'
+      : cat == 'LAND'
+      ? 'Available'
+      : 'General Support';
 
-  String _specLabel4(String cat) =>
-      cat == 'CARS' ? 'Fuel Type' : cat == 'HOUSES' ? 'Security' : cat == 'LAND' ? 'Road Access' : 'Status';
-  String _specDefault4(String cat) =>
-      cat == 'CARS' ? 'Petrol' : cat == 'HOUSES' ? '24/7' : cat == 'LAND' ? 'Yes' : 'Verified';
+  String _specLabel4(String cat) => cat == 'CARS'
+      ? 'Fuel Type'
+      : cat == 'HOUSES'
+      ? 'Security'
+      : cat == 'LAND'
+      ? 'Road Access'
+      : 'Status';
+  String _specDefault4(String cat) => cat == 'CARS'
+      ? 'Petrol'
+      : cat == 'HOUSES'
+      ? '24/7'
+      : cat == 'LAND'
+      ? 'Yes'
+      : 'Verified';
 }
 
 /// Makes [KoolanAppState] accessible anywhere in the widget tree.
@@ -502,8 +608,8 @@ class KoolanAppStateScope extends InheritedNotifier<KoolanAppState> {
   }) : super(notifier: notifier);
 
   static KoolanAppState of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<KoolanAppStateScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<KoolanAppStateScope>();
     assert(scope != null, 'No KoolanAppStateScope found in context');
     return scope!.notifier!;
   }

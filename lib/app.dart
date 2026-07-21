@@ -41,6 +41,7 @@ class _KoolanAppState extends State<KoolanApp> {
 
   @override
   Widget build(BuildContext context) {
+    print('MyApp build');
     return KoolanAppStateScope(
       notifier: _appState,
       child: ListenableBuilder(
@@ -50,11 +51,7 @@ class _KoolanAppState extends State<KoolanApp> {
             title: 'Koolan – Jigjiga Marketplace',
             debugShowCheckedModeBanner: false,
             locale: _appState.materialLocale,
-            supportedLocales: const [
-              Locale('en'),
-              Locale('am'),
-              Locale('so'),
-            ],
+            supportedLocales: const [Locale('en'), Locale('am'), Locale('so')],
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -62,8 +59,7 @@ class _KoolanAppState extends State<KoolanApp> {
             ],
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
-            themeMode:
-                _appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            themeMode: _appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             home: _RootGate(appState: _appState),
           );
         },
@@ -81,6 +77,7 @@ class _RootGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('router created');
     switch (appState.onboardingPhase) {
       case OnboardingPhase.initializing:
         return _InitializingScreen(
@@ -105,6 +102,7 @@ class _InitializingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('Splash build');
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Center(
@@ -190,9 +188,9 @@ class _AppShell extends StatelessWidget {
                           child: Text(
                             appState.dataError!,
                             style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onErrorContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onErrorContainer,
                               fontSize: 12,
                             ),
                           ),
@@ -219,8 +217,9 @@ class _AppShell extends StatelessWidget {
       builder: (context, constraints) {
         if (constraints.maxWidth <= 600) return shell;
 
-        final desktopBg =
-            isDark ? const Color(0xFF060A10) : const Color(0xFFE2E8F0);
+        final desktopBg = isDark
+            ? const Color(0xFF060A10)
+            : const Color(0xFFE2E8F0);
         final cardBg = isDark ? kDarkBackground : kBackground;
 
         return Container(
@@ -302,14 +301,31 @@ class _BottomNavBar extends StatelessWidget {
 
     final tabs = [
       _Tab(s.navHome, Icons.home_outlined, Icons.home, HomeScreenRoute()),
-      _Tab(s.navSaved, Icons.bookmark_border, Icons.bookmark,
-          SavedScreenRoute()),
-      _Tab(s.navPost, Icons.add, Icons.add, PostWizardScreenRoute(),
-          isFab: true),
-      _Tab(s.navMessages, Icons.chat_bubble_outline, Icons.chat_bubble,
-          MessagesScreenRoute()),
-      _Tab(s.navProfile, Icons.person_outline, Icons.person,
-          ProfileScreenRoute()),
+      _Tab(
+        s.navSaved,
+        Icons.bookmark_border,
+        Icons.bookmark,
+        SavedScreenRoute(),
+      ),
+      _Tab(
+        s.navPost,
+        Icons.add,
+        Icons.add,
+        PostWizardScreenRoute(),
+        isFab: true,
+      ),
+      _Tab(
+        s.navMessages,
+        Icons.chat_bubble_outline,
+        Icons.chat_bubble,
+        MessagesScreenRoute(),
+      ),
+      _Tab(
+        s.navProfile,
+        Icons.person_outline,
+        Icons.person,
+        ProfileScreenRoute(),
+      ),
     ];
 
     return Container(
@@ -369,8 +385,7 @@ class _BottomNavBar extends StatelessWidget {
                     tab.label,
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight:
-                          selected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.w500,
                       color: selected
                           ? cs.primary
                           : cs.onSurfaceVariant.withOpacity(0.55),

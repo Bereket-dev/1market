@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shared/services/app_state.dart';
+import 'reset_password_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -27,15 +28,72 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _submitEmail() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _isLoading = true; _error = null; });
-    await KoolanAppStateScope.of(context).simulateAuth();
-    if (mounted) setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final client = AppSupabaseConfig.clientOrNull();
+    if (client == null) {
+      setState(
+        () => _error = 'Supabase is not available. Check configuration.',
+      );
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final auth = client.auth;
+      if (_isSignUp) {
+        await auth.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      } else {
+        await auth.signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      }
+      if (!mounted) return;
+      await KoolanAppStateScope.of(context).onFreshAuth();
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _signInWithOAuth(OAuthProvider provider) async {
-    setState(() { _isLoading = true; _error = null; });
-    await KoolanAppStateScope.of(context).simulateAuth();
-    if (mounted) setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final client = AppSupabaseConfig.clientOrNull();
+    if (client == null) {
+      setState(
+        () => _error = 'Supabase is not available. Check configuration.',
+      );
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      KoolanAppStateScope.of(context).markOAuthPending();
+      await client.auth.signInWithOAuth(
+        provider,
+        redirectTo: AppSupabaseConfig.redirectUrl,
+      );
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -120,6 +178,19 @@ class _AuthScreenState extends State<AuthScreen> {
                         return null;
                       },
                     ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ResetPasswordScreen(),
+                            ),
+                          );
+                        },
+                        child: Text(s.authForgotPassword),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -132,21 +203,27 @@ class _AuthScreenState extends State<AuthScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _isLoading ? null : _submitEmail,
-                  child: Text(_isLoading
-                      ? s.authPleaseWait
-                      : (_isSignUp ? s.authCreateAccount : s.authContinue)),
+                  child: Text(
+                    _isLoading
+                        ? s.authPleaseWait
+                        : (_isSignUp ? s.authCreateAccount : s.authContinue),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              Row(children: [
-                Expanded(child: Divider(color: cs.outlineVariant)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(s.authOrContinue,
-                      style: TextStyle(color: cs.onSurfaceVariant)),
-                ),
-                Expanded(child: Divider(color: cs.outlineVariant)),
-              ]),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: cs.outlineVariant)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      s.authOrContinue,
+                      style: TextStyle(color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: cs.outlineVariant)),
+                ],
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
