@@ -81,7 +81,9 @@ class SyncQueueEntry {
       'entityType': entityType.nameValue,
       'entityId': entityId,
       'payload': payload,
-      'localUpdatedAt': localUpdatedAt.toIso8601String(),
+      // Store as UTC so that when the entry is round-tripped through Hive the
+      // timestamp is unambiguous regardless of device timezone.
+      'localUpdatedAt': localUpdatedAt.toUtc().toIso8601String(),
       'syncStatus': syncStatus,
     };
   }
@@ -92,8 +94,11 @@ class SyncQueueEntry {
   ) {
     try {
       final data = jsonDecode(jsonString) as Map<String, dynamic>;
-      final localUpdatedAt =
-          DateTime.tryParse(data['localUpdatedAt'] as String? ?? '');
+      final localUpdatedAtRaw = data['localUpdatedAt'] as String? ?? '';
+      // Parse and normalise to UTC.  Entries written before this fix may lack
+      // the Z suffix — tryParse returns a local DateTime in that case, and
+      // .toUtc() converts it correctly.
+      final localUpdatedAt = DateTime.tryParse(localUpdatedAtRaw)?.toUtc();
       if (localUpdatedAt == null) return null;
       return SyncQueueEntry(
         id: data['id'] as String,
@@ -134,6 +139,12 @@ class SyncService {
   final HiveSyncStore _store = HiveSyncStore.instance;
   final _queue = StreamController<void>.broadcast();
   bool _isSyncing = false;
+
+  /// Optional callback invoked when a queued entry is discarded because the
+  /// remote record is newer (LWW conflict). Receives a human-readable
+  /// description of what was discarded. Set by [KoolanAppState] so the discard
+  /// can be surfaced to the user via SnackBar without a popup or overlay.
+  void Function(String entityType, String entityId)? onDiscard;
 
   // ── Connectivity listener ────────────────────────────────────────────────────
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -239,7 +250,7 @@ class SyncService {
 
   Future<void> enqueueServiceDelete({required String serviceId}) async {
     await _store.initialize();
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final entry = SyncQueueEntry(
       id: serviceId,
       entityType: SyncEntityType.serviceDelete,
@@ -280,7 +291,7 @@ class SyncService {
 
   Future<void> enqueueHiringPostDelete({required String postId}) async {
     await _store.initialize();
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final entry = SyncQueueEntry(
       id: postId,
       entityType: SyncEntityType.hiringPostDelete,
@@ -349,6 +360,9 @@ class SyncService {
   Future<void> _runSyncPass() async {
     final client = Supabase.instance.client;
     if (client.auth.currentSession == null) return;
+
+    // Flush any pending profile photo uploads first (avatar / banner).
+    await _appState.flushPendingPhotoUploads();
 
     final entries = await _loadPendingQueueEntries();
     for (final entry in entries) {
@@ -473,9 +487,15 @@ class SyncService {
       // Only treat as a conflict when the remote timestamp is *meaningfully*
       // newer than what we saved locally (> 2 s tolerance covers clock skew
       // and the lag between a successful insert and the next sync pass).
+      //
+      // Both sides are normalised to UTC before comparing.  localUpdatedAt is
+      // stored as a local-time DateTime (DateTime.now(), no Z suffix) so its
+      // .toUtc() call converts it correctly regardless of device timezone.
+      // remoteUpdatedAt comes from Supabase with a Z suffix so it is already
+      // UTC, but .toUtc() is a no-op in that case — safe to call always.
       if (remoteUpdatedAt != null &&
-          remoteUpdatedAt.isAfter(
-            entry.localUpdatedAt.add(const Duration(seconds: 2)),
+          remoteUpdatedAt.toUtc().isAfter(
+            entry.localUpdatedAt.toUtc().add(const Duration(seconds: 2)),
           )) {
         await _discardEntry(entry, remoteUpdatedAt);
         return true;
@@ -539,7 +559,10 @@ class SyncService {
     if (response is! Map<String, dynamic>) return null;
     final raw = response['updated_at'];
     if (raw is! String) return null;
-    return DateTime.tryParse(raw);
+    // Supabase always returns updated_at with a Z suffix (UTC).
+    // DateTime.tryParse correctly marks these as UTC (isUtc == true).
+    // We call .toUtc() defensively in case a row somehow has a tz-naive value.
+    return DateTime.tryParse(raw)?.toUtc();
   }
 
   Future<void> _pushEntry(SupabaseClient client, SyncQueueEntry entry) async {
@@ -690,15 +713,15 @@ class SyncService {
     DateTime remoteUpdatedAt,
   ) async {
     // The remote record is newer — our local change is stale. Remove it from
-    // the queue silently. On a single-device setup this normally means the
-    // insert already went through on a previous pass; showing an error here
-    // would be confusing and cause false data-loss reports.
+    // the queue. Notify via callback so the UI can show a SnackBar without
+    // using any popup or overlay pattern.
     await _deleteQueueEntry(entry);
     debugPrint(
       '[SyncService] discarded stale ${entry.entityType.nameValue} '
       '${entry.entityId}: remote=${remoteUpdatedAt.toIso8601String()} '
       'local=${entry.localUpdatedAt.toIso8601String()}',
     );
+    onDiscard?.call(entry.entityType.nameValue, entry.entityId);
   }
 
   Future<void> _markEntryFailed(SyncQueueEntry entry) async {

@@ -5,6 +5,7 @@ class UserProfile with SyncableEntity {
   final String id;
   final String? displayName;
   final String? avatarUrl;
+  final String? bannerUrl;
   final String? bio;
   final String? phone;
   final String? city;
@@ -26,6 +27,7 @@ class UserProfile with SyncableEntity {
     required this.id,
     this.displayName,
     this.avatarUrl,
+    this.bannerUrl,
     this.bio,
     this.phone,
     this.city,
@@ -45,6 +47,7 @@ class UserProfile with SyncableEntity {
       id: json['id'] as String,
       displayName: json['display_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
+      bannerUrl: json['banner_url'] as String?,
       bio: json['bio'] as String?,
       phone: json['phone'] as String?,
       city: json['city'] as String?,
@@ -63,6 +66,7 @@ class UserProfile with SyncableEntity {
     'id': id,
     'display_name': displayName,
     'avatar_url': avatarUrl,
+    'banner_url': bannerUrl,
     'bio': bio,
     'phone': phone,
     'city': city,
@@ -76,6 +80,7 @@ class UserProfile with SyncableEntity {
   UserProfile copyWith({
     String? displayName,
     String? avatarUrl,
+    String? bannerUrl,
     String? bio,
     String? phone,
     String? city,
@@ -91,6 +96,7 @@ class UserProfile with SyncableEntity {
       id: id,
       displayName: displayName ?? this.displayName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      bannerUrl: bannerUrl ?? this.bannerUrl,
       bio: bio ?? this.bio,
       phone: phone ?? this.phone,
       city: city ?? this.city,

@@ -47,6 +47,8 @@ class ServiceReviewsScreenRoute extends KoolanScreen {
 
 class SettingsScreenRoute extends KoolanScreen {}
 
+class EditProfileScreenRoute extends KoolanScreen {}
+
 // ── Phase C Part 2: Hiring posts ─────────────────────────────────────────────
 
 class HiringManagementScreenRoute extends KoolanScreen {}

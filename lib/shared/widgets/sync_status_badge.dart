@@ -12,7 +12,16 @@ class SyncStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    // Use getInheritedWidgetOfExactType (non-registering) because SyncStatusBadge
+    // only needs .s strings — it doesn't need to rebuild when appState changes.
+    // The badge is already rebuilt whenever its parent rebuilds (the parent is
+    // the element that tracks syncStatus).  Registering a dependency here would
+    // add this element to KoolanAppStateScope._dependents unnecessarily, which
+    // contributes to the '_dependents.isEmpty' crash during screen deactivation.
+    final s = context
+        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .notifier!
+        .s;
     switch (status) {
       case SyncStatus.local:
         return Container(

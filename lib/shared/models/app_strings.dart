@@ -16,6 +16,7 @@ class AppStrings {
   String get appName => _t('Koolan', 'ኩላን', 'Koolan');
   String get commonRetry => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
   String get commonLoading => _t('Loading…', 'በመጫን ላይ…', 'Waa la soo rarayaa…');
+  String get commonCancel => _t('Cancel', 'ሰርዝ', 'Jooji');
 
   // ── Auth / Onboarding ───────────────────────────────────────────────────────
   String get authTitle =>
@@ -805,6 +806,20 @@ class AppStrings {
   String get editProfileDisplayNameRequired => _t('Display name is required', 'ስም ያስፈልጋል', 'Magaca waa lagama maarmaan');
   String get editProfileSaving => _t('Saving...', 'በማስቀመጥ ላይ...', 'Waa la kaydiyaa...');
   String get editProfileSaveButton => _t('Save changes', 'ለውጦችን አስቀምጥ', 'Keydi isbeddelada');
+  String get editProfileChangePhoto => _t('Change profile photo', 'የፕሮፋይል ፎቶ ቀይር', 'Beddel sawirka xogta');
+  String get editProfileChangeBanner => _t('Change background image', 'የዳራ ምስል ቀይር', 'Beddel sawirka asalka');
+  String get editProfilePhotoUploading => _t('Uploading photo...', 'ፎቶ በመስቀል ላይ...', 'Sawirka waa la raraa...');
+  String get editProfilePhotoError => _t('Failed to upload photo', 'ፎቶ ለማስቀምጫ አልተቻለም', 'Waxaa dhacay khalad sawirka');
+  String get editProfileEditName => _t('Edit name', 'ስም ያርትዑ', 'Wax ka beddel magaca');
+  String get editProfileNameLabel => _t('Display name', 'ስም', 'Magaca la muujinayo');
+  String get editProfileNameSave => _t('Save', 'አስቀምጥ', 'Keydi');
+  String get editProfilePhotoSection => _t('Photos', 'ፎቶዎች', 'Sawirrada');
+  String get editProfilePrefCategory => _t('Preferred category', 'ተመራጭ ምድብ', 'Qaybta la doortay');
+  String get editProfilePrefCategoryHint => _t('Select a category', 'ምድብ ምረጥ', 'Dooro qaybta');
+  String get editProfilePrefCategoryNone => _t('None', 'የለም', 'Midna');
+  String get editProfilePhone => _t('Phone number', 'ስልክ ቁጥር', 'Lambarka telefoonka');
+  String get editProfileCity => _t('City', 'ከተማ', 'Magaalada');
+  String get editProfilePhotoQueued => _t('Photo will upload when you reconnect', 'ፎቶ ሲገናኙ ይጫናል', 'Sawirku wuxuu rarmi doonaa marka aad ku xidnaatid');
 
   // ── Listing Detail Screen ────────────────────────────────────────────────────
   String get detailLinkShared => _t('Link shared!', 'ሊንክ ተጋርቷል!', 'Xiriirka la wadaagay!');

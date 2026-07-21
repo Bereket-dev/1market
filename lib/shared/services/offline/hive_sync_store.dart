@@ -36,6 +36,9 @@ class HiveSyncStore {
   late Box<String> _pendingApplicationsBox;
   late Box<String> _pendingApplicationStatusUpdatesBox;
 
+  // Profile photo upload queue
+  late Box<String> _pendingPhotoUploadsBox;
+
   Future<void> initialize() async {
     if (_initialized) return;
 
@@ -71,6 +74,8 @@ class HiveSyncStore {
         await Hive.openBox<String>('pending_applications_box');
     _pendingApplicationStatusUpdatesBox =
         await Hive.openBox<String>('pending_application_status_updates_box');
+    _pendingPhotoUploadsBox =
+        await Hive.openBox<String>('pending_photo_uploads_box');
 
     await _enforceImageCacheLimit();
     _initialized = true;
@@ -309,6 +314,28 @@ class HiveSyncStore {
   Future<List<String>> getPendingApplicationStatusUpdateIds() async {
     await _ensureInitialized();
     return _pendingApplicationStatusUpdatesBox.keys.cast<String>().toList();
+  }
+
+  // ── Profile photo upload queue ────────────────────────────────────────────────
+  // Key: "<userId>:<bucket>" e.g. "abc123:avatars"
+  // Value: JSON with localPath, bucket, remotePath
+
+  Future<void> savePendingPhotoUpload(String key, String payload) async {
+    await _ensureInitialized();
+    await _pendingPhotoUploadsBox.put(key, payload);
+  }
+
+  String? readPendingPhotoUpload(String key) =>
+      _pendingPhotoUploadsBox.get(key);
+
+  Future<void> deletePendingPhotoUpload(String key) async {
+    await _ensureInitialized();
+    await _pendingPhotoUploadsBox.delete(key);
+  }
+
+  Future<List<String>> getPendingPhotoUploadKeys() async {
+    await _ensureInitialized();
+    return _pendingPhotoUploadsBox.keys.cast<String>().toList();
   }
 
   Future<void> cacheImage(String key, String value) async {

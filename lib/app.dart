@@ -16,6 +16,7 @@ import 'features/onboarding/screens/language_screen.dart';
 import 'features/onboarding/screens/location_permission_screen.dart';
 import 'features/onboarding/screens/verification_prompt_screen.dart';
 import 'features/post/presentation/screens/post_wizard_screen.dart';
+import 'features/profile/presentation/screens/edit_profile_screen.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
 import 'features/services/presentation/screens/service_browse_screen.dart';
@@ -149,9 +150,14 @@ class _InitializingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     print('Splash build');
     final cs = Theme.of(context).colorScheme;
-    // s is not available via KoolanAppStateScope yet during init,
-    // so we read it directly from the appState passed through _RootGate.
-    final appState = KoolanAppStateScope.of(context);
+    // Use getInheritedWidgetOfExactType (non-registering) here because
+    // _InitializingScreen only reads .s strings and never needs to rebuild
+    // when appState changes — it is shown exactly once, before the app is
+    // ready.  Registering a dependency would add it to the listener set
+    // unnecessarily and could contribute to the build-scope assertion crash.
+    final appState = context
+        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .notifier!;
     final s = appState.s;
     return Scaffold(
       body: Center(
@@ -193,75 +199,35 @@ class _AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = KoolanAppStateScope.of(context);
+    // Use getInheritedWidgetOfExactType (non-registering) so that _AppShell
+    // itself is NOT added to KoolanAppStateScope's listener set.
+    //
+    // Why this matters: _AppShell is the root shell widget — it lives above
+    // the AnimatedSwitcher that drives all screen transitions.  If it
+    // registers as a listener via the normal .of(context) call, every
+    // notifyListeners() call (profile saves, sync status updates, etc.) marks
+    // _AppShell dirty.  When notifyListeners() fires while AnimatedSwitcher is
+    // mid-transition the framework tries to flush the dirty _AppShell element
+    // inside a build scope that belongs to the transitioning child, triggering
+    // the "Tried to build dirty widget in the wrong build scope" assertion.
+    //
+    // All parts of the shell that genuinely need live reactivity
+    // (_ShellScaffold, _LoadingBarArea) subscribe to
+    // appState individually through their own listener — so they
+    // each rebuild at the right time in the right scope without pulling
+    // _AppShell along with them.
+    final appState = context
+        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .notifier!;
+    // isDarkMode is only needed for the static desktop-layout colours below.
+    // It rarely changes (never mid-transition), so a non-registering read is safe.
     final isDark = appState.isDarkMode;
-    final s = appState.s;
 
-    final current = appState.navigationStack.last;
-    final hideBar =
-        current is PostWizardScreenRoute || current is ActiveChatScreenRoute;
-
-    final shell = Scaffold(
-      bottomNavigationBar: hideBar
-          ? null
-          : _BottomNavBar(
-              current: current,
-              onTabSelect: appState.switchTab,
-              onPostFab: () => appState.pushScreen(PostWizardScreenRoute()),
-            ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: _screenFor(current),
-            ),
-            if (appState.isLoadingData)
-              const Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: LinearProgressIndicator(),
-              ),
-            if (appState.dataError != null)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: hideBar ? 16 : 96,
-                child: Material(
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(12),
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            appState.dataError!,
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onErrorContainer,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            appState.clearDataError();
-                            appState.loadAllData();
-                          },
-                          child: Text(s.commonRetry),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+    // _ShellScaffold owns the Scaffold + nav bar + screen switcher and
+    // subscribes to appState via ListenableBuilder internally.
+    final shell = _ShellScaffold(
+      appState: appState,
+      onPostFab: () => appState.pushScreen(PostWizardScreenRoute()),
     );
 
     // On wide screens (desktop / web) centre a phone-sized card.
@@ -299,7 +265,7 @@ class _AppShell extends StatelessWidget {
     );
   }
 
-  Widget _screenFor(KoolanScreen screen) {
+  static Widget _screenFor(KoolanScreen screen) {
     if (screen is HomeScreenRoute) {
       return const HomeScreen(key: ValueKey('home'));
     } else if (screen is SavedScreenRoute) {
@@ -385,6 +351,8 @@ class _AppShell extends StatelessWidget {
       );
     } else if (screen is SettingsScreenRoute) {
       return const SettingsScreen(key: ValueKey('settings'));
+    } else if (screen is EditProfileScreenRoute) {
+      return const EditProfileScreen(key: ValueKey('edit_profile'));
     } else if (screen is MyListingsScreenRoute) {
       return const MyListingsScreen(key: ValueKey('my_listings'));
     }
@@ -392,22 +360,144 @@ class _AppShell extends StatelessWidget {
   }
 }
 
+// ── Isolated reactive areas inside _AppShell ──────────────────────────────────
+//
+// Each of these widgets holds its own ListenableBuilder so that rebuilds are
+// scoped to the smallest possible subtree.  _AppShell itself no longer
+// registers as a KoolanAppStateScope listener, which prevents the
+// "Tried to build dirty widget in the wrong build scope" assertion that fires
+// when notifyListeners() is called while AnimatedSwitcher is mid-transition.
+
+/// Owns the Scaffold, bottom nav bar, screen switcher, and loading bar.
+/// Subscribes to appState via direct listener in [initState] to show a
+/// SnackBar whenever [KoolanAppState.dataError] becomes non-null.
+///
+/// Converting from StatelessWidget + ListenableBuilder to StatefulWidget lets
+/// us use [ScaffoldMessenger.of] safely from within the widget's element (not
+/// from inside build), so the SnackBar is always tied to this stable,
+/// non-transitioning Scaffold context — never to a child screen that might be
+/// in mid-transition.
+class _ShellScaffold extends StatefulWidget {
+  final KoolanAppState appState;
+  final VoidCallback onPostFab;
+
+  const _ShellScaffold({required this.appState, required this.onPostFab});
+
+  @override
+  State<_ShellScaffold> createState() => _ShellScaffoldState();
+}
+
+class _ShellScaffoldState extends State<_ShellScaffold> {
+  @override
+  void initState() {
+    super.initState();
+    widget.appState.addListener(_onAppStateChanged);
+  }
+
+  @override
+  void didUpdateWidget(_ShellScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.appState != widget.appState) {
+      oldWidget.appState.removeListener(_onAppStateChanged);
+      widget.appState.addListener(_onAppStateChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.appState.removeListener(_onAppStateChanged);
+    super.dispose();
+  }
+
+  bool _showingSnackBar = false;
+
+  void _onAppStateChanged() {
+    final error = widget.appState.dataError;
+    // Only show a SnackBar when a new, distinct error appears.
+    // _showingSnackBar guards against the re-entrant call that happens when
+    // clearDataError() → notifyListeners() fires back into this method.
+    if (!mounted || error == null || _showingSnackBar) return;
+    _showingSnackBar = true;
+
+    final s = widget.appState.s;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error),
+        action: SnackBarAction(
+          label: s.commonRetry,
+          onPressed: () {
+            widget.appState.clearDataError();
+            widget.appState.loadAllData();
+          },
+        ),
+        duration: const Duration(seconds: 6),
+      ),
+    );
+    // Clear immediately after scheduling so a new error from a later action
+    // will show a fresh SnackBar.
+    widget.appState.clearDataError();
+    _showingSnackBar = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.appState,
+      builder: (context, _) {
+        final current = widget.appState.navigationStack.last;
+        final hideBar = current is PostWizardScreenRoute ||
+            current is ActiveChatScreenRoute;
+
+        return Scaffold(
+          bottomNavigationBar: hideBar
+              ? null
+              : _BottomNavBar(
+                  appState: widget.appState,
+                  onPostFab: widget.onPostFab,
+                ),
+          body: SafeArea(
+            child: Stack(
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: _AppShell._screenFor(current),
+                ),
+                if (widget.appState.isLoadingData)
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: LinearProgressIndicator(),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 // ── Bottom navigation bar ─────────────────────────────────────────────────────
 
+/// The bottom nav bar.  Receives [appState] directly (passed from
+/// _ShellScaffold which already owns a ListenableBuilder) so this widget
+/// doesn't need to call KoolanAppStateScope.of(context) — avoiding an
+/// additional listener registration that would contribute to the crash.
 class _BottomNavBar extends StatelessWidget {
-  final KoolanScreen current;
-  final void Function(KoolanScreen) onTabSelect;
+  final KoolanAppState appState;
   final VoidCallback onPostFab;
 
   const _BottomNavBar({
-    required this.current,
-    required this.onTabSelect,
+    required this.appState,
     required this.onPostFab,
   });
 
   @override
   Widget build(BuildContext context) {
-    final appState = KoolanAppStateScope.of(context);
+    // appState is already live — _ShellScaffold's ListenableBuilder will
+    // rebuild this when navigation / theme change.  No extra subscription needed.
+    final current = appState.navigationStack.last;
     final s = appState.s;
     final cs = Theme.of(context).colorScheme;
 
@@ -445,11 +535,13 @@ class _BottomNavBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border(
-          top: BorderSide(color: cs.outlineVariant.withOpacity(0.4), width: 1),
+          top: BorderSide(
+              color: cs.outlineVariant.withOpacity(0.4), width: 1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(appState.isDarkMode ? 0.3 : 0.06),
+            color:
+                Colors.black.withOpacity(appState.isDarkMode ? 0.3 : 0.06),
             blurRadius: 12,
             offset: const Offset(0, -2),
           ),
@@ -469,15 +561,16 @@ class _BottomNavBar extends StatelessWidget {
                   color: cs.primaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.add, color: cs.onPrimaryContainer, size: 28),
+                child: Icon(Icons.add,
+                    color: cs.onPrimaryContainer, size: 28),
               ),
             );
           }
 
-          final selected = _isSelected(tab.route);
+          final selected = _isSelected(current, tab.route);
           return Expanded(
             child: InkWell(
-              onTap: () => onTabSelect(tab.route),
+              onTap: () => appState.switchTab(tab.route),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -497,7 +590,8 @@ class _BottomNavBar extends StatelessWidget {
                     tab.label,
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight:
+                          selected ? FontWeight.bold : FontWeight.w500,
                       color: selected
                           ? cs.primary
                           : cs.onSurfaceVariant.withOpacity(0.55),
@@ -512,7 +606,7 @@ class _BottomNavBar extends StatelessWidget {
     );
   }
 
-  bool _isSelected(KoolanScreen route) {
+  static bool _isSelected(KoolanScreen current, KoolanScreen route) {
     if (route is HomeScreenRoute) {
       return current is HomeScreenRoute || current is CategoryListScreenRoute;
     }

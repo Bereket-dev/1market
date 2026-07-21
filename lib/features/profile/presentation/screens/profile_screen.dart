@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/models/service.dart';
+import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 
@@ -15,11 +16,55 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String _activeTab = 'Services';
 
+  /// Shows a snackbar with [message].
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Picks a banner image and uploads it; shows a loading overlay while busy.
+  Future<void> _pickBanner(KoolanAppState state) async {
+    setState(() => _bannerUploading = true);
+    try {
+      final err = await state.uploadBannerImage();
+      // err is null on success or user-cancel; non-null is a real error message.
+      if (err != null && mounted) _showSnack(err);
+    } finally {
+      if (mounted) setState(() => _bannerUploading = false);
+    }
+  }
+
+  /// Picks a profile photo and uploads it; shows a loading overlay while busy.
+  Future<void> _pickAvatar(KoolanAppState state) async {
+    setState(() => _avatarUploading = true);
+    try {
+      final err = await state.uploadAvatarImage();
+      if (err != null && mounted) _showSnack(err);
+    } finally {
+      if (mounted) setState(() => _avatarUploading = false);
+    }
+  }
+
+  bool _bannerUploading = false;
+  bool _avatarUploading = false;
+
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
+    final profile = state.profile;
     final myListings = state.getMyListings();
+
+    final displayName = profile?.displayName ?? 'Your Name';
+    final avatarUrl = profile?.avatarUrl;
+    final bannerUrl = profile?.bannerUrl;
+    final city = profile?.city ?? 'Jigjiga';
+    final isVerified = profile != null;
+
+    // Fallback banner when user hasn't set one yet.
+    const fallbackBanner =
+        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80';
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -32,14 +77,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Banner image (user's own or fallback)
                   CachedImageWidget(
-                    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
+                    imageUrl: bannerUrl ?? fallbackBanner,
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: 180,
                   ),
-                  // Dark scrim so content over it is readable in both modes
                   Container(color: Colors.black.withValues(alpha: 0.38)),
+
+                  // Settings button — top-right
                   Positioned(
                     top: 16,
                     right: 16,
@@ -47,60 +94,165 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       backgroundColor: Colors.white.withValues(alpha: 0.18),
                       child: IconButton(
                         icon: const Icon(Icons.settings, color: Colors.white),
-                        onPressed: () =>
-                            state.pushScreen(SettingsScreenRoute()),
+                        onPressed: () => state.pushScreen(SettingsScreenRoute()),
                       ),
                     ),
+                  ),
+
+                  // ── Banner edit pencil — top-left ────────────────────────
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: _bannerUploading
+                        ? const CircleAvatar(
+                            backgroundColor: Colors.black38,
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : CircleAvatar(
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.18),
+                            child: IconButton(
+                              tooltip: state.s.editProfileChangeBanner,
+                              icon: const Icon(Icons.edit, color: Colors.white),
+                              onPressed: () => _pickBanner(state),
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
 
-            // ── Profile card, pulled up over banner ──────────────────────────
+            // ── Profile card pulled up over banner ───────────────────────────
             Transform.translate(
               offset: const Offset(0, -50),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    // Avatar with theme-coloured ring
-                    CircleAvatar(
-                      radius: 56,
-                      backgroundColor: cs.primary,
-                      child: CachedCircularImage(
-                        imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-                        radius: 52,
+                    // ── Avatar with camera badge ─────────────────────────────
+                    GestureDetector(
+                      onTap: _avatarUploading ? null : () => _pickAvatar(state),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Avatar circle
+                          CircleAvatar(
+                            radius: 56,
+                            backgroundColor: cs.primary,
+                            child: _avatarUploading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white)
+                                : (avatarUrl != null
+                                    ? CachedCircularImage(
+                                        imageUrl: avatarUrl, radius: 52)
+                                    : CircleAvatar(
+                                        radius: 52,
+                                        backgroundColor: cs.primaryContainer,
+                                        child: Text(
+                                          displayName.isNotEmpty
+                                              ? displayName[0].toUpperCase()
+                                              : '?',
+                                          style: TextStyle(
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.bold,
+                                            color: cs.onPrimaryContainer,
+                                          ),
+                                        ),
+                                      )),
+                          ),
+                          // Camera badge — bottom-right
+                          if (!_avatarUploading)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: cs.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: cs.surface,
+                                    width: 2,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.all(6),
+                                child: Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 16,
+                                  color: cs.onPrimary,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),
+                    // ── Name row with inline-edit pencil ────────────────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Hodan Ahmed',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: cs.onSurface,
+                        Flexible(
+                          child: Text(
+                            displayName,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: cs.onSurface,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Icon(Icons.verified, color: cs.tertiary, size: 20),
+                        if (isVerified) ...[
+                          const SizedBox(width: 6),
+                          Icon(Icons.verified, color: cs.tertiary, size: 20),
+                        ],
+                        // Pencil button — navigates to the full edit profile screen
+                        const SizedBox(width: 4),
+                        Tooltip(
+                          message: state.s.editProfileEditName,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () =>
+                                state.pushScreen(EditProfileScreenRoute()),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.edit_outlined,
+                                size: 18,
+                                color: cs.onSurfaceVariant.withValues(
+                                    alpha: 0.65),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Professional Housekeeper & Plumber',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600, color: cs.primary),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Kebele 06, Jigjiga • Joined Dec 2024',
-                      style: TextStyle(
-                          color: cs.onSurfaceVariant, fontSize: 13),
+                      city,
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 8),
+
+                    // Edit Profile text button
+                    OutlinedButton.icon(
+                      onPressed: () => state.pushScreen(EditProfileScreenRoute()),
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: Text(state.s.editProfileTitle),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Stats card
                     Card(
@@ -116,52 +268,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            Column(children: [
-                              Row(children: [
-                                const Icon(Icons.star,
-                                    color: Colors.amber, size: 16),
-                                const SizedBox(width: 4),
-                                Text('5.0',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: cs.onSurface)),
-                              ]),
-                              Text('12 ${state.s.profileReviews}',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: cs.onSurfaceVariant)),
-                            ]),
+                            _StatCell(
+                              value: profile?.rating.toStringAsFixed(1) ?? '—',
+                              label: state.s.profileReviews,
+                              icon: Icons.star,
+                              iconColor: Colors.amber,
+                              sub: profile != null
+                                  ? '${profile.reviewsCount} ${state.s.profileReviews}'
+                                  : null,
+                            ),
                             Container(
                                 width: 1,
                                 height: 30,
                                 color: cs.outlineVariant.withValues(alpha: 0.5)),
-                            Column(children: [
-                              Text('47',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: cs.onSurface)),
-                              Text(state.s.profileJobsDone,
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: cs.onSurfaceVariant)),
-                            ]),
+                            _StatCell(
+                              value: '${state.getMyServices().length}',
+                              label: state.s.profileTabServices,
+                            ),
                             Container(
                                 width: 1,
                                 height: 30,
                                 color: cs.outlineVariant.withValues(alpha: 0.5)),
-                            Column(children: [
-                              Text('100%',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: cs.tertiary)),
-                              Text(state.s.profileResponseRate,
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: cs.onSurfaceVariant)),
-                            ]),
+                            _StatCell(
+                              value: '${myListings.length}',
+                              label: 'Listings',
+                            ),
                           ],
                         ),
                       ),
@@ -172,17 +303,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: ['Services', 'Listings', 'About', 'Reviews'].map((tab) {
+                        children: [
+                          'Services',
+                          'Listings',
+                          'About',
+                          'Reviews',
+                        ].map((tab) {
                           final isSel = _activeTab == tab;
                           final label = switch (tab) {
                             'Services' => state.s.profileTabServices,
                             'Listings' => 'My Listings',
-                            'About'    => state.s.profileTabAbout,
-                            _          => state.s.profileTabReviews,
+                            'About' => state.s.profileTabAbout,
+                            _ => state.s.profileTabReviews,
                           };
                           return Padding(
-                            padding:
-                                const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.only(right: 8),
                             child: ElevatedButton(
                               onPressed: () =>
                                   setState(() => _activeTab = tab),
@@ -195,8 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     : cs.onSurfaceVariant,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(20)),
+                                    borderRadius: BorderRadius.circular(20)),
                               ),
                               child: Text(label,
                                   style: const TextStyle(
@@ -240,10 +374,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPostTap: () => state.pushScreen(PostWizardScreenRoute()),
         );
       case 'About':
-        return const _AboutTab();
+        return _AboutTab(bio: state.profile?.bio);
       default:
-        return const _ReviewsTab();
+        return _ReviewsTab(state: state);
     }
+  }
+}
+
+// ── Stat cell widget ──────────────────────────────────────────────────────────
+
+class _StatCell extends StatelessWidget {
+  final String value;
+  final String label;
+  final IconData? icon;
+  final Color? iconColor;
+  final String? sub;
+
+  const _StatCell({
+    required this.value,
+    required this.label,
+    this.icon,
+    this.iconColor,
+    this.sub,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(children: [
+      if (icon != null)
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: iconColor ?? cs.primary, size: 16),
+          const SizedBox(width: 4),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: cs.onSurface)),
+        ])
+      else
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: cs.onSurface)),
+      Text(sub ?? label,
+          style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+    ]);
   }
 }
 
@@ -276,7 +453,6 @@ class _ServicesTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Action row: Manage All + Add Service ───────────────────────
         Row(
           children: [
             Expanded(
@@ -306,7 +482,6 @@ class _ServicesTab extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // ── Service preview list ───────────────────────────────────────
         if (services.isEmpty) ...[
           const SizedBox(height: 8),
           CircleAvatar(
@@ -316,31 +491,25 @@ class _ServicesTab extends StatelessWidget {
                 size: 36, color: cs.primary.withValues(alpha: 0.6)),
           ),
           const SizedBox(height: 14),
-          Text(
-            s.profileNoServices,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: cs.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text(s.profileNoServices,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: cs.onSurface),
+              textAlign: TextAlign.center),
           const SizedBox(height: 6),
-          Text(
-            s.profileNoServicesSub,
-            style: TextStyle(
-              fontSize: 12,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text(s.profileNoServicesSub,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+              textAlign: TextAlign.center),
           const SizedBox(height: 16),
         ] else ...[
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: services.length > 3 ? 3 : services.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final service = services[index];
               return Container(
@@ -354,37 +523,29 @@ class _ServicesTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      service.title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: cs.onSurface,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(service.title,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: cs.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
                     Row(children: [
                       Icon(Icons.location_on, color: cs.primary, size: 12),
                       const SizedBox(width: 3),
-                      Text(
-                        service.location,
-                        style: TextStyle(
-                            color: cs.onSurfaceVariant, fontSize: 11),
-                      ),
+                      Text(service.location,
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 11)),
                       const Spacer(),
                       Text(
                         service.availability
                             ? s.servicesAvailable
                             : s.servicesUnavailable,
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: service.availability
-                              ? cs.primary
-                              : cs.error,
-                          fontSize: 11,
-                        ),
+                            fontWeight: FontWeight.bold,
+                            color: service.availability ? cs.primary : cs.error,
+                            fontSize: 11),
                       ),
                     ]),
                   ],
@@ -396,21 +557,17 @@ class _ServicesTab extends StatelessWidget {
             const SizedBox(height: 10),
             TextButton(
               onPressed: onManageTap,
-              child: Text(
-                '+ ${services.length - 3} more services',
-                style: TextStyle(
-                    color: cs.primary, fontWeight: FontWeight.bold),
-              ),
+              child: Text('+ ${services.length - 3} more services',
+                  style: TextStyle(
+                      color: cs.primary, fontWeight: FontWeight.bold)),
             ),
           ],
           const SizedBox(height: 4),
         ],
 
-        // ── Divider ────────────────────────────────────────────────────
         Divider(color: cs.outlineVariant.withValues(alpha: 0.4)),
         const SizedBox(height: 4),
 
-        // ── My Job Posts row ───────────────────────────────────────────
         _ProfileActionRow(
           icon: Icons.work_outline,
           label: s.profileMyHiringPosts,
@@ -418,8 +575,6 @@ class _ServicesTab extends StatelessWidget {
           onTap: onMyHiringPostsTap,
         ),
         const SizedBox(height: 4),
-
-        // ── My Applications row ────────────────────────────────────────
         _ProfileActionRow(
           icon: Icons.send_outlined,
           label: s.profileMyApplications,
@@ -432,98 +587,48 @@ class _ServicesTab extends StatelessWidget {
   }
 }
 
-// ── About tab ─────────────────────────────────────────────────────────────────
+// ── About tab (no escrow) ─────────────────────────────────────────────────────
 
 class _AboutTab extends StatelessWidget {
-  const _AboutTab();
+  final String? bio;
+  const _AboutTab({this.bio});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = KoolanAppStateScope.of(context).s;
+
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(s.profileProfSummary,
           style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: cs.onSurface)),
+              fontWeight: FontWeight.bold, fontSize: 16, color: cs.onSurface)),
       const SizedBox(height: 8),
       Text(
-        'Highly skilled and dependable professional offering comprehensive '
-        'housekeeper, catering, and plumbing support. Over 4 years of '
-        'verified experience assisting private homes and business complexes in Jigjiga.',
-        style: TextStyle(
-            color: cs.onSurfaceVariant, fontSize: 13, height: 1.5),
-      ),
-      const SizedBox(height: 20),
-      Card(
-        color: cs.surfaceContainerHighest,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side:
-              BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
-        ),
-        elevation: 0,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Row(children: [
-                Icon(Icons.shield, color: cs.tertiary),
-                const SizedBox(width: 8),
-                Text(s.profileEscrowTitle,
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: cs.onSurface)),
-              ]),
-              Text(s.profileEscrowActive,
-                  style: TextStyle(
-                      color: cs.tertiary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12)),
-            ]),
-            const SizedBox(height: 12),
-            Divider(color: cs.outlineVariant.withValues(alpha: 0.5)),
-            const SizedBox(height: 12),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(s.profileEscrowWallet,
-                  style: TextStyle(
-                      color: cs.onSurfaceVariant, fontSize: 13)),
-              Text('15,400 ETB',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: cs.onSurface)),
-            ]),
-          ]),
-        ),
+        bio != null && bio!.isNotEmpty
+            ? bio!
+            : 'No bio added yet. Tap "Edit Profile" to add one.',
+        style:
+            TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.5),
       ),
       const SizedBox(height: 20),
       Text(s.profileSpecialties,
           style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: cs.onSurface)),
+              fontWeight: FontWeight.bold, fontSize: 16, color: cs.onSurface)),
       const SizedBox(height: 12),
       Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
-          'Residential Plumbing',
-          'Deep Cleaning',
-          'Emergency Repairs',
-          'Meal Preparation',
-          'Bilingual Support',
-        ].map((skill) {
+          'Jigjiga',
+          'Verified',
+        ].map((tag) {
           return Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: cs.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(24),
             ),
-            child: Text(skill,
+            child: Text(tag,
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: cs.primary,
@@ -535,30 +640,97 @@ class _AboutTab extends StatelessWidget {
   }
 }
 
-// ── Reviews tab ───────────────────────────────────────────────────────────────
+// ── Reviews tab (real data) ───────────────────────────────────────────────────
 
-class _ReviewsTab extends StatelessWidget {
-  const _ReviewsTab();
+class _ReviewsTab extends StatefulWidget {
+  final KoolanAppState state;
+  const _ReviewsTab({required this.state});
+
+  @override
+  State<_ReviewsTab> createState() => _ReviewsTabState();
+}
+
+class _ReviewsTabState extends State<_ReviewsTab> {
+  bool _loading = false;
+  List<ServiceReview> _reviews = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    setState(() => _loading = true);
+    final services = widget.state.getMyServices();
+    final all = <ServiceReview>[];
+    for (final svc in services) {
+      final r = await widget.state.loadReviewsForService(svc.id);
+      all.addAll(r);
+    }
+    // Also surface cached reviews
+    if (all.isEmpty) {
+      for (final svc in services) {
+        all.addAll(widget.state.getReviewsForService(svc.id));
+      }
+    }
+    // Sort newest first
+    all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (mounted) setState(() { _reviews = all; _loading = false; });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Column(children: [
-      _ReviewCard(
-        name: 'Ahmed Mohammed',
-        date: '2 days ago',
-        comment:
-            'Hodan was absolutely amazing! Fixed a complicated plumbing issue '
-            'in our house within an hour. Extremely professional and courteous.',
-      ),
-      SizedBox(height: 16),
-      _ReviewCard(
-        name: 'Hodan Ali',
-        date: '1 week ago',
-        comment:
-            'Great cleaning service, left the house sparkling. Will definitely '
-            'hire her again next month!',
-      ),
-    ]);
+    final cs = Theme.of(context).colorScheme;
+    final s = widget.state.s;
+
+    if (_loading) {
+      return const Center(
+          child: Padding(
+              padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
+    }
+
+    if (_reviews.isEmpty) {
+      return Column(children: [
+        const SizedBox(height: 24),
+        Icon(Icons.rate_review_outlined,
+            size: 48, color: cs.primary.withValues(alpha: 0.4)),
+        const SizedBox(height: 12),
+        Text(s.reviewsEmpty,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: cs.onSurfaceVariant),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 24),
+      ]);
+    }
+
+    return Column(
+      children: _reviews.map((review) {
+        final name = review.reviewerName ?? s.reviewsFallbackUserName;
+        final timeAgo = _formatTime(review.createdAt, s);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _ReviewCard(
+            name: name,
+            date: timeAgo,
+            comment: review.comment,
+            rating: review.rating.toDouble(),
+            avatarUrl: review.reviewerAvatarUrl,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _formatTime(DateTime dt, s) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays >= 365) return s.reviewsTimeAgoYears(diff.inDays ~/ 365);
+    if (diff.inDays >= 30) return s.reviewsTimeAgoMonths(diff.inDays ~/ 30);
+    if (diff.inDays >= 1) return s.reviewsTimeAgoDays(diff.inDays);
+    if (diff.inHours >= 1) return s.reviewsTimeAgoHours(diff.inHours);
+    return s.reviewsTimeAgoJustNow;
   }
 }
 
@@ -566,8 +738,16 @@ class _ReviewCard extends StatelessWidget {
   final String name;
   final String date;
   final String comment;
-  const _ReviewCard(
-      {required this.name, required this.date, required this.comment});
+  final double rating;
+  final String? avatarUrl;
+
+  const _ReviewCard({
+    required this.name,
+    required this.date,
+    required this.comment,
+    required this.rating,
+    this.avatarUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -576,8 +756,7 @@ class _ReviewCard extends StatelessWidget {
       color: cs.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side:
-            BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       elevation: 0,
       child: Padding(
@@ -589,11 +768,15 @@ class _ReviewCard extends StatelessWidget {
               Row(children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor:
-                      cs.primaryContainer.withValues(alpha: 0.35),
-                  child: Text(name[0],
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: cs.primary)),
+                  backgroundColor: cs.primaryContainer.withValues(alpha: 0.35),
+                  backgroundImage: avatarUrl != null
+                      ? NetworkImage(avatarUrl!)
+                      : null,
+                  child: avatarUrl == null
+                      ? Text(name[0].toUpperCase(),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: cs.primary))
+                      : null,
                 ),
                 const SizedBox(width: 10),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -611,7 +794,7 @@ class _ReviewCard extends StatelessWidget {
               Row(children: [
                 const Icon(Icons.star, color: Colors.amber, size: 16),
                 const SizedBox(width: 4),
-                Text('5.0',
+                Text(rating.toStringAsFixed(1),
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -629,16 +812,11 @@ class _ReviewCard extends StatelessWidget {
   }
 }
 
-// ── Profile action row ─────────────────────────────────────────────────────────
+// ── Profile action row ────────────────────────────────────────────────────────
 
-/// A labelled tap-able row used in the Profile Services tab for
-/// dual-role navigation (hiring posts and applications).
-/// Never icon-only — always shows a text label alongside the icon.
 class _ProfileActionRow extends StatelessWidget {
   final IconData icon;
   final String label;
-
-  /// Optional count badge shown after the label.
   final String? badge;
   final VoidCallback onTap;
 
@@ -670,14 +848,11 @@ class _ProfileActionRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: cs.onSurface,
-                ),
-              ),
+              child: Text(label,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: cs.onSurface)),
             ),
             if (badge != null) ...[
               Container(
@@ -687,22 +862,17 @@ class _ProfileActionRow extends StatelessWidget {
                   color: cs.primaryContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  badge!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: cs.primary,
-                  ),
-                ),
+                child: Text(badge!,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: cs.primary)),
               ),
               const SizedBox(width: 8),
             ],
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
+            Icon(Icons.arrow_forward_ios,
+                size: 14,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
           ],
         ),
       ),
@@ -710,7 +880,7 @@ class _ProfileActionRow extends StatelessWidget {
   }
 }
 
-// ── Listings tab ───────────────────────────────────────────────────────────────
+// ── Listings tab ──────────────────────────────────────────────────────────────
 
 class _ListingsTab extends StatelessWidget {
   final List<Listing> listings;
@@ -730,7 +900,6 @@ class _ListingsTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Action row
         Row(
           children: [
             Expanded(
@@ -759,7 +928,6 @@ class _ListingsTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-
         if (listings.isEmpty) ...[
           const SizedBox(height: 12),
           CircleAvatar(
@@ -769,27 +937,20 @@ class _ListingsTab extends StatelessWidget {
                 size: 36, color: cs.primary.withValues(alpha: 0.6)),
           ),
           const SizedBox(height: 14),
-          Text(
-            'No listings yet',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: cs.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text('No listings yet',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: cs.onSurface),
+              textAlign: TextAlign.center),
           const SizedBox(height: 6),
-          Text(
-            'Post a car, house, or land plot to start selling or renting.',
-            style: TextStyle(
-              fontSize: 12,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text('Post a car, house, or land to start selling or renting.',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+              textAlign: TextAlign.center),
           const SizedBox(height: 16),
         ] else ...[
-          // Show up to 3 listings as a preview; "Manage All" shows the rest.
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -828,25 +989,19 @@ class _ListingsTab extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            l.title,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: cs.onSurface,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          Text(l.title,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: cs.onSurface),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 3),
-                          Text(
-                            l.price,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: cs.primary,
-                            ),
-                          ),
+                          Text(l.price,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  color: cs.primary)),
                         ],
                       ),
                     ),
@@ -857,14 +1012,11 @@ class _ListingsTab extends StatelessWidget {
                         color: cs.primaryContainer.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        l.category,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: cs.primary,
-                        ),
-                      ),
+                      child: Text(l.category,
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: cs.primary)),
                     ),
                   ],
                 ),
@@ -875,10 +1027,9 @@ class _ListingsTab extends StatelessWidget {
             const SizedBox(height: 10),
             TextButton(
               onPressed: onManageTap,
-              child: Text(
-                '+ ${listings.length - 3} more listings',
-                style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
-              ),
+              child: Text('+ ${listings.length - 3} more listings',
+                  style: TextStyle(
+                      color: cs.primary, fontWeight: FontWeight.bold)),
             ),
           ],
         ],

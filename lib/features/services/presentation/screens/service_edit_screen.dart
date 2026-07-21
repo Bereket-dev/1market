@@ -97,7 +97,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     if (currentUser == null) return;
 
     setState(() => _isSaving = true);
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final service = Service(
       id: _serviceId,
       ownerId: currentUser.id,

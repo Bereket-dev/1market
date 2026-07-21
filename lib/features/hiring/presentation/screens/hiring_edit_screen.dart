@@ -78,7 +78,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     if (userId == null) return;
 
     setState(() => _isSaving = true);
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final post = HiringPost(
       id: _postId,
       posterId: userId,

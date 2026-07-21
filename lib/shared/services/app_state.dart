@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_config.dart';
 import '../../core/router/routes.dart';
+import 'cloudinary_upload_service.dart';
 import '../models/app_strings.dart';
 import '../models/application.dart';
 import '../models/chat.dart';
@@ -16,6 +19,7 @@ import '../models/service.dart';
 import '../models/service_review.dart';
 import '../models/syncable_entity.dart';
 import 'local_storage.dart' as app_local;
+import 'offline/hive_sync_store.dart' hide SyncStatus;
 import 'offline/sync_service.dart';
 import 'recommendation_engine.dart';
 import 'supabase_repository.dart';
@@ -35,6 +39,14 @@ enum OnboardingPhase {
 class KoolanAppState extends ChangeNotifier {
   KoolanAppState() {
     syncService = SyncService(this);
+    // When the SyncService discards a stale queue entry (LWW conflict), surface
+    // it through dataError so the SnackBar listener in _ShellScaffold picks it
+    // up. This replaces the old _DataErrorBanner overlay approach and avoids
+    // any popup/dialog for conflict feedback.
+    syncService.onDiscard = (entityType, entityId) {
+      dataError = 'Your recent $entityType edit was overwritten by a newer change.';
+      notifyListeners();
+    };
     final client = AppSupabaseConfig.clientOrNull();
     if (client != null) {
       try {
@@ -151,11 +163,14 @@ class KoolanAppState extends ChangeNotifier {
     required String bio,
     required String phone,
     required String city,
+    String? preferredCategory,
   }) async {
     final current = profile;
     if (current == null) return;
 
-    final now = DateTime.now();
+    // Capture as UTC so the LWW comparison in SyncService always compares
+    // apples-to-apples against the UTC timestamps returned by Supabase.
+    final now = DateTime.now().toUtc();
 
     // Optimistic local update — mark pending immediately.
     profile = current.copyWith(
@@ -163,6 +178,7 @@ class KoolanAppState extends ChangeNotifier {
       bio: bio,
       phone: phone,
       city: city,
+      preferredCategory: preferredCategory ?? current.preferredCategory,
       syncStatus: SyncStatus.pending,
       localUpdatedAt: now,
     );
@@ -176,6 +192,9 @@ class KoolanAppState extends ChangeNotifier {
       'city': city,
       'updated_at': now.toIso8601String(),
     };
+    if (preferredCategory != null) {
+      payload['preferred_category'] = preferredCategory;
+    }
 
     try {
       await syncService.enqueueProfileEdit(
@@ -194,6 +213,257 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Profile image uploads ─────────────────────────────────────────────────
+
+  /// Maximum profile/banner image size: 5 MB.
+  static const _photoMaxBytes = 5 * 1024 * 1024;
+
+  /// Lets the user pick an image from their gallery and uploads it as their
+  /// profile avatar. Updates [profile.avatarUrl] optimistically on success.
+  ///
+  /// Returns a user-facing error string if something goes wrong, or null on
+  /// success / cancellation (cancelled is not an error).
+  Future<String?> uploadAvatarImage() async {
+    return _pickAndUploadProfileImage(
+      imageType: CloudinaryImageType.avatar,
+      onSuccess: (url) async {
+        profile = profile?.copyWith(avatarUrl: url);
+        await _syncProfileField('avatar_url', url);
+      },
+    );
+  }
+
+  /// Lets the user pick an image from their gallery and uploads it as their
+  /// profile banner. Updates [profile.bannerUrl] optimistically on success.
+  ///
+  /// Returns a user-facing error string if something goes wrong, or null on
+  /// success / cancellation.
+  Future<String?> uploadBannerImage() async {
+    return _pickAndUploadProfileImage(
+      imageType: CloudinaryImageType.banner,
+      onSuccess: (url) async {
+        profile = profile?.copyWith(bannerUrl: url);
+        await _syncProfileField('banner_url', url);
+      },
+    );
+  }
+
+  /// Shared implementation for avatar and banner uploads via Cloudinary.
+  ///
+  /// Flow:
+  ///   1. Open the system image picker.
+  ///   2. Enforce a 5 MB size limit — return a clear human-readable error
+  ///      if exceeded.
+  ///   3. If a Supabase session exists: attempt immediate Cloudinary upload.
+  ///      On success call [onSuccess] with the secure_url and return null.
+  ///   4. If offline (SocketException) or network-class error: save the
+  ///      local file path to the Hive queue. The SyncService flush will
+  ///      retry when connectivity returns. Returns null (queuing is not an
+  ///      error).
+  ///   5. Any other error: return a user-facing message.
+  Future<String?> _pickAndUploadProfileImage({
+    required CloudinaryImageType imageType,
+    required Future<void> Function(String secureUrl) onSuccess,
+  }) async {
+    final current = profile;
+    if (current == null) return 'Not signed in';
+
+    // ── 1. Pick image ────────────────────────────────────────────────────────
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: false,
+        withReadStream: false,
+      );
+    } catch (e) {
+      debugPrint('[PhotoUpload] picker error: $e');
+      return e.toString();
+    }
+
+    if (result == null || result.files.isEmpty) return null; // user cancelled
+
+    final localPath = result.files.first.path;
+    if (localPath == null) return 'Could not read file path from picker';
+
+    // ── 2. Size check ────────────────────────────────────────────────────────
+    final file = File(localPath);
+    int fileSize;
+    try {
+      fileSize = await file.length();
+    } catch (e) {
+      fileSize = result.files.first.size;
+    }
+    if (fileSize > _photoMaxBytes) {
+      final mb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
+      return 'Photo is too large ($mb MB) — maximum allowed is 5 MB';
+    }
+
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id ?? current.id;
+
+    // ── 3. Attempt online upload via Cloudinary ──────────────────────────────
+    if (client.auth.currentSession != null) {
+      final uploadResult = await CloudinaryUploadService.instance.upload(
+        imageFile: file,
+        type: imageType,
+        userId: userId,
+      );
+
+      switch (uploadResult) {
+        case CloudinaryUploadSuccess(:final secureUrl):
+          await onSuccess(secureUrl);
+          notifyListeners();
+          return null; // success
+
+        case CloudinaryUploadFailure(:final message):
+          // Network errors start with "network:" — queue for retry.
+          if (message.startsWith('network:')) {
+            debugPrint('[PhotoUpload] network error, queueing: $message');
+            break; // fall through to offline queue
+          }
+          // All other Cloudinary errors (misconfiguration, API rejection, etc.)
+          // are reported directly — don't queue them.
+          debugPrint('[PhotoUpload] cloudinary error: $message');
+          return 'Upload failed: $message';
+      }
+    }
+
+    // ── 4. Offline queue ─────────────────────────────────────────────────────
+    await _queuePhotoUpload(
+      userId: userId,
+      imageType: imageType,
+      localPath: localPath,
+    );
+    // Queuing is not an error; SyncService will flush when back online.
+    return null;
+  }
+
+  /// Persists a pending photo upload to the Hive queue so it can be retried
+  /// on the next connectivity-restored sync pass.
+  ///
+  /// Payload keys: userId, imageType ('avatar'|'banner'), localPath.
+  Future<void> _queuePhotoUpload({
+    required String userId,
+    required CloudinaryImageType imageType,
+    required String localPath,
+  }) async {
+    final store = HiveSyncStore.instance;
+    await store.initialize();
+    final typeStr =
+        imageType == CloudinaryImageType.avatar ? 'avatar' : 'banner';
+    final key = '$userId:$typeStr';
+    final payload = jsonEncode({
+      'userId': userId,
+      'imageType': typeStr,
+      'localPath': localPath,
+    });
+    await store.savePendingPhotoUpload(key, payload);
+    debugPrint('[PhotoUpload] queued for later: $key');
+  }
+
+  /// Called by SyncService to flush any queued photo uploads when back online.
+  Future<void> flushPendingPhotoUploads() async {
+    final store = HiveSyncStore.instance;
+    await store.initialize();
+    final client = Supabase.instance.client;
+    if (client.auth.currentSession == null) return;
+
+    final keys = await store.getPendingPhotoUploadKeys();
+    for (final key in keys) {
+      final raw = store.readPendingPhotoUpload(key);
+      if (raw == null) continue;
+      try {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        final userId = data['userId'] as String;
+        final localPath = data['localPath'] as String;
+
+        // Support both old-format queued entries (bucket key) and new
+        // imageType-based entries written by the Cloudinary path.
+        final CloudinaryImageType imageType;
+        if (data.containsKey('imageType')) {
+          imageType = data['imageType'] == 'avatar'
+              ? CloudinaryImageType.avatar
+              : CloudinaryImageType.banner;
+        } else {
+          // Legacy queue entry that used 'bucket' — derive type from bucket name.
+          final bucket = data['bucket'] as String? ?? '';
+          imageType = bucket.contains('avatar')
+              ? CloudinaryImageType.avatar
+              : CloudinaryImageType.banner;
+        }
+
+        final file = File(localPath);
+        if (!await file.exists()) {
+          await store.deletePendingPhotoUpload(key);
+          continue;
+        }
+
+        final uploadResult = await CloudinaryUploadService.instance.upload(
+          imageFile: file,
+          type: imageType,
+          userId: userId,
+        );
+
+        switch (uploadResult) {
+          case CloudinaryUploadSuccess(:final secureUrl):
+            if (imageType == CloudinaryImageType.avatar) {
+              profile = profile?.copyWith(avatarUrl: secureUrl);
+              await _syncProfileField('avatar_url', secureUrl);
+            } else {
+              profile = profile?.copyWith(bannerUrl: secureUrl);
+              await _syncProfileField('banner_url', secureUrl);
+            }
+            notifyListeners();
+            await store.deletePendingPhotoUpload(key);
+            debugPrint('[PhotoUpload] flushed: $key → $secureUrl');
+
+          case CloudinaryUploadFailure(:final message):
+            debugPrint('[PhotoUpload] flush failed for $key: $message');
+            // Leave in queue for next pass.
+        }
+      } catch (e) {
+        debugPrint('[PhotoUpload] flush error for $key: $e');
+        // Leave in queue for next pass.
+      }
+    }
+  }
+
+  /// Immediately persists a single profile field to Supabase when online,
+  /// or falls back to the sync queue when there is no active session.
+  ///
+  /// This is used after a successful Cloudinary upload (we know we are online)
+  /// so the URL is written to the DB before the function returns, rather than
+  /// being queued and potentially discarded by the conflict-check logic.
+  Future<void> _syncProfileField(String column, String value) async {
+    final current = profile;
+    if (current == null) return;
+    final now = DateTime.now().toUtc();
+
+    final client = Supabase.instance.client;
+    if (client.auth.currentSession != null) {
+      // Online path — write directly so the URL is stored immediately.
+      try {
+        await _repo?.updateProfile({column: value});
+        debugPrint('[ProfileSync] $column updated in Supabase ✅');
+        return;
+      } catch (e) {
+        debugPrint('[ProfileSync] direct update failed ($column): $e — queueing');
+      }
+    }
+
+    // Offline / unauthenticated fallback — persist to queue for later sync.
+    try {
+      await syncService.enqueueProfileEdit(
+        userId: current.id,
+        payload: {column: value, 'updated_at': now.toIso8601String()},
+        localUpdatedAt: now,
+      );
+    } catch (e) {
+      debugPrint('[ProfileSync] field sync error ($column): $e');
+    }
+  }
+
   Future<void> setLocale(String newLocale) async {
     locale = newLocale;
     // 1. Persist to Hive immediately — available offline on next cold start.
@@ -206,7 +476,7 @@ class KoolanAppState extends ChangeNotifier {
     // 3. Enqueue through SyncService so it reaches Supabase with retry/backoff,
     //    exactly like submitProfileUpdate does for other profile fields.
     if (isSignedIn && profile != null) {
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       try {
         await syncService.enqueueProfileEdit(
           userId: profile!.id,
