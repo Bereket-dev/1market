@@ -169,18 +169,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 12),
 
                     // Tab buttons
-                    Row(
-                      children: ['Services', 'About', 'Reviews'].map((tab) {
-                        final isSel = _activeTab == tab;
-                        final label = switch (tab) {
-                          'Services' => state.s.profileTabServices,
-                          'About'    => state.s.profileTabAbout,
-                          _          => state.s.profileTabReviews,
-                        };
-                        return Expanded(
-                          child: Padding(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: ['Services', 'Listings', 'About', 'Reviews'].map((tab) {
+                          final isSel = _activeTab == tab;
+                          final label = switch (tab) {
+                            'Services' => state.s.profileTabServices,
+                            'Listings' => 'My Listings',
+                            'About'    => state.s.profileTabAbout,
+                            _          => state.s.profileTabReviews,
+                          };
+                          return Padding(
                             padding:
-                                const EdgeInsets.symmetric(horizontal: 4),
+                                const EdgeInsets.only(right: 8),
                             child: ElevatedButton(
                               onPressed: () =>
                                   setState(() => _activeTab = tab),
@@ -201,9 +203,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12)),
                             ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList(),
+                      ),
                     ),
                     const SizedBox(height: 20),
                     _buildTabContent(state, myListings),
@@ -223,12 +225,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return _ServicesTab(
           services: state.getMyServices(),
           onManageTap: () => state.pushScreen(ServiceManagementScreenRoute()),
+          onAddServiceTap: () => state.pushScreen(ServiceEditScreenRoute(null)),
           onMyHiringPostsTap: () =>
               state.pushScreen(HiringManagementScreenRoute()),
           onMyApplicationsTap: () =>
               state.pushScreen(MyApplicationsScreenRoute()),
           hiringPostCount: state.getMyHiringPosts().length,
           applicationCount: state.myApplications.length,
+        );
+      case 'Listings':
+        return _ListingsTab(
+          listings: myListings,
+          onManageTap: () => state.pushScreen(MyListingsScreenRoute()),
+          onPostTap: () => state.pushScreen(PostWizardScreenRoute()),
         );
       case 'About':
         return const _AboutTab();
@@ -243,6 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class _ServicesTab extends StatelessWidget {
   final List<Service> services;
   final VoidCallback onManageTap;
+  final VoidCallback onAddServiceTap;
   final VoidCallback onMyHiringPostsTap;
   final VoidCallback onMyApplicationsTap;
   final int hiringPostCount;
@@ -251,6 +261,7 @@ class _ServicesTab extends StatelessWidget {
   const _ServicesTab({
     required this.services,
     required this.onManageTap,
+    required this.onAddServiceTap,
     required this.onMyHiringPostsTap,
     required this.onMyApplicationsTap,
     required this.hiringPostCount,
@@ -261,120 +272,145 @@ class _ServicesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = KoolanAppStateScope.of(context).s;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── My Services manage button ──────────────────────────────────
+        // ── Action row: Manage All + Add Service ───────────────────────
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onManageTap,
+                icon: const Icon(Icons.list_alt_rounded, size: 16),
+                label: const Text('Manage All'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onAddServiceTap,
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: Text(s.servicesAddNew),
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // ── Service preview list ───────────────────────────────────────
         if (services.isEmpty) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           CircleAvatar(
-            radius: 40,
-            backgroundColor: cs.primaryContainer.withValues(alpha: 0.2),
-            child: Icon(Icons.work_outline, size: 36, color: cs.primary),
+            radius: 38,
+            backgroundColor: cs.surfaceContainerHighest,
+            child: Icon(Icons.work_outline,
+                size: 36, color: cs.primary.withValues(alpha: 0.6)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             s.profileNoServices,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 15,
               color: cs.onSurface,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             s.profileNoServicesSub,
             style: TextStyle(
-              color: cs.onSurfaceVariant.withValues(alpha: 0.65),
-              fontSize: 13,
+              fontSize: 12,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: onManageTap,
-            child: Text(s.servicesAddNew),
-          ),
-        ] else ...[
-          FilledButton(
-            onPressed: onManageTap,
-            child: Text(s.servicesTitle),
-          ),
           const SizedBox(height: 16),
+        ] else ...[
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: services.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemCount: services.length > 3 ? 3 : services.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final service = services[index];
-              return Card(
-                color: cs.surfaceContainerHighest,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(
+              return Container(
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
                       color: cs.outlineVariant.withValues(alpha: 0.3)),
                 ),
-                elevation: 0,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      service.title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: cs.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      Icon(Icons.location_on, color: cs.primary, size: 12),
+                      const SizedBox(width: 3),
                       Text(
-                        service.title,
+                        service.location,
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant, fontSize: 11),
+                      ),
+                      const Spacer(),
+                      Text(
+                        service.availability
+                            ? s.servicesAvailable
+                            : s.servicesUnavailable,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: cs.onSurface,
+                          color: service.availability
+                              ? cs.primary
+                              : cs.error,
+                          fontSize: 11,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        service.coverDescription,
-                        style: TextStyle(color: cs.onSurfaceVariant),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(children: [
-                        Icon(Icons.location_on,
-                            color: cs.primary, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          service.location,
-                          style: TextStyle(
-                              color: cs.onSurfaceVariant, fontSize: 11),
-                        ),
-                        const Spacer(),
-                        Text(
-                          service.availability
-                              ? s.servicesAvailable
-                              : s.servicesUnavailable,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: service.availability
-                                ? cs.primary
-                                : cs.error,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ]),
-                    ],
-                  ),
+                    ]),
+                  ],
                 ),
               );
             },
           ),
+          if (services.length > 3) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: onManageTap,
+              child: Text(
+                '+ ${services.length - 3} more services',
+                style: TextStyle(
+                    color: cs.primary, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
         ],
 
-        // ── Hiring section divider ─────────────────────────────────────
-        const SizedBox(height: 20),
+        // ── Divider ────────────────────────────────────────────────────
         Divider(color: cs.outlineVariant.withValues(alpha: 0.4)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
 
-        // ── My Hiring Posts row ────────────────────────────────────────
+        // ── My Job Posts row ───────────────────────────────────────────
         _ProfileActionRow(
           icon: Icons.work_outline,
           label: s.profileMyHiringPosts,
@@ -670,6 +706,183 @@ class _ProfileActionRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Listings tab ───────────────────────────────────────────────────────────────
+
+class _ListingsTab extends StatelessWidget {
+  final List<Listing> listings;
+  final VoidCallback onManageTap;
+  final VoidCallback onPostTap;
+
+  const _ListingsTab({
+    required this.listings,
+    required this.onManageTap,
+    required this.onPostTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Action row
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onManageTap,
+                icon: const Icon(Icons.list_alt_rounded, size: 16),
+                label: const Text('Manage All'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onPostTap,
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('New Post'),
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        if (listings.isEmpty) ...[
+          const SizedBox(height: 12),
+          CircleAvatar(
+            radius: 38,
+            backgroundColor: cs.surfaceContainerHighest,
+            child: Icon(Icons.storefront_outlined,
+                size: 36, color: cs.primary.withValues(alpha: 0.6)),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'No listings yet',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: cs.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Post a car, house, or land plot to start selling or renting.',
+            style: TextStyle(
+              fontSize: 12,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+        ] else ...[
+          // Show up to 3 listings as a preview; "Manage All" shows the rest.
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: listings.length > 3 ? 3 : listings.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (context, i) {
+              final l = listings[i];
+              return Container(
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: cs.outlineVariant.withValues(alpha: 0.3)),
+                ),
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: CachedImageWidget(
+                        imageUrl: l.imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorWidget: Container(
+                          width: 60,
+                          height: 60,
+                          color: cs.surfaceContainerHighest,
+                          child: Icon(Icons.image_not_supported_rounded,
+                              color: cs.outline, size: 22),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.title,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: cs.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            l.price,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        l.category,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          if (listings.length > 3) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: onManageTap,
+              child: Text(
+                '+ ${listings.length - 3} more listings',
+                style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ],
+      ],
     );
   }
 }

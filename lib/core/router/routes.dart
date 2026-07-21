@@ -80,3 +80,5 @@ class HiringDetailScreenRoute extends KoolanScreen {
 class MyApplicationsScreenRoute extends KoolanScreen {}
 
 class NotificationsScreenRoute extends KoolanScreen {}
+
+class MyListingsScreenRoute extends KoolanScreen {}

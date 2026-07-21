@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../cars/presentation/widgets/car_card.dart';
@@ -209,17 +210,18 @@ class _CategoryChips extends StatelessWidget {
         _        => Icons.inventory_2_outlined,
       };
 
-  static String _label(String cat) => switch (cat.toUpperCase()) {
-        'CARS'   => 'Cars',
-        'HOUSES' => 'Houses',
-        'LAND'   => 'Land',
-        'SKILLS' => 'Skills',
+  String _label(String cat, AppStrings s) => switch (cat.toUpperCase()) {
+        'CARS'   => s.savedCatCars,
+        'HOUSES' => s.savedCatHouses,
+        'LAND'   => s.savedCatLand,
+        'SKILLS' => s.savedCatSkills,
         _        => cat,
       };
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s  = KoolanAppStateScope.of(context).s;
 
     return SizedBox(
       height: 40,
@@ -229,7 +231,7 @@ class _CategoryChips extends StatelessWidget {
         children: [
           // "All" chip
           _Chip(
-            label: 'All',
+            label: s.savedCatAll,
             icon: Icons.apps_rounded,
             selected: active == null,
             cs: cs,
@@ -238,7 +240,7 @@ class _CategoryChips extends StatelessWidget {
           const SizedBox(width: 8),
           ...categories.expand((cat) => [
                 _Chip(
-                  label: _label(cat),
+                  label: _label(cat, s),
                   icon: _icon(cat),
                   selected: active == cat,
                   cs: cs,
@@ -776,7 +778,7 @@ class _EmptyState extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => state.pushScreen(HomeScreenRoute()),
                 icon: const Icon(Icons.search_rounded, size: 18),
-                label: const Text('Browse Listings'),
+                label: Text(state.s.savedBrowse),
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
@@ -796,6 +798,7 @@ class _FilterEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = KoolanAppStateScope.of(context).s;
     return Expanded(
       child: Center(
         child: Column(
@@ -805,7 +808,7 @@ class _FilterEmptyState extends StatelessWidget {
                 size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.3)),
             const SizedBox(height: 12),
             Text(
-              'No saved items in this category',
+              s.savedFilterEmpty,
               style: TextStyle(
                 fontSize: 14,
                 color: cs.onSurfaceVariant,

@@ -172,6 +172,22 @@ class AppStrings {
   );
   String get savedCompareButton => _t('Compare', 'ያወዳድሩ', 'Is-bar-bar dhig');
 
+  /// "Browse Listings" button in empty state.
+  String get savedBrowse => _t('Browse Listings', 'ዝርዝሮችን ያስሱ', 'Raadi xayaysiisyada');
+  /// Shown when category filter has no results.
+  String get savedFilterEmpty => _t(
+    'No saved items in this category',
+    'በዚህ ምድብ ምንም የተቀመጠ የለም',
+    'Kuma jiraan walxo la kaydiyey qaybtan',
+  );
+
+  // ── Saved Screen category chip labels ───────────────────────────────────────
+  String get savedCatAll    => _t('All',    'ሁሉም',    'Dhammaan');
+  String get savedCatCars   => _t('Cars',   'መኪናዎች',  'Gawaari');
+  String get savedCatHouses => _t('Houses', 'ቤቶች',    'Guryo');
+  String get savedCatLand   => _t('Land',   'መሬት',    'Dhul');
+  String get savedCatSkills => _t('Skills', 'ክህሎቶች',  'Xirfadaha');
+
   // ── Compare Overlay ─────────────────────────────────────────────────────────
   String get compareTitle =>
       _t('Side-by-side Compare', 'ጎን ለጎን ያወዳድሩ', 'Is-bar-bar dhigga');
@@ -182,6 +198,17 @@ class AppStrings {
   String get compareVerified => _t('Verified', 'የተረጋገጠ', 'Xaqiijiyey');
   String get compareYes => _t('Yes ✓', 'አዎ ✓', 'Haa ✓');
   String get compareNo => _t('No', 'አይደለም', 'Maya');
+
+  // ── Compare row labels ───────────────────────────────────────────────────────
+  String get compareRowPrice    => _t('Price',    'ዋጋ',      'Qiimaha');
+  String get compareRowLocation => _t('Location', 'ቦታ',      'Goobta');
+  String get compareRowStatus   => _t('Status',   'ሁኔታ',     'Xaalad');
+  String get compareRowSpec1    => _t('Spec 1',   'ዝርዝር 1', 'Sifo 1');
+  String get compareRowSpec2    => _t('Spec 2',   'ዝርዝር 2', 'Sifo 2');
+  String get compareRowSpec3    => _t('Spec 3',   'ዝርዝር 3', 'Sifo 3');
+  String get compareRowSeller   => _t('Seller',   'ሻጭ',      'Iibiyaha');
+  /// Fallback when a spec is absent.
+  String get compareNa => _t('N/A', 'ምንም', 'Ma jiro');
 
   // ── Post Wizard ─────────────────────────────────────────────────────────────
   String get wizardTitle =>
@@ -850,6 +877,9 @@ class AppStrings {
   String get catCarFuelType     => _t('Fuel Type',     'የነዳጅ አይነት',  'Nooca shidaalka');
   String get catCarTransmission => _t('Transmission',  'ማስተላለፊያ',    'Wareejinta');
   String get catCarYearRange    => _t('Year',          'ዓ.ም.',        'Sannadka');
+  // Year range sheet from/to labels
+  String get catYearFrom        => _t('From',          'ከ',           'Laga bilaabo');
+  String get catYearTo          => _t('To',            'እስከ',         'Ilaa');
   // Fuel-type options
   String get catFuelPetrol   => _t('Petrol',   'ቤንዚን',   'Petrol');
   String get catFuelDiesel   => _t('Diesel',   'ዲዘል',    'Diesel');

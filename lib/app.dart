@@ -31,6 +31,7 @@ import 'features/hiring/presentation/screens/hiring_edit_screen.dart';
 import 'features/hiring/presentation/screens/hiring_management_screen.dart';
 import 'features/hiring/presentation/screens/my_applications_screen.dart';
 import 'features/hiring/presentation/screens/notifications_screen.dart';
+import 'features/listings/presentation/screens/my_listings_screen.dart';
 import 'shared/services/app_state.dart';
 
 class KoolanApp extends StatefulWidget {
@@ -384,6 +385,8 @@ class _AppShell extends StatelessWidget {
       );
     } else if (screen is SettingsScreenRoute) {
       return const SettingsScreen(key: ValueKey('settings'));
+    } else if (screen is MyListingsScreenRoute) {
+      return const MyListingsScreen(key: ValueKey('my_listings'));
     }
     return const SizedBox.shrink();
   }

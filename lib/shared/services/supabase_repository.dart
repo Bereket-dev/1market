@@ -170,6 +170,16 @@ class SupabaseRepository {
     return Listing.fromJson(row, isOwnedByCurrentUser: true);
   }
 
+  Future<void> deleteListing(String listingId) async {
+    final userId = currentUserId;
+    if (userId == null) throw StateError('Not authenticated');
+    await _client
+        .from('listings')
+        .delete()
+        .eq('id', listingId)
+        .eq('owner_id', userId);
+  }
+
   Future<void> toggleFavorite(String listingId, bool currentlySaved) async {
     final userId = currentUserId;
     if (userId == null) throw StateError('Not authenticated');

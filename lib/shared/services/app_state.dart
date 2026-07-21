@@ -666,6 +666,19 @@ class KoolanAppState extends ChangeNotifier {
   List<Listing> getMyListings() =>
       allListings.where((l) => l.isOwnedByCurrentUser).toList();
 
+  /// Optimistically removes [listingId] from [allListings] and deletes it from
+  /// Supabase. No offline-queue path — requires connectivity.
+  Future<void> deleteListing(String listingId) async {
+    allListings.removeWhere((l) => l.id == listingId);
+    notifyListeners();
+    try {
+      await _repo?.deleteListing(listingId);
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+    }
+  }
+
   // ── Recommendation helpers ───────────────────────────────────────────────────
 
   /// Records that the user navigated to an item detail screen.

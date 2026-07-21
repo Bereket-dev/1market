@@ -789,24 +789,4 @@ class SyncService {
         return 'applications';
     }
   }
-
-  String _itemLabel(SyncQueueEntry entry) {
-    switch (entry.entityType) {
-      case SyncEntityType.listing:
-        return 'listing';
-      case SyncEntityType.profile:
-        return 'profile';
-      case SyncEntityType.service:
-      case SyncEntityType.serviceDelete:
-        return 'service';
-      case SyncEntityType.chatMessage:
-        return 'message';
-      case SyncEntityType.hiringPost:
-      case SyncEntityType.hiringPostDelete:
-        return 'job post';
-      case SyncEntityType.application:
-      case SyncEntityType.applicationStatusUpdate:
-        return 'application';
-    }
-  }
 }

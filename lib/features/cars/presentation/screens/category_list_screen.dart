@@ -981,7 +981,7 @@ class _YearRangeSheetState extends State<_YearRangeSheet> {
                   controller: _minCtrl,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'From',
+                    labelText: s.catYearFrom,
                     hintText: '2015',
                     border: const OutlineInputBorder(),
                     isDense: true,
@@ -997,7 +997,7 @@ class _YearRangeSheetState extends State<_YearRangeSheet> {
                   controller: _maxCtrl,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'To',
+                    labelText: s.catYearTo,
                     hintText: '2024',
                     border: const OutlineInputBorder(),
                     isDense: true,
