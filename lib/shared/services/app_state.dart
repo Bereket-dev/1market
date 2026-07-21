@@ -155,9 +155,7 @@ class KoolanAppState extends ChangeNotifier {
 
   // ── Profile ──────────────────────────────────────────────────────────────────
 
-  /// Enqueues a profile edit through the offline-first sync queue.
-  /// Updates local [profile] immediately with [SyncStatus.pending] so the UI
-  /// can show pending → synced → failed in real time.
+  /// Writes a profile update directly to Supabase and updates local state.
   Future<void> submitProfileUpdate({
     required String displayName,
     required String bio,
@@ -168,11 +166,7 @@ class KoolanAppState extends ChangeNotifier {
     final current = profile;
     if (current == null) return;
 
-    // Capture as UTC so the LWW comparison in SyncService always compares
-    // apples-to-apples against the UTC timestamps returned by Supabase.
-    final now = DateTime.now().toUtc();
-
-    // Optimistic local update — mark pending immediately.
+    // Optimistic local update immediately.
     profile = current.copyWith(
       displayName: displayName,
       bio: bio,
@@ -180,31 +174,22 @@ class KoolanAppState extends ChangeNotifier {
       city: city,
       preferredCategory: preferredCategory ?? current.preferredCategory,
       syncStatus: SyncStatus.pending,
-      localUpdatedAt: now,
+      localUpdatedAt: DateTime.now().toUtc(),
     );
     notifyListeners();
 
-    // Payload uses Supabase column names (snake_case) to match _pushEntry.
-    final payload = <String, dynamic>{
+    final fields = <String, dynamic>{
       'display_name': displayName,
       'bio': bio,
       'phone': phone,
       'city': city,
-      'updated_at': now.toIso8601String(),
     };
     if (preferredCategory != null) {
-      payload['preferred_category'] = preferredCategory;
+      fields['preferred_category'] = preferredCategory;
     }
 
     try {
-      await syncService.enqueueProfileEdit(
-        userId: current.id,
-        payload: payload,
-        localUpdatedAt: now,
-      );
-      // syncService.requestSync() is called inside enqueueProfileEdit.
-      // After sync completes the queue entry is deleted; update local profile
-      // to synced so the badge reflects the final state.
+      await _repo?.updateProfile(fields);
       profile = profile?.copyWith(syncStatus: SyncStatus.synced);
     } catch (e) {
       profile = profile?.copyWith(syncStatus: SyncStatus.failed);
@@ -429,67 +414,35 @@ class KoolanAppState extends ChangeNotifier {
     }
   }
 
-  /// Immediately persists a single profile field to Supabase when online,
-  /// or falls back to the sync queue when there is no active session.
-  ///
-  /// This is used after a successful Cloudinary upload (we know we are online)
-  /// so the URL is written to the DB before the function returns, rather than
-  /// being queued and potentially discarded by the conflict-check logic.
+  /// Immediately persists a single profile field to Supabase.
+  /// Used after a successful Cloudinary upload.
   Future<void> _syncProfileField(String column, String value) async {
-    final current = profile;
-    if (current == null) return;
-    final now = DateTime.now().toUtc();
-
-    final client = Supabase.instance.client;
-    if (client.auth.currentSession != null) {
-      // Online path — write directly so the URL is stored immediately.
-      try {
-        await _repo?.updateProfile({column: value});
-        debugPrint('[ProfileSync] $column updated in Supabase ✅');
-        return;
-      } catch (e) {
-        debugPrint('[ProfileSync] direct update failed ($column): $e — queueing');
-      }
-    }
-
-    // Offline / unauthenticated fallback — persist to queue for later sync.
+    if (profile == null) return;
     try {
-      await syncService.enqueueProfileEdit(
-        userId: current.id,
-        payload: {column: value, 'updated_at': now.toIso8601String()},
-        localUpdatedAt: now,
-      );
+      await _repo?.updateProfile({column: value});
+      debugPrint('[ProfileSync] $column updated in Supabase ✅');
     } catch (e) {
-      debugPrint('[ProfileSync] field sync error ($column): $e');
+      debugPrint('[ProfileSync] direct update failed ($column): $e');
+      dataError = e.toString();
+      notifyListeners();
     }
   }
 
   Future<void> setLocale(String newLocale) async {
     locale = newLocale;
-    // 1. Persist to Hive immediately — available offline on next cold start.
     await app_local.LocalStorage.saveLanguage(newLocale);
-    // 2. Update in-memory profile optimistically.
-    profile = profile?.copyWith(
-      language: newLocale,
-      syncStatus: SyncStatus.pending,
-    );
-    // 3. Enqueue through SyncService so it reaches Supabase with retry/backoff,
-    //    exactly like submitProfileUpdate does for other profile fields.
-    if (isSignedIn && profile != null) {
-      final now = DateTime.now().toUtc();
+    profile = profile?.copyWith(language: newLocale, syncStatus: SyncStatus.pending);
+    notifyListeners();
+    if (isSignedIn && _repo != null) {
       try {
-        await syncService.enqueueProfileEdit(
-          userId: profile!.id,
-          payload: {'language': newLocale, 'updated_at': now.toIso8601String()},
-          localUpdatedAt: now,
-        );
+        await _repo!.updateLanguage(newLocale);
         profile = profile?.copyWith(syncStatus: SyncStatus.synced);
       } catch (e) {
         profile = profile?.copyWith(syncStatus: SyncStatus.failed);
         dataError = e.toString();
       }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   /// Cycles EN → Amharic → Somali (used by the home language pill).
@@ -1017,14 +970,11 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   Future<void> submitServiceEdit(Service service) async {
-    final current = currentUser;
-    if (current == null) return;
+    if (currentUser == null) return;
 
     final now = DateTime.now();
-    final updated = service.copyWith(
-      syncStatus: SyncStatus.pending,
-      localUpdatedAt: now,
-    );
+    final isNew = service.id.startsWith('local_');
+    final updated = service.copyWith(syncStatus: SyncStatus.pending, localUpdatedAt: now);
 
     final existingIndex = allServices.indexWhere((s) => s.id == updated.id);
     if (existingIndex == -1) {
@@ -1034,7 +984,7 @@ class KoolanAppState extends ChangeNotifier {
     }
     notifyListeners();
 
-    final payload = {
+    final fields = {
       'owner_id': updated.ownerId,
       'title': updated.title,
       'category': updated.category,
@@ -1046,24 +996,28 @@ class KoolanAppState extends ChangeNotifier {
       'location': updated.location,
       'availability': updated.availability,
       'created_at': updated.createdAt.toIso8601String(),
-      'updated_at': now.toIso8601String(),
     };
 
     try {
-      await syncService.enqueueServiceEdit(
-        serviceId: updated.id,
-        payload: payload,
-        localUpdatedAt: now,
-      );
-      // Item stays 'pending' in-memory until the sync pass completes and
-      // either replaceServiceId (new) or a regular push (edit) marks it synced.
-    } catch (e) {
-      allServices = allServices.map((s) {
-        if (s.id == updated.id) {
-          return s.copyWith(syncStatus: SyncStatus.failed);
+      if (isNew) {
+        final realId = await _repo!.insertService(fields);
+        // Replace the temporary local id with the real Supabase id.
+        final idx = allServices.indexWhere((s) => s.id == updated.id);
+        if (idx != -1) {
+          allServices[idx] = allServices[idx].copyWith(id: realId, syncStatus: SyncStatus.synced);
         }
-        return s;
-      }).toList();
+      } else {
+        await _repo!.updateService(updated.id, fields);
+        final idx = allServices.indexWhere((s) => s.id == updated.id);
+        if (idx != -1) {
+          allServices[idx] = allServices[idx].copyWith(syncStatus: SyncStatus.synced);
+        }
+      }
+    } catch (e) {
+      final idx = allServices.indexWhere((s) => s.id == updated.id);
+      if (idx != -1) {
+        allServices[idx] = allServices[idx].copyWith(syncStatus: SyncStatus.failed);
+      }
       dataError = e.toString();
     }
     notifyListeners();
@@ -1121,12 +1075,10 @@ class KoolanAppState extends ChangeNotifier {
   Future<void> deleteService(String id) async {
     final index = allServices.indexWhere((s) => s.id == id);
     if (index == -1) return;
-    // Remove from local list immediately (optimistic delete).
     allServices.removeAt(index);
     notifyListeners();
-    // Queue a delete operation via sync service.
     try {
-      await syncService.enqueueServiceDelete(serviceId: id);
+      await _repo?.deleteService(id);
     } catch (e) {
       dataError = e.toString();
       notifyListeners();
@@ -1136,8 +1088,7 @@ class KoolanAppState extends ChangeNotifier {
   Future<void> toggleServiceAvailability(String id, bool available) async {
     final index = allServices.indexWhere((s) => s.id == id);
     if (index == -1) return;
-    final service = allServices[index];
-    final updated = service.copyWith(
+    final updated = allServices[index].copyWith(
       availability: available,
       syncStatus: SyncStatus.pending,
       localUpdatedAt: DateTime.now(),
@@ -1145,24 +1096,7 @@ class KoolanAppState extends ChangeNotifier {
     allServices[index] = updated;
     notifyListeners();
     try {
-      await syncService.enqueueServiceEdit(
-        serviceId: updated.id,
-        payload: {
-          'owner_id': updated.ownerId,
-          'title': updated.title,
-          'category': updated.category,
-          'description': updated.description,
-          'cover_description': updated.coverDescription,
-          'cv_file_url': updated.cvFileUrl,
-          'years_of_experience': updated.yearsOfExperience,
-          'price_range': updated.priceRange,
-          'location': updated.location,
-          'availability': updated.availability,
-          'created_at': updated.createdAt.toIso8601String(),
-          'updated_at': updated.localUpdatedAt.toIso8601String(),
-        },
-        localUpdatedAt: updated.localUpdatedAt,
-      );
+      await _repo!.updateService(updated.id, {'availability': available});
       allServices[index] = updated.copyWith(syncStatus: SyncStatus.synced);
     } catch (e) {
       allServices[index] = updated.copyWith(syncStatus: SyncStatus.failed);
@@ -1202,14 +1136,11 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   Future<void> submitHiringPostEdit(HiringPost post) async {
-    final current = currentUser;
-    if (current == null) return;
+    if (currentUser == null) return;
 
     final now = DateTime.now();
-    final updated = post.copyWith(
-      syncStatus: SyncStatus.pending,
-      localUpdatedAt: now,
-    );
+    final isNew = post.id.startsWith('local_');
+    final updated = post.copyWith(syncStatus: SyncStatus.pending, localUpdatedAt: now);
 
     final existingIndex = allHiringPosts.indexWhere((p) => p.id == updated.id);
     if (existingIndex == -1) {
@@ -1219,7 +1150,7 @@ class KoolanAppState extends ChangeNotifier {
     }
     notifyListeners();
 
-    final payload = {
+    final fields = {
       'poster_id': updated.posterId,
       'title': updated.title,
       'description': updated.description,
@@ -1228,20 +1159,26 @@ class KoolanAppState extends ChangeNotifier {
       'price_range': updated.priceRange,
       'status': updated.status,
       'created_at': updated.createdAt.toIso8601String(),
-      'updated_at': now.toIso8601String(),
     };
 
     try {
-      await syncService.enqueueHiringPostEdit(
-        postId: updated.id,
-        payload: payload,
-        localUpdatedAt: now,
-      );
-      // Item stays 'pending' until the sync pass completes.
+      if (isNew) {
+        final realId = await _repo!.insertHiringPost(fields);
+        final idx = allHiringPosts.indexWhere((p) => p.id == updated.id);
+        if (idx != -1) {
+          allHiringPosts[idx] = allHiringPosts[idx].copyWith(id: realId, syncStatus: SyncStatus.synced);
+        }
+      } else {
+        await _repo!.updateHiringPost(updated.id, fields);
+        final idx = allHiringPosts.indexWhere((p) => p.id == updated.id);
+        if (idx != -1) {
+          allHiringPosts[idx] = allHiringPosts[idx].copyWith(syncStatus: SyncStatus.synced);
+        }
+      }
     } catch (e) {
       final idx = allHiringPosts.indexWhere((p) => p.id == updated.id);
       if (idx != -1) {
-        allHiringPosts[idx] = updated.copyWith(syncStatus: SyncStatus.failed);
+        allHiringPosts[idx] = allHiringPosts[idx].copyWith(syncStatus: SyncStatus.failed);
       }
       dataError = e.toString();
     }
@@ -1252,7 +1189,7 @@ class KoolanAppState extends ChangeNotifier {
     allHiringPosts.removeWhere((p) => p.id == id);
     notifyListeners();
     try {
-      await syncService.enqueueHiringPostDelete(postId: id);
+      await _repo?.deleteHiringPost(id);
     } catch (e) {
       dataError = e.toString();
       notifyListeners();
@@ -1262,8 +1199,7 @@ class KoolanAppState extends ChangeNotifier {
   Future<void> toggleHiringPostStatus(String id, String newStatus) async {
     final index = allHiringPosts.indexWhere((p) => p.id == id);
     if (index == -1) return;
-    final post = allHiringPosts[index];
-    final updated = post.copyWith(
+    final updated = allHiringPosts[index].copyWith(
       status: newStatus,
       syncStatus: SyncStatus.pending,
       localUpdatedAt: DateTime.now(),
@@ -1271,21 +1207,7 @@ class KoolanAppState extends ChangeNotifier {
     allHiringPosts[index] = updated;
     notifyListeners();
     try {
-      await syncService.enqueueHiringPostEdit(
-        postId: updated.id,
-        payload: {
-          'poster_id': updated.posterId,
-          'title': updated.title,
-          'description': updated.description,
-          'category': updated.category,
-          'location': updated.location,
-          'price_range': updated.priceRange,
-          'status': updated.status,
-          'created_at': updated.createdAt.toIso8601String(),
-          'updated_at': updated.localUpdatedAt.toIso8601String(),
-        },
-        localUpdatedAt: updated.localUpdatedAt,
-      );
+      await _repo!.updateHiringPost(updated.id, {'status': newStatus});
       allHiringPosts[index] = updated.copyWith(syncStatus: SyncStatus.synced);
     } catch (e) {
       allHiringPosts[index] = updated.copyWith(syncStatus: SyncStatus.failed);
@@ -1327,7 +1249,7 @@ class KoolanAppState extends ChangeNotifier {
     return result;
   }
 
-  /// Submits an application (applicant action). Goes through SyncService queue.
+  /// Submits an application (applicant action). Writes directly to Supabase.
   Future<void> submitApplication({
     required String hiringPostId,
     required String serviceId,
@@ -1336,10 +1258,10 @@ class KoolanAppState extends ChangeNotifier {
     if (userId == null) return;
 
     final now = DateTime.now();
-    final applicationId = 'local_${now.millisecondsSinceEpoch}';
+    final tempId = 'local_${now.millisecondsSinceEpoch}';
 
     final application = Application(
-      id: applicationId,
+      id: tempId,
       hiringPostId: hiringPostId,
       applicantId: userId,
       serviceId: serviceId,
@@ -1352,43 +1274,30 @@ class KoolanAppState extends ChangeNotifier {
     myApplications.add(application);
     notifyListeners();
 
-    final payload = {
-      'hiring_post_id': hiringPostId,
-      'applicant_id': userId,
-      'service_id': serviceId,
-      'status': 'submitted',
-      'submitted_at': now.toIso8601String(),
-      'updated_at': now.toIso8601String(),
-    };
-
     try {
-      await syncService.enqueueApplication(
-        applicationId: applicationId,
-        payload: payload,
-        localUpdatedAt: now,
-      );
-      // After sync we'd get the real Supabase ID, but the local ID is fine
-      // for offline use. The sync pass will insert with a new UUID on reconnect.
-      final idx = myApplications.indexWhere((a) => a.id == applicationId);
+      final realId = await _repo!.insertApplication({
+        'hiring_post_id': hiringPostId,
+        'applicant_id': userId,
+        'service_id': serviceId,
+        'status': 'submitted',
+        'submitted_at': now.toIso8601String(),
+      });
+      final idx = myApplications.indexWhere((a) => a.id == tempId);
       if (idx != -1) {
-        myApplications[idx] =
-            application.copyWith(syncStatus: SyncStatus.synced);
+        myApplications[idx] = application.copyWith(id: realId, syncStatus: SyncStatus.synced);
       }
-
-      // Fire notification to the hiring post owner (online only — best-effort).
-      unawaited(_notifyNewApplication(hiringPostId: hiringPostId, application: application));
+      unawaited(_notifyNewApplication(hiringPostId: hiringPostId, application: myApplications[idx < 0 ? myApplications.length - 1 : idx]));
     } catch (e) {
-      final idx = myApplications.indexWhere((a) => a.id == applicationId);
+      final idx = myApplications.indexWhere((a) => a.id == tempId);
       if (idx != -1) {
-        myApplications[idx] =
-            application.copyWith(syncStatus: SyncStatus.failed);
+        myApplications[idx] = application.copyWith(syncStatus: SyncStatus.failed);
       }
       dataError = e.toString();
     }
     notifyListeners();
   }
 
-  /// Updates application status (poster action). Goes through SyncService.
+  /// Updates application status (poster action). Writes directly to Supabase.
   Future<void> updateApplicationStatus({
     required String applicationId,
     required String hiringPostId,
@@ -1396,7 +1305,6 @@ class KoolanAppState extends ChangeNotifier {
   }) async {
     final now = DateTime.now();
 
-    // Update in applicants cache.
     final postApps = _applicantsCache[hiringPostId];
     if (postApps != null) {
       final idx = postApps.indexWhere((a) => a.id == applicationId);
@@ -1411,35 +1319,33 @@ class KoolanAppState extends ChangeNotifier {
     }
 
     try {
-      await syncService.enqueueApplicationStatusUpdate(
+      await _repo!.updateApplicationStatus(
         applicationId: applicationId,
         newStatus: newStatus.name,
-        localUpdatedAt: now,
       );
-      // After success, update cache to synced.
       final postApps2 = _applicantsCache[hiringPostId];
       if (postApps2 != null) {
         final idx = postApps2.indexWhere((a) => a.id == applicationId);
         if (idx != -1) {
-          postApps2[idx] =
-              postApps2[idx].copyWith(syncStatus: SyncStatus.synced);
+          postApps2[idx] = postApps2[idx].copyWith(syncStatus: SyncStatus.synced);
         }
       }
-      // Notify the applicant.
-      unawaited(
-        _notifyStatusChanged(
-          applicationId: applicationId,
-          hiringPostId: hiringPostId,
-          newStatus: newStatus,
-        ),
+      onApplicationStatusSynced(
+        applicationId: applicationId,
+        newStatus: newStatus,
+        statusUpdatedAt: now,
       );
+      unawaited(_notifyStatusChanged(
+        applicationId: applicationId,
+        hiringPostId: hiringPostId,
+        newStatus: newStatus,
+      ));
     } catch (e) {
       final postApps2 = _applicantsCache[hiringPostId];
       if (postApps2 != null) {
         final idx = postApps2.indexWhere((a) => a.id == applicationId);
         if (idx != -1) {
-          postApps2[idx] =
-              postApps2[idx].copyWith(syncStatus: SyncStatus.failed);
+          postApps2[idx] = postApps2[idx].copyWith(syncStatus: SyncStatus.failed);
         }
       }
       dataError = e.toString();
