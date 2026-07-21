@@ -447,12 +447,14 @@ class _ServicesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final cs    = Theme.of(context).colorScheme;
+    final state = KoolanAppStateScope.of(context);
+    final s     = state.s;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // ── Action buttons ────────────────────────────────────────────────
         Row(
           children: [
             Expanded(
@@ -482,6 +484,7 @@ class _ServicesTab extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
+        // ── Service cards ─────────────────────────────────────────────────
         if (services.isEmpty) ...[
           const SizedBox(height: 8),
           CircleAvatar(
@@ -509,47 +512,13 @@ class _ServicesTab extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: services.length > 3 ? 3 : services.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final service = services[index];
-              return Container(
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: cs.outlineVariant.withValues(alpha: 0.3)),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(service.title,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: cs.onSurface),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 4),
-                    Row(children: [
-                      Icon(Icons.location_on, color: cs.primary, size: 12),
-                      const SizedBox(width: 3),
-                      Text(service.location,
-                          style: TextStyle(
-                              color: cs.onSurfaceVariant, fontSize: 11)),
-                      const Spacer(),
-                      Text(
-                        service.availability
-                            ? s.servicesAvailable
-                            : s.servicesUnavailable,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: service.availability ? cs.primary : cs.error,
-                            fontSize: 11),
-                      ),
-                    ]),
-                  ],
-                ),
+              return _ProfileServiceCard(
+                service: service,
+                onTap: () => state.pushScreen(
+                    ServiceDetailScreenRoute(service.id)),
               );
             },
           ),
@@ -557,9 +526,11 @@ class _ServicesTab extends StatelessWidget {
             const SizedBox(height: 10),
             TextButton(
               onPressed: onManageTap,
-              child: Text('+ ${services.length - 3} more services',
-                  style: TextStyle(
-                      color: cs.primary, fontWeight: FontWeight.bold)),
+              child: Text(
+                '+ ${services.length - 3} more services',
+                style: TextStyle(
+                    color: cs.primary, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
           const SizedBox(height: 4),
@@ -585,6 +556,168 @@ class _ServicesTab extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Rich service preview card used in the profile Services tab.
+/// Taps into ServiceDetailScreen.
+class _ProfileServiceCard extends StatelessWidget {
+  final Service service;
+  final VoidCallback onTap;
+  const _ProfileServiceCard({required this.service, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs      = Theme.of(context).colorScheme;
+    final isAvail = service.availability;
+    final s       = KoolanAppStateScope.of(context).s;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isAvail
+                ? cs.primary.withValues(alpha: 0.3)
+                : cs.outlineVariant.withValues(alpha: 0.3),
+            width: isAvail ? 1.5 : 1,
+          ),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Cover image / placeholder ──────────────────────────────
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: service.imageUrl.isNotEmpty
+                  ? CachedImageWidget(
+                      imageUrl: service.imageUrl,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      errorWidget: _ServicePlaceholder(cs: cs),
+                    )
+                  : _ServicePlaceholder(cs: cs),
+            ),
+            const SizedBox(width: 12),
+
+            // ── Info ───────────────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Category chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      service.category,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: cs.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  // Title
+                  Text(
+                    service.title,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  // Price
+                  if (service.priceRange.isNotEmpty)
+                    Text(
+                      service.priceRange,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: cs.primary),
+                    ),
+                  const SizedBox(height: 3),
+                  // Location
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_rounded,
+                          size: 11, color: cs.onSurfaceVariant),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          service.location,
+                          style: TextStyle(
+                              fontSize: 11, color: cs.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Availability dot + arrow ───────────────────────────────
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isAvail ? cs.primary : cs.error,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isAvail ? s.servicesAvailable : s.servicesUnavailable,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isAvail ? cs.primary : cs.error),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ServicePlaceholder extends StatelessWidget {
+  final ColorScheme cs;
+  const _ServicePlaceholder({required this.cs});
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 72,
+        height: 72,
+        color: cs.primaryContainer.withValues(alpha: 0.3),
+        child: Icon(Icons.work_outline_rounded,
+            color: cs.primary.withValues(alpha: 0.6), size: 28),
+      );
 }
 
 // ── About tab (no escrow) ─────────────────────────────────────────────────────
@@ -895,11 +1028,13 @@ class _ListingsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs    = Theme.of(context).colorScheme;
+    final state = KoolanAppStateScope.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // ── Action buttons ────────────────────────────────────────────────
         Row(
           children: [
             Expanded(
@@ -928,6 +1063,8 @@ class _ListingsTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
+
+        // ── Listing cards ─────────────────────────────────────────────────
         if (listings.isEmpty) ...[
           const SizedBox(height: 12),
           CircleAvatar(
@@ -937,89 +1074,34 @@ class _ListingsTab extends StatelessWidget {
                 size: 36, color: cs.primary.withValues(alpha: 0.6)),
           ),
           const SizedBox(height: 14),
-          Text('No listings yet',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: cs.onSurface),
-              textAlign: TextAlign.center),
+          Text(
+            'No listings yet',
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: cs.onSurface),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 6),
-          Text('Post a car, house, or land to start selling or renting.',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
-              textAlign: TextAlign.center),
+          Text(
+            'Post a car, house, or land to start selling or renting.',
+            style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 16),
         ] else ...[
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: listings.length > 3 ? 3 : listings.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, i) {
               final l = listings[i];
-              return Container(
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: cs.outlineVariant.withValues(alpha: 0.3)),
-                ),
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: CachedImageWidget(
-                        imageUrl: l.imageUrl,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                        errorWidget: Container(
-                          width: 60,
-                          height: 60,
-                          color: cs.surfaceContainerHighest,
-                          child: Icon(Icons.image_not_supported_rounded,
-                              color: cs.outline, size: 22),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l.title,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: cs.onSurface),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 3),
-                          Text(l.price,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                  color: cs.primary)),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(l.category,
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: cs.primary)),
-                    ),
-                  ],
-                ),
+              return _ProfileListingCard(
+                listing: l,
+                onTap: () => state.pushScreen(ListingDetailScreenRoute(l.id)),
               );
             },
           ),
@@ -1027,13 +1109,169 @@ class _ListingsTab extends StatelessWidget {
             const SizedBox(height: 10),
             TextButton(
               onPressed: onManageTap,
-              child: Text('+ ${listings.length - 3} more listings',
-                  style: TextStyle(
-                      color: cs.primary, fontWeight: FontWeight.bold)),
+              child: Text(
+                '+ ${listings.length - 3} more listings',
+                style: TextStyle(
+                    color: cs.primary, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
+          const SizedBox(height: 8),
         ],
       ],
+    );
+  }
+}
+
+/// Rich listing preview card used in the profile Listings tab.
+/// Taps into ListingDetailScreen.
+class _ProfileListingCard extends StatelessWidget {
+  final Listing listing;
+  final VoidCallback onTap;
+  const _ProfileListingCard({required this.listing, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    // First non-empty image from imageUrls or fallback imageUrl
+    final thumb = listing.imageUrls.isNotEmpty
+        ? listing.imageUrls.first
+        : listing.imageUrl;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: cs.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Thumbnail ──────────────────────────────────────────────
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: CachedImageWidget(
+                imageUrl: thumb,
+                width: 72,
+                height: 72,
+                fit: BoxFit.cover,
+                errorWidget: Container(
+                  width: 72,
+                  height: 72,
+                  color: cs.surfaceContainerHighest,
+                  child: Icon(Icons.image_not_supported_rounded,
+                      color: cs.outline, size: 24),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // ── Info ───────────────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Category + condition chips
+                  Row(
+                    children: [
+                      _MiniChip(
+                          label: listing.category, cs: cs, primary: true),
+                      const SizedBox(width: 6),
+                      _MiniChip(
+                          label: listing.conditionOrStatus,
+                          cs: cs,
+                          primary: false),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  // Title
+                  Text(
+                    listing.title,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  // Price
+                  Text(
+                    listing.price,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: cs.primary),
+                  ),
+                  const SizedBox(height: 3),
+                  // Location
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_rounded,
+                          size: 11, color: cs.onSurfaceVariant),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          listing.location.split(',').first,
+                          style: TextStyle(
+                              fontSize: 11, color: cs.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Arrow ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Icon(Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniChip extends StatelessWidget {
+  final String label;
+  final ColorScheme cs;
+  final bool primary;
+  const _MiniChip(
+      {required this.label, required this.cs, required this.primary});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: primary
+            ? cs.primaryContainer.withValues(alpha: 0.45)
+            : cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: primary
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: primary ? cs.primary : cs.onSurfaceVariant),
+      ),
     );
   }
 }

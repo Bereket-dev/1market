@@ -28,6 +28,11 @@ class Listing with SyncableEntity {
   final String? spec4Label;
   final String? spec4Value;
   final String? sellerId;
+
+  /// Additional listing images (uploaded to Cloudinary).
+  /// The first URL is used as the primary thumbnail when [imageUrl] is empty.
+  final List<String> imageUrls;
+
   @override
   final DateTime localUpdatedAt;
   @override
@@ -77,6 +82,7 @@ class Listing with SyncableEntity {
     this.spec4Label,
     this.spec4Value,
     this.sellerId,
+    this.imageUrls = const [],
     DateTime? localUpdatedAt,
     this.remoteUpdatedAt,
     this.syncStatus = SyncStatus.synced,
@@ -153,6 +159,10 @@ class Listing with SyncableEntity {
       originalLanguage: json['original_language'] as String? ?? 'en',
       titleTranslations: _parseTranslations(json['title_translations']),
       descriptionTranslations: _parseTranslations(json['description_translations']),
+      imageUrls: (json['image_urls'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
     );
   }
 
@@ -185,6 +195,7 @@ class Listing with SyncableEntity {
     'original_language': originalLanguage,
     'title_translations': titleTranslations,
     'description_translations': descriptionTranslations,
+    'image_urls': imageUrls,
   };
 
   Listing copyWith({
@@ -218,6 +229,7 @@ class Listing with SyncableEntity {
     String? originalLanguage,
     Map<String, String>? titleTranslations,
     Map<String, String>? descriptionTranslations,
+    List<String>? imageUrls,
   }) {
     return Listing(
       id: id ?? this.id,
@@ -250,6 +262,7 @@ class Listing with SyncableEntity {
       originalLanguage: originalLanguage ?? this.originalLanguage,
       titleTranslations: titleTranslations ?? this.titleTranslations,
       descriptionTranslations: descriptionTranslations ?? this.descriptionTranslations,
+      imageUrls: imageUrls ?? this.imageUrls,
     );
   }
 }

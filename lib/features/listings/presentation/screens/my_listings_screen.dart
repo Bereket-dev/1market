@@ -284,22 +284,32 @@ class _MyListingTile extends StatelessWidget {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Edit listing
+                  _ActionButton(
+                    icon: Icons.edit_rounded,
+                    label: 'Edit',
+                    color: cs.secondaryContainer.withValues(alpha: 0.5),
+                    iconColor: cs.secondary,
+                    onTap: () =>
+                        state.pushScreen(EditListingScreenRoute(listing.id)),
+                  ),
+                  const SizedBox(height: 6),
                   // View detail
                   _ActionButton(
                     icon: Icons.open_in_new_rounded,
+                    label: 'View',
                     color: cs.primary.withValues(alpha: 0.12),
                     iconColor: cs.primary,
-                    tooltip: 'View listing',
                     onTap: () =>
                         state.pushScreen(ListingDetailScreenRoute(listing.id)),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   // Delete
                   _ActionButton(
                     icon: Icons.delete_outline_rounded,
+                    label: 'Delete',
                     color: cs.error.withValues(alpha: 0.1),
                     iconColor: cs.error,
-                    tooltip: 'Delete listing',
                     onTap: () => _confirmDelete(context),
                   ),
                 ],
@@ -314,28 +324,42 @@ class _MyListingTile extends StatelessWidget {
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
+  final String label;
   final Color color;
   final Color iconColor;
-  final String tooltip;
   final VoidCallback onTap;
   const _ActionButton({
     required this.icon,
+    required this.label,
     required this.color,
     required this.iconColor,
-    required this.tooltip,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: Icon(icon, size: 18, color: iconColor),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: iconColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

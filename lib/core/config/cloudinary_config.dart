@@ -14,9 +14,13 @@ class CloudinaryConfig {
   static String get apiKey    => dotenv.env['CLOUD_API_KEY'] ?? '';
   static String get apiSecret => dotenv.env['CLOUD_API_SECRET'] ?? '';
 
-  /// Base URL for the Cloudinary upload API (signed uploads).
+  /// Base URL for the Cloudinary upload API (signed uploads, images).
   static String get uploadUrl =>
       'https://api.cloudinary.com/v1_1/$cloudName/image/upload';
+
+  /// Base URL for raw/PDF file uploads (resource_type = raw).
+  static String get rawUploadUrl =>
+      'https://api.cloudinary.com/v1_1/$cloudName/raw/upload';
 
   static bool get isConfigured =>
       cloudName.isNotEmpty && apiKey.isNotEmpty && apiSecret.isNotEmpty;

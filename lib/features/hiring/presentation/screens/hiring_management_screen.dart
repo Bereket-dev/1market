@@ -239,8 +239,111 @@ class _HiringPostCard extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              // ── Edit + Delete action row ───────────────────────────────
+              Row(
+                children: [
+                  _HiringCardAction(
+                    icon: Icons.edit_rounded,
+                    label: 'Edit',
+                    color: cs.secondaryContainer.withValues(alpha: 0.5),
+                    iconColor: cs.secondary,
+                    onTap: () => state.pushScreen(HiringEditScreenRoute(post.id)),
+                  ),
+                  const SizedBox(width: 8),
+                  _HiringCardAction(
+                    icon: Icons.delete_outline_rounded,
+                    label: 'Delete',
+                    color: cs.error.withValues(alpha: 0.1),
+                    iconColor: cs.error,
+                    onTap: () => _confirmDeletePost(context, state, s, post.id),
+                  ),
+                ],
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delete confirmation helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+Future<void> _confirmDeletePost(
+  BuildContext context,
+  KoolanAppState state,
+  dynamic s,
+  String postId,
+) async {
+  final cs = Theme.of(context).colorScheme;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(s.hiringDeleteButton),
+      content: Text(s.hiringDeleteConfirm),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(s.hiringDeleteCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          style: FilledButton.styleFrom(backgroundColor: cs.error),
+          child: Text(s.hiringDeleteConfirmButton),
+        ),
+      ],
+    ),
+  );
+  if (confirmed == true && context.mounted) {
+    await state.deleteHiringPost(postId);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Icon + text pill action button for hiring cards
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _HiringCardAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color iconColor;
+  final VoidCallback onTap;
+  const _HiringCardAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: iconColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

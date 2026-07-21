@@ -21,6 +21,9 @@ class HiringPost with SyncableEntity {
   /// 'open' or 'closed'.
   final String status;
 
+  /// Cover image URL stored in Cloudinary.
+  final String imageUrl;
+
   final DateTime createdAt;
 
   @override
@@ -43,6 +46,7 @@ class HiringPost with SyncableEntity {
     required this.location,
     required this.priceRange,
     this.status = 'open',
+    this.imageUrl = '',
     DateTime? createdAt,
     DateTime? localUpdatedAt,
     this.remoteUpdatedAt,
@@ -77,6 +81,7 @@ class HiringPost with SyncableEntity {
       location: json['location'] as String? ?? '',
       priceRange: json['price_range'] as String? ?? '',
       status: json['status'] as String? ?? 'open',
+      imageUrl: json['image_url'] as String? ?? '',
       createdAt: createdAt ?? DateTime.now(),
       localUpdatedAt: localUpdatedAt ?? updatedAt ?? DateTime.now(),
       remoteUpdatedAt: updatedAt,
@@ -95,6 +100,7 @@ class HiringPost with SyncableEntity {
         'location': location,
         'price_range': priceRange,
         'status': status,
+        'image_url': imageUrl,
         'created_at': createdAt.toIso8601String(),
         'updated_at': remoteUpdatedAt?.toIso8601String(),
         'local_updated_at': localUpdatedAt.toIso8601String(),
@@ -111,6 +117,7 @@ class HiringPost with SyncableEntity {
     String? location,
     String? priceRange,
     String? status,
+    String? imageUrl,
     DateTime? createdAt,
     DateTime? localUpdatedAt,
     DateTime? remoteUpdatedAt,
@@ -126,6 +133,7 @@ class HiringPost with SyncableEntity {
       location: location ?? this.location,
       priceRange: priceRange ?? this.priceRange,
       status: status ?? this.status,
+      imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,
       localUpdatedAt: localUpdatedAt ?? this.localUpdatedAt,
       remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
@@ -652,22 +654,24 @@ class _Step2Details extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 3 — Finalize (description + photo)
-//
-// NOTE: Specs are auto-filled from category defaults in submitPost().
-// We skip the old "Specs" step because users rarely fill them accurately
-// mid-post; they can be edited later from My Listings.
+// Step 3 — Finalize (description + photos)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Step3Finalize extends StatelessWidget {
+class _Step3Finalize extends StatefulWidget {
   final KoolanAppState state;
   final VoidCallback onRebuild;
   const _Step3Finalize({required this.state, required this.onRebuild});
 
   @override
+  State<_Step3Finalize> createState() => _Step3FinalizeState();
+}
+
+class _Step3FinalizeState extends State<_Step3Finalize> {
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = state.s;
+    final s = widget.state.s;
+    final pickedPaths = widget.state.postImagePaths;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,13 +689,14 @@ class _Step3Finalize extends StatelessWidget {
         Text(s.wizardFinalizeSubtitle,
             style: TextStyle(color: cs.onSurfaceVariant)),
         const SizedBox(height: 24),
+
+        // ── Description ────────────────────────────────────────────────────
         Text(s.wizardDescriptionLabel,
-            style:
-                TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+            style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
         const SizedBox(height: 8),
         TextFormField(
-          initialValue: state.postDescription,
-          onChanged: (v) => state.postDescription = v,
+          initialValue: widget.state.postDescription,
+          onChanged: (v) => widget.state.postDescription = v,
           maxLines: 4,
           style: TextStyle(color: cs.onSurface),
           decoration: InputDecoration(
@@ -712,67 +717,171 @@ class _Step3Finalize extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        // Photo attachment tile
-        InkWell(
-          onTap: () {
-            state.postMainPhotoAttached = true;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(s.wizardPhotoMock)),
-            );
-            onRebuild();
-          },
-          borderRadius: BorderRadius.circular(18),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: double.infinity,
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: state.postMainPhotoAttached
-                  ? cs.tertiaryContainer.withValues(alpha: 0.3)
-                  : cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: state.postMainPhotoAttached
-                    ? cs.tertiary.withValues(alpha: 0.5)
-                    : cs.outlineVariant.withValues(alpha: 0.4),
-                width: state.postMainPhotoAttached ? 2 : 1,
+
+        // ── Images section ─────────────────────────────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Photos',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: cs.onSurface),
+            ),
+            Text(
+              '${pickedPaths.length}/8',
+              style: TextStyle(
+                  fontSize: 12, color: cs.onSurfaceVariant),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Grid of picked images + add button
+        if (pickedPaths.isNotEmpty)
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: pickedPaths.length + (pickedPaths.length < 8 ? 1 : 0),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                if (index == pickedPaths.length) {
+                  // Add more button
+                  return _AddImageButton(
+                    onTap: () => widget.state.pickListingImages(context),
+                    cs: cs,
+                  );
+                }
+                return _ImageThumbnail(
+                  path: pickedPaths[index],
+                  cs: cs,
+                  onRemove: () {
+                    widget.state.removeListingImage(index);
+                    setState(() {});
+                  },
+                );
+              },
+            ),
+          ),
+
+        // Full-width upload zone when no images yet
+        if (pickedPaths.isEmpty)
+          InkWell(
+            onTap: () async {
+              await widget.state.pickListingImages(context);
+              setState(() {});
+            },
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: cs.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.cloud_upload_outlined,
+                      size: 44, color: cs.primary),
+                  const SizedBox(height: 10),
+                  Text(
+                    s.wizardAttachMedia,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: cs.onSurface),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    s.wizardMediaHint,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              children: [
-                Icon(
-                  state.postMainPhotoAttached
-                      ? Icons.check_circle_rounded
-                      : Icons.cloud_upload_outlined,
-                  size: 44,
-                  color: state.postMainPhotoAttached
-                      ? cs.tertiary
-                      : cs.primary,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  state.postMainPhotoAttached
-                      ? s.wizardAttached
-                      : s.wizardAttachMedia,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  s.wizardMediaHint,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
+          ),
+
+        // Upload progress / error feedback
+        if (widget.state.listingImageUploadError != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            widget.state.listingImageUploadError!,
+            style: TextStyle(fontSize: 12, color: cs.error),
+          ),
+        ],
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+// Thumbnail for a picked image with a remove button
+class _ImageThumbnail extends StatelessWidget {
+  final String path;
+  final ColorScheme cs;
+  final VoidCallback onRemove;
+  const _ImageThumbnail(
+      {required this.path, required this.cs, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.file(
+            File(path),
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              decoration: BoxDecoration(
+                color: cs.error,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.close_rounded,
+                  size: 14, color: cs.onError),
             ),
           ),
         ),
-        const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+// "+" button to add more images
+class _AddImageButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final ColorScheme cs;
+  const _AddImageButton({required this.onTap, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        child: Icon(Icons.add_photo_alternate_rounded,
+            size: 32, color: cs.primary),
+      ),
     );
   }
 }

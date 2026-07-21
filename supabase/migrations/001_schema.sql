@@ -83,6 +83,7 @@ create table if not exists public.listings (
   spec3_value text,
   spec4_label text,
   spec4_value text,
+  image_urls text[] not null default '{}'::text[],
   created_at timestamptz not null default now()
 );
 
@@ -126,6 +127,7 @@ create table if not exists public.services (
   price_range text not null default '',
   location text not null default '',
   availability boolean not null default true,
+  image_url text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -375,6 +377,7 @@ create table if not exists public.hiring_posts (
   location text not null default '',
   price_range text not null default '',
   status text not null default 'open' check (status in ('open', 'closed')),
+  image_url text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

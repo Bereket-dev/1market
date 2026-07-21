@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -276,7 +277,8 @@ class _SectionHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Service card — quick availability toggle + edit shortcut
+// Service card — cover image thumbnail + consistent layout matching
+// _MyListingTile: [image left | info center | action pills bottom-right]
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ServiceCard extends StatelessWidget {
@@ -306,157 +308,289 @@ class _ServiceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         onTap: () => state.pushScreen(ServiceEditScreenRoute(service.id)),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
-          child: Column(
+          padding: const EdgeInsets.all(12),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Availability dot
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isAvail ? cs.primary : cs.outlineVariant,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+              // ── Cover image thumbnail ──────────────────────────────────
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: service.imageUrl.isNotEmpty
+                    ? CachedImageWidget(
+                        imageUrl: service.imageUrl,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorWidget: _ServiceImagePlaceholder(cs: cs),
+                      )
+                    : _ServiceImagePlaceholder(cs: cs),
+              ),
+              const SizedBox(width: 12),
 
-                  // Title + category
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              // ── Info section ───────────────────────────────────────────
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category chip + sync badge
+                    Row(
                       children: [
-                        Text(
-                          service.title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: cs.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        _ServiceChip(
+                          label: service.category,
+                          color: cs.primaryContainer.withValues(alpha: 0.5),
+                          textColor: cs.primary,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          service.category,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: cs.primary,
-                          ),
-                        ),
+                        const SizedBox(width: 6),
+                        SyncStatusBadge(status: service.syncStatus),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 5),
 
-                  // Sync badge + edit icon
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SyncStatusBadge(status: service.syncStatus),
-                      const SizedBox(width: 4),
-                      Icon(Icons.edit_outlined,
-                          size: 16,
-                          color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
-                    ],
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // Cover description
-              Text(
-                service.coverDescription,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: cs.onSurfaceVariant,
-                  height: 1.4,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              const SizedBox(height: 10),
-
-              // Rate + location + availability toggle
-              Row(
-                children: [
-                  // Rate pill
-                  if (service.priceRange.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color:
-                            cs.primaryContainer.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(8),
+                    // Title
+                    Text(
+                      service.title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
                       ),
-                      child: Text(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Price range
+                    if (service.priceRange.isNotEmpty)
+                      Text(
                         service.priceRange,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
                           color: cs.primary,
                         ),
                       ),
-                    ),
-                  if (service.priceRange.isNotEmpty)
-                    const SizedBox(width: 8),
+                    const SizedBox(height: 4),
 
-                  // Location
-                  Icon(Icons.location_on_rounded,
-                      size: 12, color: cs.onSurfaceVariant),
-                  const SizedBox(width: 3),
-                  Expanded(
-                    child: Text(
-                      service.location,
-                      style: TextStyle(
-                          fontSize: 11, color: cs.onSurfaceVariant),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-
-                  // Availability toggle with label — never icon-only
-                  GestureDetector(
-                    // Prevent the card tap from firing when toggling
-                    onTap: () => state.toggleServiceAvailability(
-                        service.id, !isAvail),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    // Location
+                    Row(
                       children: [
-                        Text(
-                          isAvail ? s.servicesAvailable : s.servicesUnavailable,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isAvail ? cs.primary : cs.error,
-                          ),
-                        ),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch.adaptive(
-                            value: isAvail,
-                            onChanged: (v) =>
-                                state.toggleServiceAvailability(
-                                    service.id, v),
+                        Icon(Icons.location_on_rounded,
+                            size: 12, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            service.location,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+
+                    // ── Availability toggle row ─────────────────────────
+                    GestureDetector(
+                      onTap: () => state.toggleServiceAvailability(
+                          service.id, !isAvail),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isAvail ? cs.primary : cs.error,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isAvail
+                                ? s.servicesAvailable
+                                : s.servicesUnavailable,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isAvail ? cs.primary : cs.error,
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.75,
+                            child: Switch.adaptive(
+                              value: isAvail,
+                              onChanged: (v) =>
+                                  state.toggleServiceAvailability(
+                                      service.id, v),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // ── Action pills row ───────────────────────────────
+                    Row(
+                      children: [
+                        _CardAction(
+                          icon: Icons.edit_rounded,
+                          label: 'Edit',
+                          color: cs.secondaryContainer
+                              .withValues(alpha: 0.5),
+                          iconColor: cs.secondary,
+                          onTap: () => state.pushScreen(
+                              ServiceEditScreenRoute(service.id)),
+                        ),
+                        const SizedBox(width: 8),
+                        _CardAction(
+                          icon: Icons.delete_outline_rounded,
+                          label: 'Delete',
+                          color: cs.error.withValues(alpha: 0.1),
+                          iconColor: cs.error,
+                          onTap: () => _confirmDeleteService(
+                              context, state, service.id, s),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ServiceImagePlaceholder extends StatelessWidget {
+  final ColorScheme cs;
+  const _ServiceImagePlaceholder({required this.cs});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: cs.primaryContainer.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.work_outline_rounded,
+          color: cs.primary.withValues(alpha: 0.5),
+          size: 32,
+        ),
+      );
+}
+
+class _ServiceChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color textColor;
+  const _ServiceChip(
+      {required this.label, required this.color, required this.textColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delete confirmation helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+Future<void> _confirmDeleteService(
+  BuildContext context,
+  KoolanAppState state,
+  String serviceId,
+  dynamic s,
+) async {
+  final cs = Theme.of(context).colorScheme;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(s.servicesDeleteButton),
+      content: Text(s.servicesDeleteConfirm),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(s.servicesDeleteCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          style: FilledButton.styleFrom(backgroundColor: cs.error),
+          child: Text(s.servicesDeleteConfirmButton),
+        ),
+      ],
+    ),
+  );
+  if (confirmed == true && context.mounted) {
+    await state.deleteService(serviceId);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Icon + text pill action button
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CardAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color iconColor;
+  final VoidCallback onTap;
+  const _CardAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: iconColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,8 +1,12 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../shared/models/hiring_post.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
 /// Create or edit a hiring post.
 /// Same UX pattern as [ServiceEditScreen].
@@ -24,6 +28,16 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
   bool _isOpen = true;
   bool _isSaving = false;
   bool _isDeleting = false;
+
+  /// Existing cover image URL loaded from the post record.
+  String _existingImageUrl = '';
+
+  /// Local file path for a newly picked cover image.
+  String? _newImagePath;
+
+  /// Error message from image pick.
+  String? _imageError;
+
   HiringPost? _post;
   late String _postId;
   bool _initialized = false;
@@ -59,6 +73,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     _locationController.text = _post?.location ?? '';
     _priceController.text = _post?.priceRange ?? '';
     _isOpen = _post?.isOpen ?? true;
+    _existingImageUrl = _post?.imageUrl ?? '';
   }
 
   @override
@@ -69,6 +84,29 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     _locationController.dispose();
     _priceController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: false,
+        withReadStream: false,
+      );
+    } catch (e) {
+      setState(() => _imageError = e.toString());
+      return;
+    }
+    if (result == null || result.files.isEmpty) return;
+    final path = result.files.first.path;
+    if (path != null) {
+      setState(() {
+        _newImagePath = path;
+        _imageError = null;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -88,12 +126,17 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
       location: _locationController.text.trim(),
       priceRange: _priceController.text.trim(),
       status: _isOpen ? 'open' : 'closed',
+      // Pass existing URL; app_state will replace it if a new image is uploaded.
+      imageUrl: _existingImageUrl,
       createdAt: _post?.createdAt,
       localUpdatedAt: now,
       syncStatus: SyncStatus.pending,
     );
     try {
-      await state.submitHiringPostEdit(post);
+      await state.submitHiringPostEdit(
+        post,
+        newImagePath: _newImagePath,
+      );
       if (!mounted) return;
       state.popScreen();
     } finally {
@@ -172,6 +215,16 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              // ── Cover Image ────────────────────────────────────────────
+              _SectionLabel(label: 'Cover Photo', cs: cs),
+              const SizedBox(height: 8),
+              _buildImagePicker(cs),
+              if (_imageError != null) ...[
+                const SizedBox(height: 4),
+                Text(_imageError!,
+                    style: TextStyle(fontSize: 12, color: cs.error)),
+              ],
+              const SizedBox(height: 16),
               // ── Title ────────────────────────────────────────────────
               _field(
                 label: s.hiringTitleLabel,
@@ -281,6 +334,47 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     );
   }
 
+  Widget _buildImagePicker(ColorScheme cs) {
+    if (_newImagePath != null) {
+      return SizedBox(
+        height: 120,
+        child: Row(
+          children: [
+            _LocalImageTile(
+              path: _newImagePath!,
+              cs: cs,
+              onRemove: () => setState(() => _newImagePath = null),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_existingImageUrl.isNotEmpty) {
+      return SizedBox(
+        height: 120,
+        child: Row(
+          children: [
+            _RemoteImageTile(
+              url: _existingImageUrl,
+              cs: cs,
+              onRemove: () => setState(() => _existingImageUrl = ''),
+            ),
+            const SizedBox(width: 8),
+            _AddTile(cs: cs, onTap: _pickImage),
+          ],
+        ),
+      );
+    }
+    return SizedBox(
+      height: 120,
+      child: Row(
+        children: [
+          _AddTile(cs: cs, label: 'Add Cover Photo', onTap: _pickImage),
+        ],
+      ),
+    );
+  }
+
   Widget _field({
     required String label,
     required String hint,
@@ -301,6 +395,168 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
         ),
       ),
       validator: validator,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Image picker sub-widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  final ColorScheme cs;
+  const _SectionLabel({required this.label, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(label,
+        style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface));
+  }
+}
+
+class _RemoteImageTile extends StatelessWidget {
+  final String url;
+  final ColorScheme cs;
+  final VoidCallback onRemove;
+  const _RemoteImageTile(
+      {required this.url, required this.cs, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: CachedImageWidget(
+            imageUrl: url,
+            width: 120,
+            height: 120,
+            fit: BoxFit.cover,
+            errorWidget: Container(
+              width: 120,
+              height: 120,
+              color: cs.surfaceContainerHighest,
+              child: Icon(Icons.broken_image_rounded,
+                  color: cs.outline, size: 28),
+            ),
+          ),
+        ),
+        _RemoveButton(cs: cs, onRemove: onRemove),
+      ],
+    );
+  }
+}
+
+class _LocalImageTile extends StatelessWidget {
+  final String path;
+  final ColorScheme cs;
+  final VoidCallback onRemove;
+  const _LocalImageTile(
+      {required this.path, required this.cs, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.file(
+            File(path),
+            width: 120,
+            height: 120,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: 120,
+              height: 120,
+              color: cs.surfaceContainerHighest,
+              child: Icon(Icons.broken_image_rounded,
+                  color: cs.outline, size: 28),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 4,
+          left: 4,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            decoration: BoxDecoration(
+              color: cs.primary.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text('New',
+                style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: cs.onPrimary)),
+          ),
+        ),
+        _RemoveButton(cs: cs, onRemove: onRemove),
+      ],
+    );
+  }
+}
+
+class _RemoveButton extends StatelessWidget {
+  final ColorScheme cs;
+  final VoidCallback onRemove;
+  const _RemoveButton({required this.cs, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 4,
+      right: 4,
+      child: GestureDetector(
+        onTap: onRemove,
+        child: Container(
+          decoration:
+              BoxDecoration(color: cs.error, shape: BoxShape.circle),
+          padding: const EdgeInsets.all(4),
+          child: Icon(Icons.close_rounded, size: 14, color: cs.onError),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddTile extends StatelessWidget {
+  final ColorScheme cs;
+  final VoidCallback onTap;
+  final String? label;
+  const _AddTile({required this.cs, required this.onTap, this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: label != null ? 160 : 120,
+        height: 120,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: cs.outlineVariant.withValues(alpha: 0.5),
+              style: BorderStyle.solid),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_photo_alternate_rounded,
+                size: 28, color: cs.primary),
+            if (label != null) ...[
+              const SizedBox(height: 4),
+              Text(label!,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: cs.primary,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

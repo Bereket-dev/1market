@@ -132,6 +132,7 @@ class SupabaseRepository {
     required String sellerName,
     required String sellerImage,
     String originalLanguage = 'en',
+    List<String> imageUrls = const [],
   }) async {
     final userId = currentUserId;
     if (userId == null) throw StateError('Not authenticated');
@@ -163,11 +164,25 @@ class SupabaseRepository {
           'original_language': originalLanguage,
           'title_translations': <String, String>{},
           'description_translations': <String, String>{},
+          'image_urls': imageUrls,
         })
         .select()
         .single();
 
     return Listing.fromJson(row, isOwnedByCurrentUser: true);
+  }
+
+  /// Updates an existing listing row. Only the provided fields are changed.
+  Future<void> updateListing(
+    String listingId,
+    Map<String, dynamic> fields,
+  ) async {
+    final userId = currentUserId;
+    if (userId == null) throw StateError('Not authenticated');
+    await _client.from('listings').update({
+      ...fields,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', listingId).eq('seller_id', userId);
   }
 
   Future<void> deleteListing(String listingId) async {
@@ -377,19 +392,42 @@ class SupabaseRepository {
     final userId = currentUserId;
     if (userId == null) throw StateError('Not authenticated');
 
-    // Upsert — one review per (service, reviewer).
+    // Upsert on the unique (service_id, reviewer_id) constraint.
+    // onConflict is required by PostgREST v2 for non-PK upserts.
+    await _client
+        .from('service_reviews')
+        .upsert(
+          {
+            'service_id': serviceId,
+            'reviewer_id': userId,
+            'rating': rating,
+            'comment': comment,
+          },
+          onConflict: 'service_id,reviewer_id',
+        );
+
+    // Re-fetch with profile join so the caller gets the reviewer name + avatar
+    // immediately — without waiting for a separate loadReviewsForService call.
     final row = await _client
         .from('service_reviews')
-        .upsert({
-          'service_id': serviceId,
-          'reviewer_id': userId,
-          'rating': rating,
-          'comment': comment,
-        })
-        .select()
+        .select('*, profiles(display_name, avatar_url)')
+        .eq('service_id', serviceId)
+        .eq('reviewer_id', userId)
         .single();
 
-    return ServiceReview.fromJson(row);
+    final profile = row['profiles'] as Map<String, dynamic>?;
+    return ServiceReview(
+      id: row['id'] as String,
+      serviceId: row['service_id'] as String,
+      reviewerId: row['reviewer_id'] as String,
+      rating: (row['rating'] as num?)?.toInt() ?? rating,
+      comment: row['comment'] as String? ?? comment,
+      createdAt:
+          DateTime.tryParse(row['created_at'] as String? ?? '') ??
+              DateTime.now(),
+      reviewerName: profile?['display_name'] as String?,
+      reviewerAvatarUrl: profile?['avatar_url'] as String?,
+    );
   }
 
   // ── Services ─────────────────────────────────────────────────────────────────

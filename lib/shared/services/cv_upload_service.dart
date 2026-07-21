@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/syncable_entity.dart';
+import 'cloudinary_upload_service.dart';
 import 'offline/hive_sync_store.dart' show HiveSyncStore;
 
 /// Maximum allowed CV file size: 5 MB.
@@ -94,7 +95,6 @@ class CvUploadService {
   static final CvUploadService instance = CvUploadService._();
 
   static const _boxName = 'pending_cv_uploads_box';
-  static const _storageBucket = 'cv-files';
 
   Box<String>? _box;
   bool _initialized = false;
@@ -156,13 +156,23 @@ class CvUploadService {
     try {
       final client = Supabase.instance.client;
       if (client.auth.currentSession != null) {
-        final remoteUrl = await _uploadToStorage(client, serviceId, file, fileName);
-        return CvUploadQueued(
-          remoteUrl: remoteUrl,
-          localPath: localPath,
-          fileName: fileName,
-          status: SyncStatus.synced,
+        final userId = client.auth.currentUser?.id ?? 'unknown';
+        final result = await CloudinaryUploadService.instance.uploadRawFile(
+          file: file,
+          userId: userId,
+          serviceId: serviceId,
         );
+        if (result is CloudinaryUploadSuccess) {
+          return CvUploadQueued(
+            remoteUrl: result.secureUrl,
+            localPath: localPath,
+            fileName: fileName,
+            status: SyncStatus.synced,
+          );
+        } else if (result is CloudinaryUploadFailure) {
+          debugPrint('CV Cloudinary upload failed, will queue: ${result.message}');
+          // Fall through to offline queue.
+        }
       }
     } catch (e) {
       debugPrint('CV upload failed, will queue: $e');
@@ -195,6 +205,7 @@ class CvUploadService {
     await initialize();
     final client = Supabase.instance.client;
     if (client.auth.currentSession == null) return;
+    final userId = client.auth.currentUser?.id ?? 'unknown';
 
     final keys = _box!.keys.cast<String>().toList();
     for (final key in keys) {
@@ -207,44 +218,27 @@ class CvUploadService {
 
         final file = File(pending.localPath);
         if (!await file.exists()) {
-          // File was deleted — remove from queue silently.
           await _box!.delete(key);
           continue;
         }
 
-        final remoteUrl = await _uploadToStorage(
-          client,
-          pending.serviceId,
-          file,
-          pending.fileName,
+        final result = await CloudinaryUploadService.instance.uploadRawFile(
+          file: file,
+          userId: userId,
+          serviceId: pending.serviceId,
         );
-        await onUploaded(pending.serviceId, remoteUrl);
-        await _box!.delete(key);
+
+        if (result is CloudinaryUploadSuccess) {
+          await onUploaded(pending.serviceId, result.secureUrl);
+          await _box!.delete(key);
+        } else if (result is CloudinaryUploadFailure) {
+          debugPrint('CV upload flush failed for key $key: ${result.message}');
+          // Keep in queue for next pass.
+        }
       } catch (e) {
         debugPrint('CV upload flush failed for key $key: $e');
-        // Keep in queue for next pass.
       }
     }
-  }
-
-  Future<String> _uploadToStorage(
-    SupabaseClient client,
-    String serviceId,
-    File file,
-    String fileName,
-  ) async {
-    final userId = client.auth.currentUser?.id ?? 'unknown';
-    final remotePath = '$userId/$serviceId/$fileName';
-    final bytes = await file.readAsBytes();
-
-    // upsert: overwrite if the same path exists.
-    await client.storage.from(_storageBucket).uploadBinary(
-          remotePath,
-          bytes,
-          fileOptions: const FileOptions(upsert: true),
-        );
-
-    return client.storage.from(_storageBucket).getPublicUrl(remotePath);
   }
 
   /// Returns the pending upload for [serviceId], or null.

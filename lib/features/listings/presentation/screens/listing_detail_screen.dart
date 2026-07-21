@@ -168,6 +168,15 @@ class _HeroImage extends StatelessWidget {
                 ),
                 Row(
                   children: [
+                    // Edit button — only for the listing owner
+                    if (listing.isOwnedByCurrentUser) ...[
+                      _OverlayCircleButton(
+                        icon: Icons.edit_outlined,
+                        onPressed: () => state
+                            .pushScreen(EditListingScreenRoute(listing.id)),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     _OverlayCircleButton(
                       icon: Icons.share_outlined,
                       onPressed: () {

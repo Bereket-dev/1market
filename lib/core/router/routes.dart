@@ -84,3 +84,8 @@ class MyApplicationsScreenRoute extends KoolanScreen {}
 class NotificationsScreenRoute extends KoolanScreen {}
 
 class MyListingsScreenRoute extends KoolanScreen {}
+
+class EditListingScreenRoute extends KoolanScreen {
+  final String listingId;
+  EditListingScreenRoute(this.listingId);
+}

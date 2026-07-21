@@ -10,6 +10,7 @@ import 'features/chat/presentation/screens/messages_screen.dart';
 import 'features/favorites/presentation/screens/saved_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/listings/presentation/screens/listing_detail_screen.dart';
+import 'features/listings/presentation/screens/edit_listing_screen.dart';
 import 'features/onboarding/screens/auth_screen.dart';
 import 'features/onboarding/screens/goal_selection_screen.dart';
 import 'features/onboarding/screens/language_screen.dart';
@@ -355,6 +356,11 @@ class _AppShell extends StatelessWidget {
       return const EditProfileScreen(key: ValueKey('edit_profile'));
     } else if (screen is MyListingsScreenRoute) {
       return const MyListingsScreen(key: ValueKey('my_listings'));
+    } else if (screen is EditListingScreenRoute) {
+      return EditListingScreen(
+        key: ValueKey('edit_listing_${screen.listingId}'),
+        listingId: screen.listingId,
+      );
     }
     return const SizedBox.shrink();
   }

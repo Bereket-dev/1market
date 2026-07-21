@@ -14,6 +14,10 @@ class Service with SyncableEntity {
   final String priceRange;
   final String location;
   final bool availability;
+
+  /// Cover image URL stored in Cloudinary.
+  final String imageUrl;
+
   final DateTime createdAt;
   @override
   final DateTime localUpdatedAt;
@@ -34,6 +38,7 @@ class Service with SyncableEntity {
     required String priceRange,
     required this.location,
     this.availability = true,
+    this.imageUrl = '',
     DateTime? createdAt,
     DateTime? localUpdatedAt,
     this.remoteUpdatedAt,
@@ -65,6 +70,7 @@ class Service with SyncableEntity {
       priceRange: json['price_range'] as String? ?? '',
       location: json['location'] as String? ?? '',
       availability: json['availability'] as bool? ?? false,
+      imageUrl: json['image_url'] as String? ?? '',
       createdAt: createdAt ?? DateTime.now(),
       localUpdatedAt: localUpdatedAt ?? updatedAt ?? DateTime.now(),
       remoteUpdatedAt: updatedAt,
@@ -84,6 +90,7 @@ class Service with SyncableEntity {
         'price_range': priceRange,
         'location': location,
         'availability': availability,
+        'image_url': imageUrl,
         'created_at': createdAt.toIso8601String(),
         'updated_at': remoteUpdatedAt?.toIso8601String(),
         'local_updated_at': localUpdatedAt.toIso8601String(),
@@ -102,6 +109,7 @@ class Service with SyncableEntity {
     String? priceRange,
     String? location,
     bool? availability,
+    String? imageUrl,
     DateTime? createdAt,
     DateTime? localUpdatedAt,
     DateTime? remoteUpdatedAt,
@@ -119,6 +127,7 @@ class Service with SyncableEntity {
       priceRange: priceRange ?? this.priceRange,
       location: location ?? this.location,
       availability: availability ?? this.availability,
+      imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,
       localUpdatedAt: localUpdatedAt ?? this.localUpdatedAt,
       remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,
