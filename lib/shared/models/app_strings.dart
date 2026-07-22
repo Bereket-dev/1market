@@ -835,6 +835,41 @@ class AppStrings {
   String get detailGoToChat => _t('Go to chat', 'ወደ ቻት ሂድ', 'U tag sheekada');
   String get detailStartChat => _t('Start chat', 'ቻት ጀምር', 'Bilow sheekada');
   String get detailRequestLogged => _t('Request logged. Partner notified!', 'ጥያቄ ተመዝግቧል። አጋር ተነግሯቸዋል!', 'Codsiga waa la diiwaan galiyey. Iskaashiga ayaa la ogeysiiyey!');
+
+  // ── Viewing Request Bottom Sheet ────────────────────────────────────────────
+  String get viewingSheetTitle =>
+      _t('Schedule a Visit', 'ጉብኝት ያቅዱ', 'Jadweli booqasho');
+  String get viewingSheetSubtitle => _t(
+    'Pick a date and time to visit this property. A message will be sent to the owner.',
+    'ይህን ሪል እስቴት ለመጎብኘት ቀን እና ሰዓት ይምረጡ። ለባለቤቱ መልእክት ይላካል።',
+    'Dooro taariikh iyo waqti si aad u booqato hantidan. Fariin ayaa loo diri doonaa milkiilaha.',
+  );
+  String get viewingSelectDate =>
+      _t('Select Date', 'ቀን ይምረጡ', 'Dooro taariikh');
+  String get viewingSelectTime =>
+      _t('Select Time', 'ሰዓት ይምረጡ', 'Dooro waqtiga');
+  String get viewingConfirmButton =>
+      _t('Send Visit Request', 'ጥያቄ ይላኩ', 'Dir codsi booqasho');
+  String get viewingRequestSent => _t(
+    'Visit request sent to the owner!',
+    'ጥያቄ ለባለቤቱ ተልኳል!',
+    'Codsi booqasho ayaa loo diray milkiilaha!',
+  );
+  String get viewingRequestFailed => _t(
+    'Could not send request. Please try again.',
+    'ጥያቄ መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።',
+    'Codsi la diray ma ahayn. Fadlan isku day mar kale.',
+  );
+  String get viewingMessageTemplate => _t(
+    '📅 Visit Request\nDate: {date}\nTime: {time}\n\nI would like to visit this property. Please confirm.',
+    '📅 የጉብኝት ጥያቄ\nቀን: {date}\nሰዓት: {time}\n\nይህን ሪል እስቴት ለመጎብኘት እፈልጋለሁ። እባክዎ ያረጋግጡ።',
+    '📅 Codsi Booqasho\nTaariikh: {date}\nWaqtiga: {time}\n\nWaxaan jeclaan lahaa inaan booqdo hantidan. Fadlan xaqiiji.',
+  );
+  String get viewingNeedLoginToast => _t(
+    'Sign in to send a visit request',
+    'ጥያቄ ለመላክ ይግቡ',
+    'Gal si aad codsi u dirtid',
+  );
   String get detailVerifiedListing => _t('Verified Listing', 'የተረጋገጠ ዝርዝር', 'Xayaysiis la xaqiijiyey');
   String get detailVerifiedPro => _t('Verified Skilled Professional', 'የተረጋገጠ ባለሙያ', 'Xirfadle la xaqiijiyey');
 

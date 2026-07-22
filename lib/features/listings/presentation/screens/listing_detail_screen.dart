@@ -890,6 +890,18 @@ class _StickyBar extends StatelessWidget {
       }
     }
 
+    Future<void> openViewingSheet() async {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _ViewingRequestSheet(
+          listing: listing,
+          state: state,
+        ),
+      );
+    }
+
     return Positioned(
       left: 0,
       right: 0,
@@ -939,11 +951,13 @@ class _StickyBar extends StatelessWidget {
             // Primary action button
             Expanded(
               child: FilledButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(s.detailRequestLogged)),
-                  );
-                },
+                onPressed: listing.category == 'SKILLS'
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(s.detailRequestLogged)),
+                        );
+                      }
+                    : openViewingSheet,
                 icon: Icon(
                   listing.category == 'SKILLS'
                       ? Icons.handshake_outlined
@@ -965,6 +979,263 @@ class _StickyBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Viewing Request Bottom Sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ViewingRequestSheet extends StatefulWidget {
+  final Listing listing;
+  final KoolanAppState state;
+
+  const _ViewingRequestSheet({
+    required this.listing,
+    required this.state,
+  });
+
+  @override
+  State<_ViewingRequestSheet> createState() => _ViewingRequestSheetState();
+}
+
+class _ViewingRequestSheetState extends State<_ViewingRequestSheet> {
+  late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
+  bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Default to tomorrow at 10:00
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    _selectedDate = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
+    _selectedTime = const TimeOfDay(hour: 10, minute: 0);
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  String _formatTime(TimeOfDay t) {
+    final h = t.hour.toString().padLeft(2, '0');
+    final m = t.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 90)),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (picked != null) {
+      setState(() => _selectedTime = picked);
+    }
+  }
+
+  Future<void> _sendRequest() async {
+    setState(() => _sending = true);
+    final s = widget.state.s;
+    final success = await widget.state.sendViewingRequest(
+      listingId: widget.listing.id,
+      date: _selectedDate,
+      time: _selectedTime,
+      messageTemplate: s.viewingMessageTemplate,
+    );
+    if (!mounted) return;
+    setState(() => _sending = false);
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            Text(success ? s.viewingRequestSent : s.viewingRequestFailed),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s  = widget.state.s;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom +
+        MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 12, 24, 24 + bottomPadding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Drag handle ───────────────────────────────────────────────
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: cs.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          // ── Title ─────────────────────────────────────────────────────
+          Text(
+            s.viewingSheetTitle,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            s.viewingSheetSubtitle,
+            style: TextStyle(
+              fontSize: 13,
+              color: cs.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Date picker row ───────────────────────────────────────────
+          Text(
+            s.viewingSelectDate,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurfaceVariant,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _pickDate,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: cs.outlineVariant.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_outlined,
+                      size: 20, color: cs.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _formatDate(_selectedDate),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right,
+                      size: 20, color: cs.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Time picker row ───────────────────────────────────────────
+          Text(
+            s.viewingSelectTime,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurfaceVariant,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _pickTime,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: cs.outlineVariant.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.access_time_outlined,
+                      size: 20, color: cs.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _formatTime(_selectedTime),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.chevron_right,
+                      size: 20, color: cs.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // ── Send button ───────────────────────────────────────────────
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _sending ? null : _sendRequest,
+              icon: _sending
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: cs.onPrimary,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded, size: 18),
+              label: Text(
+                s.viewingConfirmButton,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

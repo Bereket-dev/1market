@@ -119,6 +119,11 @@ class _AuthScreenState extends State<AuthScreen> {
         scopes: const <String>['email', 'profile'],
       );
 
+      // Sign out of any previously cached Google account so the account-picker
+      // dialog always appears. Without this, after a logout the plugin silently
+      // returns the last account and skips the chooser entirely.
+      await googleSignIn.signOut();
+
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         setState(() => _error = KoolanAppStateScope.of(context).s.authGoogleCancelled);

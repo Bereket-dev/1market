@@ -635,10 +635,16 @@ class KoolanAppState extends ChangeNotifier {
 
   /// Called after fresh sign-in/sign-up (email or OAuth callback).
   Future<void> onFreshAuth() async {
+    // _repo is nulled on logout. Re-create it from the still-live Supabase
+    // client so the subsequent profile fetch and onboarding flow work correctly.
     if (_repo == null) {
-      onboardingPhase = OnboardingPhase.auth;
-      notifyListeners();
-      return;
+      final client = AppSupabaseConfig.clientOrNull();
+      if (client == null) {
+        onboardingPhase = OnboardingPhase.auth;
+        notifyListeners();
+        return;
+      }
+      _repo = SupabaseRepository(client);
     }
 
     await app_local.LocalStorage.clearSessionRestored();
@@ -1787,6 +1793,41 @@ class KoolanAppState extends ChangeNotifier {
       dataError = e.toString();
       notifyListeners();
       return null;
+    }
+  }
+
+  /// Opens (or reuses) the chat thread for [listingId], then sends a
+  /// pre-formatted viewing-request message with the chosen [date] and [time].
+  ///
+  /// Returns `true` on success, `false` on failure.
+  Future<bool> sendViewingRequest({
+    required String listingId,
+    required DateTime date,
+    required TimeOfDay time,
+    required String messageTemplate,
+  }) async {
+    try {
+      // Ensure a thread exists for this listing.
+      final threadId = await startChatForListing(listingId);
+      if (threadId == null) return false;
+
+      // Format date and time for the message body.
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final hour = time.hour.toString().padLeft(2, '0');
+      final minute = time.minute.toString().padLeft(2, '0');
+      final timeStr = '$hour:$minute';
+
+      final text = messageTemplate
+          .replaceAll('{date}', dateStr)
+          .replaceAll('{time}', timeStr);
+
+      await sendChatMessage(threadId, text);
+      return true;
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 
