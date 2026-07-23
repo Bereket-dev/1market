@@ -62,7 +62,10 @@ class _AuthGateSheetContent extends StatefulWidget {
 
 class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
   bool _loadingGoogle = false;
+  bool _loadingFacebook = false;
   String? _error;
+
+  bool get _isLoading => _loadingGoogle || _loadingFacebook;
 
   KoolanAppState? get _appState =>
       context.getInheritedWidgetOfExactType<KoolanAppStateScope>()?.notifier;
@@ -128,6 +131,45 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
       if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loadingGoogle = false);
+    }
+  }
+
+  Future<void> _signInWithFacebook() async {
+    final appState = _appState;
+    if (appState == null) return;
+
+    setState(() {
+      _loadingFacebook = true;
+      _error = null;
+    });
+
+    final client = AppSupabaseConfig.clientOrNull();
+    if (client == null) {
+      setState(() {
+        _error = appState.s.authSupabaseUnavailable;
+        _loadingFacebook = false;
+      });
+      return;
+    }
+
+    try {
+      if (!mounted) return;
+      appState.markOAuthPending();
+
+      await client.auth.signInWithOAuth(
+        OAuthProvider.facebook,
+        redirectTo: AppSupabaseConfig.redirectUrl,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+
+      // Auth result arrives via deep link — app_state handles it.
+      // Sheet stays open until the deep link triggers navigation.
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loadingFacebook = false);
     }
   }
 
@@ -209,7 +251,7 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
 
             // ── Continue with Google ──────────────────────────────────────
             OutlinedButton(
-              onPressed: _loadingGoogle ? null : _signInWithGoogle,
+              onPressed: _isLoading ? null : _signInWithGoogle,
               style: outlinedStyle,
               child: _loadingGoogle
                   ? SizedBox(
@@ -223,8 +265,7 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _SocialBadge(
-                            color: const Color(0xFF4285F4), label: 'G'),
+                        const _GoogleLogo(),
                         const SizedBox(width: 10),
                         Text(
                           s.authGoogle,
@@ -238,33 +279,35 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
 
             // ── Continue with Facebook ────────────────────────────────────
             OutlinedButton(
-              onPressed: _loadingGoogle
-                  ? null
-                  : () => ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(s.authFacebook),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      ),
+              onPressed: _isLoading ? null : _signInWithFacebook,
               style: outlinedStyle,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _SocialBadge(color: const Color(0xFF1877F2), label: 'f'),
-                  const SizedBox(width: 10),
-                  Text(
-                    s.authFacebook,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                ],
-              ),
+              child: _loadingFacebook
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: const Color(0xFF1877F2),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const _FacebookLogo(),
+                        const SizedBox(width: 10),
+                        Text(
+                          s.authFacebook,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 15),
+                        ),
+                      ],
+                    ),
             ),
             const SizedBox(height: 10),
 
             // ── Log in with Email ─────────────────────────────────────────
             OutlinedButton(
-              onPressed: _loadingGoogle
+              onPressed: _isLoading
                   ? null
                   : () {
                       Navigator.of(context).pop();
@@ -298,7 +341,7 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
                 ),
                 const SizedBox(width: 4),
                 GestureDetector(
-                  onTap: _loadingGoogle
+                  onTap: _isLoading
                       ? null
                       : () {
                           Navigator.of(context).pop();
@@ -325,13 +368,83 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _SocialBadge — small colored circle with letter
+// _GoogleLogo — official Google "G" multicolor logo (24×24)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SocialBadge extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _SocialBadge({required this.color, required this.label});
+class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 24,
+      height: 24,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width / 2;
+
+    // White circle background
+    canvas.drawCircle(
+      Offset(cx, cy),
+      r,
+      Paint()..color = Colors.white,
+    );
+
+    final rect = Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.78);
+
+    // Clip to the circle
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(
+        Rect.fromCircle(center: Offset(cx, cy), radius: r),
+        Radius.circular(r)));
+
+    // Blue (right arc)
+    canvas.drawArc(
+        rect, -0.52, 1.57, true, Paint()..color = const Color(0xFF4285F4));
+    // Green (bottom arc)
+    canvas.drawArc(
+        rect, 1.05, 1.57, true, Paint()..color = const Color(0xFF34A853));
+    // Yellow (bottom-left arc)
+    canvas.drawArc(
+        rect, 2.62, 1.57, true, Paint()..color = const Color(0xFFFBBC05));
+    // Red (top-left arc)
+    canvas.drawArc(
+        rect, 4.19, 1.57, true, Paint()..color = const Color(0xFFEA4335));
+
+    canvas.restore();
+
+    // White center hole
+    canvas.drawCircle(
+      Offset(cx, cy),
+      r * 0.48,
+      Paint()..color = Colors.white,
+    );
+
+    // Blue horizontal bar (the crossbar of the "G")
+    canvas.drawRect(
+      Rect.fromLTWH(cx, cy - r * 0.14, r * 0.78, r * 0.28),
+      Paint()..color = const Color(0xFF4285F4),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _FacebookLogo — Facebook brand "f" on blue circle (24×24)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FacebookLogo extends StatelessWidget {
+  const _FacebookLogo();
 
   @override
   Widget build(BuildContext context) {
@@ -339,13 +452,18 @@ class _SocialBadge extends StatelessWidget {
       width: 24,
       height: 24,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: Text(
-        label,
-        style: const TextStyle(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1877F2),
+        shape: BoxShape.circle,
+      ),
+      child: const Text(
+        'f',
+        style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
-          fontSize: 13,
+          fontSize: 15,
+          height: 1.0,
+          fontFamily: 'sans-serif',
         ),
       ),
     );

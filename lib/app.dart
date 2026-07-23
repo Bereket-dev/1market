@@ -37,6 +37,7 @@ import 'features/hiring/presentation/screens/notifications_screen.dart';
 import 'features/listings/presentation/screens/my_listings_screen.dart';
 import 'features/profile/presentation/screens/public_profile_screen.dart';
 import 'shared/services/app_state.dart';
+import 'shared/widgets/toast_banner.dart';
 
 class KoolanApp extends StatefulWidget {
   const KoolanApp({super.key});
@@ -381,15 +382,14 @@ class _AppShell extends StatelessWidget {
 // "Tried to build dirty widget in the wrong build scope" assertion that fires
 // when notifyListeners() is called while AnimatedSwitcher is mid-transition.
 
-/// Owns the Scaffold, bottom nav bar, screen switcher, and loading bar.
-/// Subscribes to appState via direct listener in [initState] to show a
-/// SnackBar whenever [KoolanAppState.dataError] becomes non-null.
+/// Owns the Scaffold, bottom nav bar, screen switcher, loading bar, and the
+/// floating error toast overlay.
 ///
-/// Converting from StatelessWidget + ListenableBuilder to StatefulWidget lets
-/// us use [ScaffoldMessenger.of] safely from within the widget's element (not
-/// from inside build), so the SnackBar is always tied to this stable,
-/// non-transitioning Scaffold context — never to a child screen that might be
-/// in mid-transition.
+/// Error toasts replace the old SnackBar approach: they auto-dismiss after 5 s,
+/// drain a progress bar, and have an X button for immediate removal.
+///
+/// Pull-to-refresh is wired at this level so every top-level screen benefits
+/// from it — the user can drag down anywhere to trigger [loadAllData].
 class _ShellScaffold extends StatefulWidget {
   final KoolanAppState appState;
   final VoidCallback onPostFab;
@@ -401,6 +401,9 @@ class _ShellScaffold extends StatefulWidget {
 }
 
 class _ShellScaffoldState extends State<_ShellScaffold> {
+  // Tracks the currently visible toast key so we never stack duplicates.
+  String? _activeToastMessage;
+
   @override
   void initState() {
     super.initState();
@@ -422,35 +425,20 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
     super.dispose();
   }
 
-  bool _showingSnackBar = false;
-
   void _onAppStateChanged() {
     final error = widget.appState.dataError;
-    // Only show a SnackBar when a new, distinct error appears.
-    // _showingSnackBar guards against the re-entrant call that happens when
-    // clearDataError() → notifyListeners() fires back into this method.
-    if (!mounted || error == null || _showingSnackBar) return;
-    _showingSnackBar = true;
-
-    final s = widget.appState.s;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error),
-        action: SnackBarAction(
-          label: s.commonRetry,
-          onPressed: () {
-            widget.appState.clearDataError();
-            widget.appState.loadAllData();
-          },
-        ),
-        duration: const Duration(seconds: 6),
-      ),
-    );
-    // Clear immediately after scheduling so a new error from a later action
-    // will show a fresh SnackBar.
+    if (!mounted || error == null) return;
+    // Don't re-show the exact same message that's already visible.
+    if (_activeToastMessage == error) return;
+    setState(() => _activeToastMessage = error);
     widget.appState.clearDataError();
-    _showingSnackBar = false;
   }
+
+  void _dismissToast() {
+    if (mounted) setState(() => _activeToastMessage = null);
+  }
+
+  Future<void> _onRefresh() => widget.appState.loadAllData();
 
   @override
   Widget build(BuildContext context) {
@@ -471,19 +459,93 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
           body: SafeArea(
             child: Stack(
               children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: _AppShell._screenFor(current),
+                // ── Screen content + pull-to-refresh ──────────────────
+                RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  displacement: 60,
+                  strokeWidth: 2.5,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _AppShell._screenFor(current),
+                  ),
                 ),
+
+                // ── Global loading bar (top of screen) ────────────────
                 if (widget.appState.isLoadingData)
                   const Positioned(
                     top: 0,
                     left: 0,
                     right: 0,
-                    child: LinearProgressIndicator(),
+                    child: _LoadingBar(),
+                  ),
+
+                // ── Floating error toast ───────────────────────────────
+                if (_activeToastMessage != null)
+                  Positioned(
+                    top: 12,
+                    left: 0,
+                    right: 0,
+                    child: ToastBanner(
+                      key: ValueKey(_activeToastMessage),
+                      message: _activeToastMessage!,
+                      type: ToastType.error,
+                      actionLabel: widget.appState.s.commonRetry,
+                      onAction: () => widget.appState.loadAllData(),
+                      onDismiss: _dismissToast,
+                    ),
                   ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Animated loading bar ──────────────────────────────────────────────────────
+// A shimmer-style indeterminate bar — more modern than a plain LinearProgressIndicator.
+
+class _LoadingBar extends StatefulWidget {
+  const _LoadingBar();
+
+  @override
+  State<_LoadingBar> createState() => _LoadingBarState();
+}
+
+class _LoadingBarState extends State<_LoadingBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        return SizedBox(
+          height: 3,
+          child: LinearProgressIndicator(
+            backgroundColor: cs.primary.withValues(alpha: 0.10),
+            valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+            // null → indeterminate animated sweep
+            value: null,
+            borderRadius: BorderRadius.zero,
           ),
         );
       },
