@@ -16,7 +16,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = KoolanAppStateScope.of(context);
+    final appState = context
+        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .notifier!;
     final s = appState.s;
     final cs = Theme.of(context).colorScheme;
     final profile = appState.profile;
@@ -586,7 +588,10 @@ class _LanguageRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = context
+        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .notifier!
+        .s;
 
     final options = [
       ('en', s.languageEnglish),
