@@ -15,6 +15,11 @@ class LocalStorage {
   static const _darkModeKey = 'koolan_dark_mode';
   static const _preferredCategoryKey = 'koolan_preferred_category';
 
+  // Notification preferences — device-level, persisted across logout.
+  static const _notifPushEnabledKey    = 'koolan_notif_push_enabled';
+  static const _notifMessagesEnabledKey = 'koolan_notif_messages_enabled';
+  static const _notifPriceAlertsKey    = 'koolan_notif_price_alerts';
+
   static final Map<String, Object?> _memoryStore = {};
 
   static Future<SharedPreferences?> _prefsOrNull() async {
@@ -262,5 +267,58 @@ class LocalStorage {
       return prefs.getString(_preferredCategoryKey);
     }
     return _memoryStore[_preferredCategoryKey] as String?;
+  }
+
+  // ── Notification preferences (device-level, never cleared on logout) ─────────
+
+  static Future<void> saveNotifPushEnabled(bool value) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setBool(_notifPushEnabledKey, value);
+    } else {
+      _memoryStore[_notifPushEnabledKey] = value;
+    }
+  }
+
+  static Future<bool> getNotifPushEnabled() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      return prefs.getBool(_notifPushEnabledKey) ?? true;
+    }
+    return _memoryStore[_notifPushEnabledKey] as bool? ?? true;
+  }
+
+  static Future<void> saveNotifMessagesEnabled(bool value) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setBool(_notifMessagesEnabledKey, value);
+    } else {
+      _memoryStore[_notifMessagesEnabledKey] = value;
+    }
+  }
+
+  static Future<bool> getNotifMessagesEnabled() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      return prefs.getBool(_notifMessagesEnabledKey) ?? true;
+    }
+    return _memoryStore[_notifMessagesEnabledKey] as bool? ?? true;
+  }
+
+  static Future<void> saveNotifPriceAlerts(bool value) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setBool(_notifPriceAlertsKey, value);
+    } else {
+      _memoryStore[_notifPriceAlertsKey] = value;
+    }
+  }
+
+  static Future<bool> getNotifPriceAlerts() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      return prefs.getBool(_notifPriceAlertsKey) ?? false;
+    }
+    return _memoryStore[_notifPriceAlertsKey] as bool? ?? false;
   }
 }

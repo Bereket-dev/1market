@@ -490,6 +490,29 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Notification preferences (persisted device-level) ────────────────────────
+  bool notifPushEnabled    = true;
+  bool notifMessagesEnabled = true;
+  bool notifPriceAlerts    = false;
+
+  void toggleNotifPush(bool value) {
+    notifPushEnabled = value;
+    app_local.LocalStorage.saveNotifPushEnabled(value);
+    notifyListeners();
+  }
+
+  void toggleNotifMessages(bool value) {
+    notifMessagesEnabled = value;
+    app_local.LocalStorage.saveNotifMessagesEnabled(value);
+    notifyListeners();
+  }
+
+  void toggleNotifPriceAlerts(bool value) {
+    notifPriceAlerts = value;
+    app_local.LocalStorage.saveNotifPriceAlerts(value);
+    notifyListeners();
+  }
+
   // ── Filters ─────────────────────────────────────────────────────────────────
   String selectedCategory = 'ALL';
   String searchQuery = '';
@@ -554,6 +577,11 @@ class KoolanAppState extends ChangeNotifier {
       // Restore preferred category so recommendations work even when logged out.
       final savedCategory = await app_local.LocalStorage.getPreferredCategory();
       if (savedCategory != null) onboardingGoal = savedCategory;
+
+      // Restore notification preferences.
+      notifPushEnabled    = await app_local.LocalStorage.getNotifPushEnabled();
+      notifMessagesEnabled = await app_local.LocalStorage.getNotifMessagesEnabled();
+      notifPriceAlerts    = await app_local.LocalStorage.getNotifPriceAlerts();
 
       // Wait for Supabase to confirm the auth state (initialSession event).
       // This prevents fetching data before the session is actually settled.

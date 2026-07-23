@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../onboarding/screens/change_password_screen.dart';
 
@@ -11,9 +12,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  bool _newMessagesEnabled = true;
-  bool _priceAlertsEnabled = false;
   bool _isSigningOut = false;
 
   @override
@@ -78,15 +76,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailingText: profile?.phone != null && profile!.phone!.isNotEmpty
                 ? s.settingsPhoneVerified
                 : null,
+            onTap: () => appState.pushScreen(EditProfileScreenRoute()),
           ),
           const SizedBox(height: 8),
 
           _SettingsRow(
             icon: Icons.category_outlined,
             title: s.settingsPrefCategory,
-            subtitle: profile?.preferredCategory != null
-                ? profile!.preferredCategory!.toUpperCase()
-                : 'Not set',
+            subtitle: _categoryLabel(profile?.preferredCategory, s),
+            onTap: () => appState.pushScreen(EditProfileScreenRoute()),
           ),
           const SizedBox(height: 24),
 
@@ -115,24 +113,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsToggleRow(
             icon: Icons.notifications_outlined,
             title: s.settingsPushEnabled,
-            value: _notificationsEnabled,
-            onChanged: (val) => setState(() => _notificationsEnabled = val),
+            value: appState.notifPushEnabled,
+            onChanged: appState.toggleNotifPush,
           ),
           const SizedBox(height: 8),
 
           _SettingsToggleRow(
             icon: Icons.chat_bubble_outline,
             title: s.settingsNewMessages,
-            value: _newMessagesEnabled,
-            onChanged: (val) => setState(() => _newMessagesEnabled = val),
+            value: appState.notifMessagesEnabled,
+            onChanged: appState.toggleNotifMessages,
           ),
           const SizedBox(height: 8),
 
           _SettingsToggleRow(
             icon: Icons.price_change_outlined,
             title: s.settingsPriceAlerts,
-            value: _priceAlertsEnabled,
-            onChanged: (val) => setState(() => _priceAlertsEnabled = val),
+            value: appState.notifPriceAlerts,
+            onChanged: appState.toggleNotifPriceAlerts,
           ),
           const SizedBox(height: 32),
 
@@ -559,6 +557,19 @@ class _SettingsToggleRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Category label helper ─────────────────────────────────────────────────────
+
+String _categoryLabel(String? category, AppStrings s) {
+  return switch (category) {
+    'CARS'   => s.homeCategoryCars,
+    'HOUSES' => s.homeCategoryHouses,
+    'LAND'   => s.homeCategoryLand,
+    'SKILLS' => s.homeCategorySkills,
+    'OTHERS' => s.homeCategoryOthers,
+    _        => s.editProfilePrefCategoryNone,
+  };
 }
 
 // ── Language row ──────────────────────────────────────────────────────────────
