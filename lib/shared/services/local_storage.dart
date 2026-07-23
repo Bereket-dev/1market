@@ -11,6 +11,9 @@ class LocalStorage {
   static const _profileCacheKey = 'koolan_profile_cache';
   static const _listingsCacheKey = 'koolan_listings_cache';
   static const _servicesCacheKey = 'koolan_services_cache';
+  // Device-level prefs — persisted across logout, never cleared on sign-out.
+  static const _darkModeKey = 'koolan_dark_mode';
+  static const _preferredCategoryKey = 'koolan_preferred_category';
 
   static final Map<String, Object?> _memoryStore = {};
 
@@ -217,5 +220,47 @@ class LocalStorage {
     } catch (_) {
       return null;
     }
+  }
+
+  // ── Dark mode (device preference — never cleared on logout) ──────────────────
+
+  static Future<void> saveDarkMode(bool value) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setBool(_darkModeKey, value);
+    } else {
+      _memoryStore[_darkModeKey] = value;
+    }
+  }
+
+  static Future<bool?> getDarkMode() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      return prefs.containsKey(_darkModeKey)
+          ? prefs.getBool(_darkModeKey)
+          : null;
+    }
+    return _memoryStore.containsKey(_darkModeKey)
+        ? _memoryStore[_darkModeKey] as bool?
+        : null;
+  }
+
+  // ── Preferred category (device preference — never cleared on logout) ──────────
+
+  static Future<void> savePreferredCategory(String category) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setString(_preferredCategoryKey, category);
+    } else {
+      _memoryStore[_preferredCategoryKey] = category;
+    }
+  }
+
+  static Future<String?> getPreferredCategory() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      return prefs.getString(_preferredCategoryKey);
+    }
+    return _memoryStore[_preferredCategoryKey] as String?;
   }
 }

@@ -210,6 +210,8 @@ class KoolanAppState extends ChangeNotifier {
     };
     if (preferredCategory != null) {
       fields['preferred_category'] = preferredCategory;
+      // Persist to device so it survives logout.
+      await app_local.LocalStorage.savePreferredCategory(preferredCategory);
     }
 
     try {
@@ -484,6 +486,7 @@ class KoolanAppState extends ChangeNotifier {
 
   void toggleDarkMode() {
     isDarkMode = !isDarkMode;
+    app_local.LocalStorage.saveDarkMode(isDarkMode);
     notifyListeners();
   }
 
@@ -544,6 +547,13 @@ class KoolanAppState extends ChangeNotifier {
     try {
       final savedLang = await app_local.LocalStorage.getLanguage();
       if (savedLang != null) locale = savedLang;
+
+      final savedDark = await app_local.LocalStorage.getDarkMode();
+      if (savedDark != null) isDarkMode = savedDark;
+
+      // Restore preferred category so recommendations work even when logged out.
+      final savedCategory = await app_local.LocalStorage.getPreferredCategory();
+      if (savedCategory != null) onboardingGoal = savedCategory;
 
       // Wait for Supabase to confirm the auth state (initialSession event).
       // This prevents fetching data before the session is actually settled.
@@ -738,6 +748,7 @@ class KoolanAppState extends ChangeNotifier {
 
   Future<void> completeGoalSelection(String goal) async {
     onboardingGoal = goal;
+    await app_local.LocalStorage.savePreferredCategory(goal);
     await app_local.LocalStorage.saveOnboardingPhase('verification');
     onboardingPhase = OnboardingPhase.verification;
     notifyListeners();
