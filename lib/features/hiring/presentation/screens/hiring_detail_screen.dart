@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/similar_section.dart';
 
 /// Full detail view for a hiring post.
@@ -50,6 +51,13 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
 
   Future<void> _startApply(BuildContext context) async {
     final state = KoolanAppStateScope.of(context);
+
+    // Auth gate: guests cannot apply — show soft-gate sheet instead.
+    if (!state.isSignedIn) {
+      showAuthGateSheet(context, reason: AuthGateReason.apply);
+      return;
+    }
+
     final s = state.s;
     final myServices = state.getMyServices();
 

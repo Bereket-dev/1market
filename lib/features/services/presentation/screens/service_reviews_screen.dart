@@ -4,6 +4,7 @@ import '../../../../core/widgets/rating_stars.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/auth_gate_sheet.dart';
 
 /// Displays reviews for a service and allows the current user to submit one.
 ///
@@ -48,6 +49,13 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final state = KoolanAppStateScope.of(context);
+
+    // Auth gate: review submission requires sign-in.
+    if (!state.isSignedIn) {
+      showAuthGateSheet(context, reason: AuthGateReason.generic);
+      return;
+    }
+
     setState(() {
       _submitting = true;
       _submitError = null;

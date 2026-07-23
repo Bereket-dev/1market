@@ -1,10 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/utils/icon_for_spec.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/listing.dart';
+import '../../../../shared/models/profile.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/similar_section.dart';
 
@@ -21,10 +24,53 @@ class ListingDetailScreen extends StatefulWidget {
 }
 
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
+  /// Resolved phone number: starts from listing.sellerPhone and is
+  /// enriched by a background profile fetch when it is missing.
+  String? _resolvedPhone;
+  bool _fetchingPhone = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    KoolanAppStateScope.of(context).recordItemViewed(widget.listingId);
+    final state = KoolanAppStateScope.of(context);
+    state.recordItemViewed(widget.listingId);
+    _maybeLoadSellerPhone(state);
+  }
+
+  /// If the listing already carries a phone number we use it directly.
+  /// Otherwise we kick off a profile fetch using the seller_id.
+  void _maybeLoadSellerPhone(KoolanAppState state) {
+    final listing = state.getListingById(widget.listingId);
+    if (listing == null) return;
+
+    // Already have phone — nothing to fetch.
+    if (listing.sellerPhone != null && listing.sellerPhone!.isNotEmpty) {
+      if (_resolvedPhone != listing.sellerPhone) {
+        setState(() => _resolvedPhone = listing.sellerPhone);
+      }
+      return;
+    }
+
+    // Check if we already have it cached in the public profile store.
+    final sellerId = listing.sellerId;
+    if (sellerId == null || sellerId.isEmpty) return;
+
+    final cached = state.getCachedPublicProfile(sellerId);
+    if (cached?.phone != null && cached!.phone!.isNotEmpty) {
+      setState(() => _resolvedPhone = cached.phone);
+      return;
+    }
+
+    // Fetch from Supabase.
+    if (_fetchingPhone) return;
+    setState(() => _fetchingPhone = true);
+    state.loadPublicProfile(sellerId).then((UserProfile? profile) {
+      if (!mounted) return;
+      setState(() {
+        _resolvedPhone = profile?.phone;
+        _fetchingPhone = false;
+      });
+    });
   }
 
   @override
@@ -44,9 +90,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       );
     }
 
-    final session         = state.getSessionForListing(widget.listingId);
-    final contactRevealed = session?.contactRevealed ?? false;
-
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: Stack(
@@ -63,21 +106,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 _DescriptionSection(listing: listing, state: state),
                 _MapSection(listing: listing, state: state),
                 _SellerCard(listing: listing, state: state),
-                _ContactCard(
-                  contactRevealed: contactRevealed,
-                  sessionId: session?.id,
-                  onStartChat: () async {
-                    final threadId =
-                        await state.startChatForListing(widget.listingId);
-                    if (!context.mounted) return;
-                    if (threadId != null) {
-                      final idx = state.chatSessions
-                          .indexWhere((s) => s.id == threadId);
-                      if (idx != -1) {
-                        state.pushScreen(ActiveChatScreenRoute(idx));
-                      }
-                    }
-                  },
+                _ContactActions(
+                  listing: listing,
+                  resolvedPhone: _resolvedPhone,
+                  fetchingPhone: _fetchingPhone,
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -487,6 +519,8 @@ class _MapSection extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final s  = state.s;
 
+    if (listing.location.isEmpty) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       child: Column(
@@ -501,82 +535,33 @@ class _MapSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              height: 180,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                border: Border.all(
-                    color: cs.outlineVariant.withValues(alpha: 0.35)),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Stack(
-                children: [
-                  // Schematic map background
-                  CustomPaint(
-                    painter: _MapPainter(cs),
-                    child: const SizedBox.expand(),
-                  ),
-                  // Bottom bar: location text + open-maps button
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cs.surface.withValues(alpha: 0.95),
-                        border: Border(
-                          top: BorderSide(
-                              color: cs.outlineVariant
-                                  .withValues(alpha: 0.3)),
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      child: Row(
-                        children: [
-                          Icon(Icons.location_on_rounded,
-                              color: cs.primary, size: 16),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              listing.location,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: cs.onSurface),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          TextButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(SnackBar(
-                                content: Text(s.detailOpeningMaps),
-                              ));
-                            },
-                            icon: Icon(Icons.open_in_new,
-                                size: 13, color: cs.primary),
-                            label: Text(
-                              s.detailOpenMaps,
-                              style: TextStyle(
-                                  fontSize: 12, color: cs.primary),
-                            ),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
-                        ],
-                      ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: cs.outlineVariant.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.location_on_rounded,
+                    color: cs.primary, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    listing.location,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                      height: 1.4,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -688,9 +673,14 @@ class _SellerCard extends StatelessWidget {
                 // View profile button
                 OutlinedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(s.detailProfileVerified)),
-                    );
+                    final sellerId = listing.sellerId;
+                    if (sellerId != null && sellerId.isNotEmpty) {
+                      state.pushScreen(PublicProfileScreenRoute(sellerId));
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(s.detailProfileVerified)),
+                      );
+                    }
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
@@ -736,25 +726,83 @@ class _SellerInitials extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Contact card  – thread-scoped reveal, no paywall
-// Revealed automatically after 3 exchanged messages, or via explicit share
+// Contact actions – Call button (direct tel: URI) + Request Call button
+// (sends a chat message to the seller requesting a callback).
+// Phone number is resolved from the listing itself, or loaded via seller_id.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ContactCard extends StatelessWidget {
-  final bool contactRevealed;
-  final String? sessionId;
-  final VoidCallback onStartChat;
+class _ContactActions extends StatefulWidget {
+  final Listing listing;
+  final String? resolvedPhone;
+  final bool fetchingPhone;
 
-  const _ContactCard({
-    required this.contactRevealed,
-    required this.sessionId,
-    required this.onStartChat,
+  const _ContactActions({
+    required this.listing,
+    required this.resolvedPhone,
+    required this.fetchingPhone,
   });
 
   @override
+  State<_ContactActions> createState() => _ContactActionsState();
+}
+
+class _ContactActionsState extends State<_ContactActions> {
+  bool _requestCallLoading = false;
+
+  /// Opens the native phone dialler with [phone].
+  Future<void> _callPhone(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.listing.sellerPhone ?? phone)),
+      );
+    }
+  }
+
+  /// Sends a chat message to the seller asking them to call back.
+  Future<void> _requestCall() async {
+    final state = KoolanAppStateScope.of(context);
+    final s     = state.s;
+    setState(() => _requestCallLoading = true);
+
+    // Ensure chat thread exists.
+    String? threadId = state.getSessionForListing(widget.listing.id)?.id;
+    threadId ??= await state.startChatForListing(widget.listing.id);
+
+    if (!mounted) return;
+
+    if (threadId == null) {
+      setState(() => _requestCallLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.detailRequestCallFailed)),
+      );
+      return;
+    }
+
+    try {
+      await state.sendChatMessage(threadId, s.detailRequestCallMessage);
+      if (!mounted) return;
+      setState(() => _requestCallLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.detailRequestCallSent)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _requestCallLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.detailRequestCallFailed)),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final s  = KoolanAppStateScope.of(context).s;
+    final cs    = Theme.of(context).colorScheme;
+    final s     = KoolanAppStateScope.of(context).s;
+    final phone = widget.resolvedPhone;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -762,20 +810,16 @@ class _ContactCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: cs.primary.withValues(alpha: 0.3)),
+          border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Header ────────────────────────────────────────────────────
             Row(
               children: [
-                Icon(
-                  contactRevealed ? Icons.lock_open_rounded : Icons.lock_rounded,
-                  color: cs.primary,
-                  size: 20,
-                ),
+                Icon(Icons.contact_phone_rounded, color: cs.primary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   s.detailContactDetailsTitle,
@@ -787,81 +831,112 @@ class _ContactCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            if (contactRevealed) ...[
-              // ── Revealed ──────────────────────────────────────────────
-              _ContactRow(
-                icon: Icons.phone_rounded,
-                text: '+251 91 123 4567',
-                color: cs.primary,
-              ),
-              const SizedBox(height: 8),
-              _ContactRow(
-                icon: Icons.email_outlined,
-                text: 'contact@jigjigamarketplace.et',
-                color: cs.onSurfaceVariant,
-              ),
-            ] else ...[
-              // ── Hidden ────────────────────────────────────────────────
-              Text(
-                s.detailContactHidden,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: cs.onSurfaceVariant,
-                  height: 1.5,
+            const SizedBox(height: 14),
+
+            // ── Phone number (if available) ────────────────────────────
+            if (widget.fetchingPhone)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: cs.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      s.detailFetchingPhone,
+                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              )
+            else if (phone != null && phone.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.phone_rounded, size: 15, color: cs.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      phone,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  s.detailNoPhone,
+                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                 ),
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: onStartChat,
-                  icon: const Icon(Icons.chat_bubble_outline_rounded,
-                      size: 18),
-                  label: Text(
-                    sessionId != null
-                        ? s.detailGoToChat
-                        : s.detailStartChat,
-                  ),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(46),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+
+            // ── Action buttons ─────────────────────────────────────────
+            Row(
+              children: [
+                // Call button — only active when phone is available
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: (phone != null && phone.isNotEmpty)
+                        ? () => _callPhone(phone)
+                        : null,
+                    icon: const Icon(Icons.call_rounded, size: 18),
+                    label: Text(
+                      s.detailCallSeller,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                // Request Call button — always active (sends a chat message)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _requestCallLoading ? null : _requestCall,
+                    icon: _requestCallLoading
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: cs.primary,
+                            ),
+                          )
+                        : Icon(Icons.phone_callback_rounded,
+                            size: 18, color: cs.primary),
+                    label: Text(
+                      s.detailRequestCall,
+                      style: TextStyle(
+                          color: cs.primary, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: cs.primary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ContactRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Color color;
-  const _ContactRow(
-      {required this.icon, required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -870,37 +945,73 @@ class _ContactRow extends StatelessWidget {
 // Sticky bottom CTA bar
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _StickyBar extends StatelessWidget {
+class _StickyBar extends StatefulWidget {
   final Listing listing;
   final KoolanAppState state;
   const _StickyBar({required this.listing, required this.state});
 
   @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final s  = state.s;
+  State<_StickyBar> createState() => _StickyBarState();
+}
 
-    Future<void> startChat() async {
-      final threadId = await state.startChatForListing(listing.id);
-      if (!context.mounted) return;
-      if (threadId != null) {
-        final idx =
-            state.chatSessions.indexWhere((sess) => sess.id == threadId);
-        if (idx != -1) state.pushScreen(ActiveChatScreenRoute(idx));
+class _StickyBarState extends State<_StickyBar> {
+  bool _chatLoading = false;
+
+  Future<void> _openChat() async {
+    final state = widget.state;
+    final listing = widget.listing;
+
+    // Auth gate: chatting requires sign-in.
+    if (!state.isSignedIn) {
+      if (!mounted) return;
+      showAuthGateSheet(context, reason: AuthGateReason.messages);
+      return;
+    }
+
+    // Fast path: thread already exists → navigate instantly.
+    final existing = state.getSessionForListing(listing.id);
+    if (existing != null) {
+      final idx = state.chatSessions.indexWhere((s) => s.id == existing.id);
+      if (idx != -1) {
+        state.pushScreen(ActiveChatScreenRoute(idx));
+        return;
       }
     }
 
+    // Slow path: create thread, show loading on button.
+    if (!mounted) return;
+    setState(() => _chatLoading = true);
+    final threadId = await state.startChatForListing(listing.id);
+    if (!mounted) return;
+    setState(() => _chatLoading = false);
+    if (threadId != null) {
+      final idx = state.chatSessions.indexWhere((s) => s.id == threadId);
+      if (idx != -1) state.pushScreen(ActiveChatScreenRoute(idx));
+    }
+  }
+
     Future<void> openViewingSheet() async {
+      // Auth gate: booking a viewing requires sign-in.
+      if (!widget.state.isSignedIn) {
+        showAuthGateSheet(context, reason: AuthGateReason.messages);
+        return;
+      }
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => _ViewingRequestSheet(
-          listing: listing,
-          state: state,
+          listing: widget.listing,
+          state: widget.state,
         ),
       );
     }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s  = widget.state.s;
+    final listing = widget.listing;
 
     return Positioned(
       left: 0,
@@ -931,9 +1042,18 @@ class _StickyBar extends StatelessWidget {
             // Chat button
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: startChat,
-                icon: Icon(Icons.chat_bubble_outline_rounded,
-                    size: 18, color: cs.primary),
+                onPressed: _chatLoading ? null : _openChat,
+                icon: _chatLoading
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: cs.primary,
+                        ),
+                      )
+                    : Icon(Icons.chat_bubble_outline_rounded,
+                        size: 18, color: cs.primary),
                 label: Text(
                   s.detailChat,
                   style: TextStyle(
@@ -1294,7 +1414,14 @@ class _SavePill extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => state.toggleSaveListing(listing.id),
+        onTap: () {
+          // Auth gate: saving a listing requires sign-in.
+          if (!state.isSignedIn) {
+            showAuthGateSheet(context, reason: AuthGateReason.save);
+            return;
+          }
+          state.toggleSaveListing(listing.id);
+        },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
@@ -1413,76 +1540,6 @@ class _BentoBox extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Map painter  (theme-aware schematic street map)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MapPainter extends CustomPainter {
-  final ColorScheme cs;
-  const _MapPainter(this.cs);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Background
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = cs.surfaceContainerHighest,
-    );
-
-    final roadPaint = Paint()
-      ..color = cs.surface
-      ..strokeWidth = 20
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final dashPaint = Paint()
-      ..color = cs.outlineVariant.withValues(alpha: 0.5)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    // Horizontal road
-    canvas.drawLine(
-        Offset(0, size.height * 0.5),
-        Offset(size.width, size.height * 0.5),
-        roadPaint);
-    // Vertical road
-    canvas.drawLine(
-        Offset(size.width * 0.35, 0),
-        Offset(size.width * 0.35, size.height),
-        roadPaint);
-    // Secondary horizontal
-    canvas.drawLine(
-        Offset(0, size.height * 0.25),
-        Offset(size.width, size.height * 0.25),
-        Paint()
-          ..color = cs.surface
-          ..strokeWidth = 10
-          ..style = PaintingStyle.stroke);
-
-    // Dashes on main horizontal
-    var x = 0.0;
-    while (x < size.width) {
-      canvas.drawLine(
-        Offset(x, size.height * 0.5),
-        Offset(x + 10, size.height * 0.5),
-        dashPaint,
-      );
-      x += 22;
-    }
-
-    // Location pin
-    final cx = Offset(size.width * 0.35, size.height * 0.5);
-    canvas.drawCircle(
-        cx, 22, Paint()..color = cs.primary.withValues(alpha: 0.15));
-    canvas.drawCircle(
-        cx, 10, Paint()..color = cs.primary.withValues(alpha: 0.9));
-    canvas.drawCircle(cx, 5, Paint()..color = cs.onPrimary);
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapPainter old) => old.cs != cs;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

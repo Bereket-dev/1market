@@ -83,8 +83,32 @@ class KoolanAppState extends ChangeNotifier {
             return;
           }
 
+          // tokenRefreshed fires when supabase_flutter silently renews the
+          // access token using the refresh token.  autoRefreshToken is true by
+          // default in FlutterAuthClientOptions, so this will fire automatically
+          // before each access-token expiry while the app is foregrounded.
+          // When the app resumes after a long background gap, the client fires
+          // this event on the first foreground tick if the access token needs
+          // renewal.  No action needed — the new token is stored automatically
+          // by supabase_flutter's GoTrueClient.
+          if (event.event == AuthChangeEvent.tokenRefreshed) {
+            debugPrint('[AUTH] Token silently refreshed — session extended');
+            return;
+          }
+
+          // signedOut covers both explicit sign-out AND expired/invalid refresh
+          // tokens (gotrue emits SIGNED_OUT in both cases).  Per the
+          // WhatsApp-style session spec we drop the user to guest mode rather
+          // than the auth screen, preserving onboarding flags so the
+          // first-install flow is not re-triggered.  The user will be prompted
+          // to sign in again the next time they attempt an auth-gated action.
           if (event.event == AuthChangeEvent.signedOut) {
-            await _resetAfterAuthStateChange();
+            debugPrint(
+              '[AUTH] signedOut event — entering guest mode. '
+              'User will be prompted to sign in again if they attempt an '
+              'auth-gated action.',
+            );
+            await _enterGuestMode(clearOnboardingData: false);
             return;
           }
 
@@ -494,6 +518,9 @@ class KoolanAppState extends ChangeNotifier {
   String postLocation = 'Kebele 06';
   String postPhysicalAddress = '';
   bool postMainPhotoAttached = false;
+  /// Condition / status selected by the user (e.g. "Brand New", "For Rent").
+  /// Empty string means the user has not yet chosen one.
+  String postCondition = '';
   String postSpec1 = '';
   String postSpec2 = '';
   String postSpec3 = '';
@@ -537,7 +564,30 @@ class KoolanAppState extends ChangeNotifier {
       debugPrint('Repo available: ${_repo != null}');
 
       if (!isSignedIn || _repo == null) {
-        onboardingPhase = OnboardingPhase.auth;
+        // ── Decide: first-install auth gate vs. guest mode ────────────────
+        // A user who has never completed onboarding (brand new install with no
+        // prior session) must see the mandatory auth + onboarding flow.
+        // A returning user who signed out (or whose refresh token expired) has
+        // already completed onboarding, so we drop them into guest/browse mode
+        // rather than forcing them back through the full onboarding screens.
+        final onboardingDone =
+            await app_local.LocalStorage.isOnboardingComplete();
+        final sessionPreviouslyRestored =
+            await app_local.LocalStorage.wasSessionRestored();
+        if (onboardingDone || sessionPreviouslyRestored) {
+          // Post-first-install: stay on Home in guest mode.
+          // Restore the locale so the UI language is correct even without a
+          // profile (language was persisted separately in wasSessionRestored flow).
+          final savedLang = await app_local.LocalStorage.getLanguage();
+          if (savedLang != null) locale = savedLang;
+          onboardingPhase = OnboardingPhase.ready;
+        } else {
+          // True first install — drop straight into guest/browse mode.
+          // Auth is no longer mandatory upfront; the soft-gate bottom sheet
+          // will prompt sign-in when the user attempts any auth-gated action
+          // (post, save, message, apply, etc.).
+          onboardingPhase = OnboardingPhase.ready;
+        }
         notifyListeners();
         return;
       }
@@ -605,7 +655,17 @@ class KoolanAppState extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       initError = e.toString();
-      onboardingPhase = OnboardingPhase.auth;
+      // Only force the full auth/onboarding flow if this looks like a true
+      // first-install scenario (onboarding not yet completed).  Otherwise show
+      // the error inline on the Home screen so the user can retry without being
+      // kicked back to the auth flow.
+      final onboardingDone =
+          await app_local.LocalStorage.isOnboardingComplete();
+      if (onboardingDone) {
+        onboardingPhase = OnboardingPhase.ready;
+      } else {
+        onboardingPhase = OnboardingPhase.auth;
+      }
       notifyListeners();
     } finally {
       debugPrint(
@@ -1682,6 +1742,48 @@ class KoolanAppState extends ChangeNotifier {
     }
   }
 
+  // ── Public Profile ───────────────────────────────────────────────────────────
+
+  /// In-memory cache of public profiles keyed by userId.
+  final Map<String, UserProfile> _publicProfileCache = {};
+
+  /// In-memory reviews cache keyed by userId (reviews written ABOUT that user).
+  final Map<String, List<ServiceReview>> _userReviewsCache = {};
+
+  UserProfile? getCachedPublicProfile(String userId) =>
+      _publicProfileCache[userId];
+
+  List<ServiceReview> getReviewsForUser(String userId) =>
+      _userReviewsCache[userId] ?? [];
+
+  /// Fetches the public profile for [userId] and caches it.
+  Future<UserProfile?> loadPublicProfile(String userId) async {
+    if (_repo == null) return _publicProfileCache[userId];
+    try {
+      final p = await _repo!.fetchPublicProfile(userId);
+      if (p != null) _publicProfileCache[userId] = p;
+      notifyListeners();
+      return p;
+    } catch (e) {
+      debugPrint('loadPublicProfile error: $e');
+      return _publicProfileCache[userId];
+    }
+  }
+
+  /// Fetches all reviews received by [userId] and caches them.
+  Future<List<ServiceReview>> loadReviewsForUser(String userId) async {
+    if (_repo == null) return _userReviewsCache[userId] ?? [];
+    try {
+      final reviews = await _repo!.fetchReviewsForUser(userId);
+      _userReviewsCache[userId] = reviews;
+      notifyListeners();
+      return reviews;
+    } catch (e) {
+      debugPrint('loadReviewsForUser error: $e');
+      return _userReviewsCache[userId] ?? [];
+    }
+  }
+
   // ── Save / Bookmark ──────────────────────────────────────────────────────────
   Future<void> toggleSaveListing(String listingId) async {
     final index = allListings.indexWhere((l) => l.id == listingId);
@@ -1927,6 +2029,7 @@ class KoolanAppState extends ChangeNotifier {
     postImagePaths = [];
     listingImageUploadError = null;
     isUploadingListingImages = false;
+    postCondition = '';
     postSpec1 = '';
     postSpec2 = '';
     postSpec3 = '';
@@ -2006,7 +2109,7 @@ class KoolanAppState extends ChangeNotifier {
         price: priceStr,
         imageUrl: primaryImageUrl,
         location: '${postLocation.trim()}, Jigjiga',
-        conditionOrStatus: 'Available',
+        conditionOrStatus: postCondition.trim().isEmpty ? 'Available' : postCondition.trim(),
         description: descStr,
         spec1Label: _specLabel1(postCategory),
         spec1Value: postSpec1.trim().isEmpty
@@ -2026,6 +2129,7 @@ class KoolanAppState extends ChangeNotifier {
             : postSpec4.trim(),
         sellerName: sellerName,
         sellerImage: sellerImage,
+        sellerPhone: profile?.phone,
         originalLanguage: locale,
         imageUrls: uploadedUrls,
       );
@@ -2055,6 +2159,40 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
+
+  /// Puts the app into guest/browse mode without wiping first-install flags.
+  ///
+  /// Called after:
+  ///   • Explicit sign-out
+  ///   • tokenRefreshException (refresh token expired or network exhausted)
+  ///
+  /// When [clearOnboardingData] is true (used only on hard-reset / account
+  /// deletion paths) the onboarding flags are also erased so the first-install
+  /// flow re-runs.  For normal logout/expiry this should be false so the user
+  /// lands on the Home screen rather than the auth onboarding flow.
+  Future<void> _enterGuestMode({bool clearOnboardingData = false}) async {
+    if (clearOnboardingData) {
+      await app_local.LocalStorage.clearLanguage();
+      await app_local.LocalStorage.clearSessionRestored();
+      await app_local.LocalStorage.clearOnboardingComplete();
+    }
+    await app_local.LocalStorage.clearProfileCache();
+    _repo = null;
+    profile = null;
+    allListings = [];
+    chatSessions = [];
+    navigationStack
+      ..clear()
+      ..add(HomeScreenRoute());
+    // Stay on the ready shell — the user can browse as a guest.
+    onboardingPhase = OnboardingPhase.ready;
+    initError = null;
+    dataError = null;
+    notifyListeners();
+  }
+
+  /// Legacy hard-reset used only by the error-recovery path in _initialize.
+  /// Wipes everything and forces the first-install auth flow.
   Future<void> _resetAfterAuthStateChange() async {
     await app_local.LocalStorage.clearLanguage();
     await app_local.LocalStorage.clearSessionRestored();
@@ -2078,12 +2216,48 @@ class KoolanAppState extends ChangeNotifier {
     try {
       if (client != null) {
         await client.auth.signOut();
+        // signOut() will emit AuthChangeEvent.signedOut which calls
+        // _enterGuestMode(clearOnboardingData: false).  No further action needed
+        // here — the event listener handles the state transition.
+      } else {
+        // No client available — enter guest mode directly.
+        await _enterGuestMode(clearOnboardingData: false);
       }
     } catch (e) {
       debugPrint('Sign out failed: $e');
-    } finally {
-      await _resetAfterAuthStateChange();
+      // Even if the remote sign-out fails, drop to guest mode locally.
+      await _enterGuestMode(clearOnboardingData: false);
     }
+  }
+
+  /// Routes the user to the AuthScreen so they can sign in or create an account.
+  /// [signUpMode] is passed as a query parameter so the auth screen can
+  /// pre-select the Sign Up tab when true.
+  ///
+  /// Called from the soft-gate bottom sheet CTAs.  The auth screen is pushed
+  /// onto the navigation stack so Back returns the user to whatever they were
+  /// doing.
+  void goToAuth({bool signUpMode = false}) {
+    // We set onboardingPhase to .auth which causes _RootGate to render
+    // AuthScreen on top of the current app shell.  When the user completes
+    // sign-in, onFreshAuth() is called which will advance the phase to
+    // .language (first-time) or .ready (returning user who lost session).
+    //
+    // We do NOT clear onboarding flags here — this is a soft navigation into
+    // the auth screen, not a first-install trigger.
+    onboardingPhase = OnboardingPhase.auth;
+    // Store the sign-up mode preference so AuthScreen can read it.
+    _pendingSignUpMode = signUpMode;
+    notifyListeners();
+  }
+
+  /// Whether the auth screen should pre-select the Sign Up tab.
+  /// Set by [goToAuth] and read by AuthScreen.
+  bool _pendingSignUpMode = false;
+  bool get pendingSignUpMode => _pendingSignUpMode;
+  void clearPendingSignUpMode() {
+    _pendingSignUpMode = false;
+    // No notifyListeners needed — called from AuthScreen initState.
   }
 
   void markOAuthPending() => _pendingOAuthCompletion = true;

@@ -42,11 +42,19 @@ class SupabaseRepository {
         meta['name'] as String? ??
         user.email?.split('@').first ??
         'User';
+    // Seed phone from Supabase auth (populated when user signs up with
+    // email+phone or phone OTP). Google Sign-In does not provide a phone.
+    final phone = user.phone?.isNotEmpty == true
+        ? user.phone
+        : (meta['phone'] as String?)?.isNotEmpty == true
+            ? meta['phone'] as String?
+            : null;
 
     await _client.from('profiles').insert({
       'id': userId,
       'display_name': displayName,
       'avatar_url': meta['avatar_url'],
+      'phone': phone,
     });
 
     profile = await fetchProfile(userId);
@@ -76,7 +84,7 @@ class SupabaseRepository {
   Future<List<Listing>> fetchListings({Set<String>? savedIds}) async {
     final rows = await _client
         .from('listings')
-        .select()
+        .select('*, profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)')
         .order('created_at', ascending: false);
 
     final userId = currentUserId;
@@ -131,6 +139,7 @@ class SupabaseRepository {
     String? spec4Value,
     required String sellerName,
     required String sellerImage,
+    String? sellerPhone,
     String originalLanguage = 'en',
     List<String> imageUrls = const [],
   }) async {
@@ -148,10 +157,6 @@ class SupabaseRepository {
           'location': location,
           'verified': true,
           'condition_or_status': conditionOrStatus,
-          'seller_name': sellerName,
-          'seller_image': sellerImage,
-          'seller_rating': 5.0,
-          'seller_reviews_count': 1,
           'description': description,
           'spec1_label': spec1Label,
           'spec1_value': spec1Value,
@@ -166,7 +171,7 @@ class SupabaseRepository {
           'description_translations': <String, String>{},
           'image_urls': imageUrls,
         })
-        .select()
+        .select('*, profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)')
         .single();
 
     return Listing.fromJson(row, isOwnedByCurrentUser: true);
@@ -649,5 +654,47 @@ class SupabaseRepository {
         .from('app_notifications')
         .update({'is_read': true})
         .eq('id', notificationId);
+  }
+
+  // ── Public Profile ───────────────────────────────────────────────────────────
+
+  /// Fetches the public profile of any user by [userId].
+  /// Returns null if not found.
+  Future<UserProfile?> fetchPublicProfile(String userId) async {
+    final data = await _client
+        .from('profiles')
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    if (data == null) return null;
+    return UserProfile.fromJson(data);
+  }
+
+  /// Fetches all service reviews received by [userId] (i.e. reviews on any
+  /// service owned by [userId]), enriched with reviewer name/avatar.
+  Future<List<ServiceReview>> fetchReviewsForUser(String userId) async {
+    // Join service_reviews → services to filter by owner_id.
+    final rows = await _client
+        .from('service_reviews')
+        .select('*, profiles(display_name, avatar_url), services!inner(owner_id)')
+        .eq('services.owner_id', userId)
+        .order('created_at', ascending: false);
+
+    return (rows as List).map((row) {
+      final r = row as Map<String, dynamic>;
+      final profile = r['profiles'] as Map<String, dynamic>?;
+      return ServiceReview(
+        id: r['id'] as String,
+        serviceId: r['service_id'] as String,
+        reviewerId: r['reviewer_id'] as String,
+        rating: (r['rating'] as num?)?.toInt() ?? 3,
+        comment: r['comment'] as String? ?? '',
+        createdAt:
+            DateTime.tryParse(r['created_at'] as String? ?? '') ??
+                DateTime.now(),
+        reviewerName: profile?['display_name'] as String?,
+        reviewerAvatarUrl: profile?['avatar_url'] as String?,
+      );
+    }).toList();
   }
 }

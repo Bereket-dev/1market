@@ -53,6 +53,17 @@ class AppStrings {
       _t('Continue with Google', 'በ Google ግባ', 'Google ku sii wad');
   String get authFacebook =>
       _t('Continue with Facebook', 'በ Facebook ግባ', 'Facebook ku sii wad');
+  String get authFullName => _t('Full name', 'ሙሉ ስም', 'Magaca buuxa');
+  String get authFullNameRequired =>
+      _t('Full name is required', 'ሙሉ ስም ያስፈልጋል', 'Magaca buuxa waa lagama maarmaan');
+  String get authConfirmPassword =>
+      _t('Confirm password', 'የይለፍ ቃል ያረጋግጡ', 'Xaqiiji erayga sirta');
+  String get authPasswordsDoNotMatch =>
+      _t("Passwords don't match", 'የፓስወርዶቹ ዓይነቶች አይዛመዱም', 'Erayadda sirta midba midka kale ma waafaqsana');
+  String get authShowPassword =>
+      _t('Show password', 'ፓስወርድ አሳይ', 'Muuji erayga sirta');
+  String get authHidePassword =>
+      _t('Hide password', 'ፓስወርድ ደብቅ', 'Qari erayga sirta');
 
   // ── Language onboarding ───────────────────────────────────────────────────────
   String get languageTitle =>
@@ -273,7 +284,8 @@ class AppStrings {
     'tusaale ETB 45 /saac ama furitaanka ETB 30',
   );
   String get wizardDescLabel => _t('Description', 'መግለጫ', 'Sharaxaad');
-  String get wizardLocationLabel => _t('Location', 'ቦታ', 'Goobta');
+  // Legacy alias — use wizardLocationLabel (defined in consolidated form block) for new UI.
+  String get wizardLocationZoneLabel => _t('Location', 'ቦታ', 'Goobta');
   String get wizardAddressLabel =>
       _t('Physical Address', 'አካላዊ አድራሻ', 'Cinwaanka jireed');
   String get wizardPhotoMock => _t(
@@ -285,6 +297,195 @@ class AppStrings {
     'Your listing has been posted!',
     'ዝርዝርዎ ተለጠፈ!',
     'Xayaysiiskaagu waa la daabacay!',
+  );
+
+  // ── Post Wizard — consolidated single-screen form ────────────────────────────
+
+  /// Section headers
+  String get wizardSectionBasic =>
+      _t('Basic Info', 'መሠረታዊ መረጃ', 'Macluumaadka aasaasiga ah');
+  String get wizardSectionLocation =>
+      _t('Location', 'ቦታ', 'Goobta');
+  String get wizardSectionSpecs =>
+      _t('Specifications', 'ዝርዝሮች', 'Sifooyinka');
+  String get wizardSectionMedia =>
+      _t('Photos', 'ፎቶዎች', 'Sawirada');
+  String get wizardSectionDescription =>
+      _t('Description', 'መግለጫ', 'Sharaxaad');
+
+  /// Required-field indicator (text label suffix, e.g. " *")
+  String get wizardRequired => _t(' *', ' *', ' *');
+
+  /// Generic "Other" option that appears last in every dropdown
+  String get wizardOther => _t('Other…', 'ሌላ…', 'Kale…');
+
+  /// Placeholder inside the "Other" free-text field
+  String get wizardOtherHint =>
+      _t('Type your own value', 'የራስዎን ዋጋ ይጻፉ', 'Qor qiimahaaga');
+
+  /// Category dropdown label
+  String get wizardCategoryLabel =>
+      _t('Category', 'ምድብ', 'Qaybta');
+
+  // Category option labels reuse wizardCatCarsTitle/Desc, wizardCatHousesTitle/Desc,
+  // wizardCatLandTitle/Desc already defined in the Post Wizard block below.
+
+  /// Service redirect card (no wizard steps for skills)
+  String get wizardSkillsCardTitle =>
+      _t('Post a Skill or Service', 'ክህሎት ወይም አገልግሎት ይለጥፉ', 'Ku daji xirfad ama adeeg');
+  String get wizardSkillsCardDesc => _t(
+    'Skills and services are managed from your Profile — tap to go there.',
+    'ክህሎቶች እና አገልግሎቶች ከፕሮፋይልዎ ይተዳደራሉ — ለመሄድ ይጫኑ።',
+    'Xirfadaha iyo adeegyada waxaa laga maamulaa xogta — taabo si aad u aaddo.',
+  );
+  String get wizardSkillsCardBadge =>
+      _t('Profile', 'ፕሮፋይል', 'Xogta');
+  String get wizardSkillsAddService =>
+      _t('Add a Service', 'አገልግሎት ያክሉ', 'Ku dar adeeg');
+  String get wizardSkillsPostJob =>
+      _t('Post a Job', 'ሥራ ይለጥፉ', 'Ku daji shaqo');
+
+  /// Condition / status label and options
+  String get wizardConditionLabel =>
+      _t('Condition / Status', 'ሁኔታ / ሁኔታ', 'Xaalad / Goobta');
+
+  /// CARS condition options
+  String get wizardCondCarNew => _t('Brand New', 'አዲስ', 'Cusub');
+  String get wizardCondCarUsed => _t('Used — Good', 'ያገለገለ — ጥሩ', 'La isticmaalay — Wanaagsan');
+  String get wizardCondCarFair => _t('Used — Fair', 'ያገለገለ — ተቀባይነት ያለ', 'La isticmaalay — Macquul');
+  String get wizardCondCarParts => _t('For Parts', 'ለዕቃ', 'Qaybaha loogu talagalay');
+
+  /// HOUSES condition options
+  String get wizardCondHouseForRent => _t('For Rent', 'ለኪራይ', 'Kire');
+  String get wizardCondHouseForSale => _t('For Sale', 'ለሽያጭ', 'Iib');
+  String get wizardCondHouseNewBuild => _t('New Build', 'አዲስ ግንባታ', 'Dhismo cusub');
+  String get wizardCondHouseRenovated => _t('Renovated', 'የታደሰ', 'La cusboonaysiiyey');
+
+  /// LAND condition options
+  String get wizardCondLandAvailable => _t('Available', 'ይገኛል', 'La heli karaa');
+  String get wizardCondLandTitleReady => _t('Title Deed Ready', 'የመሬት ሰነድ ዝግጁ', 'Warqadda dhulka diyaar');
+  String get wizardCondLandNegotiable => _t('Negotiable', 'ሊደራደር የሚቻል', 'La xaajoodi karaa');
+
+  // ── CARS spec dropdown options ───────────────────────────────────────────────
+  /// Spec 1 label: Year
+  String get wizardCarsSpec1Label => _t('Year', 'ዓመት', 'Sanadka');
+  /// Spec 2 label: Mileage
+  String get wizardCarsSpec2Label => _t('Mileage', 'ኪሎሜትር', 'Mayl-lakabka');
+  /// Spec 3 label: Transmission
+  String get wizardCarsSpec3Label => _t('Transmission', 'ማስተላለፊያ', 'Wareejinta');
+  /// Spec 4 label: Fuel Type
+  String get wizardCarsSpec4Label => _t('Fuel Type', 'የነዳጅ አይነት', 'Nooca shidaalka');
+
+  // Transmission options
+  String get wizardCarsTxAutomatic => _t('Automatic', 'አውቶማቲክ', 'Otomaatig');
+  String get wizardCarsTxManual => _t('Manual', 'ማንዋል', 'Gacanta');
+  String get wizardCarsTxCVT => _t('CVT', 'CVT', 'CVT');
+  String get wizardCarsTxAWD => _t('AWD / 4×4', 'AWD / 4×4', 'AWD / 4×4');
+
+  // Fuel options
+  String get wizardCarsFuelPetrol => _t('Petrol', 'ቤንዚን', 'Petrol');
+  String get wizardCarsFuelDiesel => _t('Diesel', 'ዲዝል', 'Diesel');
+  String get wizardCarsFuelHybrid => _t('Hybrid', 'ሃይብሪድ', 'Hybrid');
+  String get wizardCarsFuelElectric => _t('Electric', 'ኤሌክትሪክ', 'Korontada');
+  String get wizardCarsFuelGas => _t('LPG / Gas', 'ጋዝ', 'Gaas');
+
+  // Mileage options
+  String get wizardCarsMileage1 => _t('Under 10,000 km', 'ከ10,000 ኪ.ሜ በታች', '10,000 km ka yar');
+  String get wizardCarsMileage2 => _t('10,000 – 50,000 km', '10,000 – 50,000 ኪ.ሜ', '10,000 – 50,000 km');
+  String get wizardCarsMileage3 => _t('50,000 – 150,000 km', '50,000 – 150,000 ኪ.ሜ', '50,000 – 150,000 km');
+  String get wizardCarsMileage4 => _t('Over 150,000 km', 'ከ150,000 ኪ.ሜ በላይ', '150,000 km ka badan');
+
+  // ── HOUSES spec dropdown options ─────────────────────────────────────────────
+  String get wizardHousesSpec1Label => _t('Bedrooms', 'መኝታ ቤቶች', 'Qolalka seexashada');
+  String get wizardHousesSpec2Label => _t('Bathrooms', 'መታጠቢያ ቤቶች', 'Musqusha');
+  String get wizardHousesSpec3Label => _t('Floor Area', 'ወለል ስፋት', 'Baaxadda dabaqda');
+  String get wizardHousesSpec4Label => _t('Security', 'ደህንነት', 'Amniga');
+
+  // Bedrooms options
+  String get wizardHousesBed1 => _t('Studio', 'ስቱዲዮ', 'Studio');
+  String get wizardHousesBed2 => _t('1 Bedroom', '1 መኝታ ቤት', '1 qol seexasho');
+  String get wizardHousesBed3 => _t('2 Bedrooms', '2 መኝታ ቤቶች', '2 qol seexasho');
+  String get wizardHousesBed4 => _t('3 Bedrooms', '3 መኝታ ቤቶች', '3 qol seexasho');
+  String get wizardHousesBed5 => _t('4+ Bedrooms', '4+ መኝታ ቤቶች', '4+ qol seexasho');
+
+  // Bathrooms options
+  String get wizardHousesBath1 => _t('1 Bathroom', '1 መታጠቢያ', '1 musqul');
+  String get wizardHousesBath2 => _t('2 Bathrooms', '2 መታጠቢያዎች', '2 musqul');
+  String get wizardHousesBath3 => _t('3+ Bathrooms', '3+ መታጠቢያዎች', '3+ musqul');
+
+  // Floor Area options
+  String get wizardHousesArea1 => _t('Under 60 m²', 'ከ60 ካ.ሜ. በታች', '60 m² ka yar');
+  String get wizardHousesArea2 => _t('60 – 120 m²', '60 – 120 ካ.ሜ.', '60 – 120 m²');
+  String get wizardHousesArea3 => _t('120 – 250 m²', '120 – 250 ካ.ሜ.', '120 – 250 m²');
+  String get wizardHousesArea4 => _t('Over 250 m²', 'ከ250 ካ.ሜ. በላይ', '250 m² ka badan');
+
+  // Security options
+  String get wizardHousesSec1 => _t('24/7 Guard', '24/7 ዘበኛ', '24/7 ilaaliye');
+  String get wizardHousesSec2 => _t('Gated Compound', 'የተጠበቀ ቅጥር', 'Xero xidantahay');
+  String get wizardHousesSec3 => _t('CCTV', 'CCTV', 'CCTV');
+  String get wizardHousesSec4 => _t('Basic Lock', 'መሠረታዊ መቆለፊያ', 'Xujayn aasaasi ah');
+
+  // ── LAND spec dropdown options ───────────────────────────────────────────────
+  String get wizardLandSpec1Label => _t('Plot Size', 'የቦታ ስፋት', 'Baaxadda beerka');
+  String get wizardLandSpec2Label => _t('Land Use', 'የመሬት አጠቃቀም', 'Isticmaalka dhulka');
+  String get wizardLandSpec3Label => _t('Title Deed', 'የፊርማ ሰነድ', 'Warqadda hantida');
+  String get wizardLandSpec4Label => _t('Road Access', 'ወደ መንገድ ደረሰኝ', 'Gaaritaanka wadada');
+
+  // Plot size options
+  String get wizardLandSize1 => _t('Under 200 m²', 'ከ200 ካ.ሜ. በታች', '200 m² ka yar');
+  String get wizardLandSize2 => _t('200 – 500 m²', '200 – 500 ካ.ሜ.', '200 – 500 m²');
+  String get wizardLandSize3 => _t('500 – 1,000 m²', '500 – 1,000 ካ.ሜ.', '500 – 1,000 m²');
+  String get wizardLandSize4 => _t('Over 1,000 m²', 'ከ1,000 ካ.ሜ. በላይ', '1,000 m² ka badan');
+
+  // Land use options
+  String get wizardLandUse1 => _t('Residential', 'የመኖሪያ', 'Deganaanshaha');
+  String get wizardLandUse2 => _t('Commercial', 'ንግዳዊ', 'Ganacsiga');
+  String get wizardLandUse3 => _t('Agricultural', 'ለእርሻ', 'Beeraha');
+  String get wizardLandUse4 => _t('Mixed Use', 'የተቀላቀለ', 'Isticmaal isku dhafan');
+
+  // Title deed options
+  String get wizardLandDeed1 => _t('Available', 'ይገኛል', 'La heli karaa');
+  String get wizardLandDeed2 => _t('In Process', 'በሂደት ላይ', 'Waa socda');
+  String get wizardLandDeed3 => _t('Not Available', 'አይገኝም', 'Lama heli karo');
+
+  // Road access options
+  String get wizardLandRoad1 => _t('Paved Road', 'የዐስፓልት መንገድ', 'Wadad la xaaray');
+  String get wizardLandRoad2 => _t('Gravel Road', 'የጠጠር መንገድ', 'Wadad dhagax ah');
+  String get wizardLandRoad3 => _t('Dirt Track', 'የ흙 መንገድ', 'Wadad ciid ah');
+
+  // ── Location options ─────────────────────────────────────────────────────────
+  String get wizardLocationLabel =>
+      _t('Area / Kebele', 'አካባቢ / ቀበሌ', 'Xaafada / Kebele');
+  String get wizardLocationKebele01 => _t('Kebele 01', 'ቀበሌ 01', 'Kebele 01');
+  String get wizardLocationKebele02 => _t('Kebele 02', 'ቀበሌ 02', 'Kebele 02');
+  String get wizardLocationKebele03 => _t('Kebele 03', 'ቀበሌ 03', 'Kebele 03');
+  String get wizardLocationKebele04 => _t('Kebele 04', 'ቀበሌ 04', 'Kebele 04');
+  String get wizardLocationKebele05 => _t('Kebele 05', 'ቀበሌ 05', 'Kebele 05');
+  String get wizardLocationKebele06 => _t('Kebele 06', 'ቀበሌ 06', 'Kebele 06');
+
+  // ── Shared form labels ───────────────────────────────────────────────────────
+  String get wizardPriceLabelGeneric => _t('Price (ETB)', 'ዋጋ (ETB)', 'Qiimaha (ETB)');
+  String get wizardPriceHintGeneric =>
+      _t('e.g. 2,800,000', 'ለምሳሌ 2,800,000', 'tusaale 2,800,000');
+  // wizardTitleRequired and wizardPriceRequired already defined below.
+  String get wizardCategoryRequired =>
+      _t('Please choose a category', 'ምድብ ይምረጡ', 'Fadlan dooro qaybta');
+  String get wizardConditionRequired =>
+      _t('Please select condition', 'ሁኔታ ይምረጡ', 'Fadlan dooro xaaladda');
+
+  /// Photos section
+  String get wizardPhotosLabel => _t('Photos', 'ፎቶዎች', 'Sawirada');
+  String get wizardPhotosCount => _t('{n}/8', '{n}/8', '{n}/8');
+
+  /// Submit / draft feedback
+  String get wizardSavingDraft =>
+      _t('Saving draft…', 'ረቂቅ በማስቀመጥ ላይ…', 'Qiyaas la kaydiyayaa…');
+  String get wizardDraftSaved =>
+      _t('Draft saved', 'ረቂቅ ተቀምጧል', 'Qiyaasku waa la kaydiyey');
+  String get wizardOfflineBanner => _t(
+    'No internet — your listing will be posted when you reconnect.',
+    'ኢንተርኔት የለም — ሲያገናኙ ዝርዝርዎ ይለጠፋል።',
+    'Internetka ma jiro — xayaysiiskaagu waa la daabaci doonaa marka aad xirto.',
   );
 
   // ── Messages Screen ─────────────────────────────────────────────────────────
@@ -421,6 +622,62 @@ class AppStrings {
   String get syncPending => _t('Sending', 'በመላክ ላይ', 'Waa la diraya');
   String get syncSynced => _t('Synced', 'ተመሳስሏል', 'La waafajiyey');
   String get syncFailed => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
+
+  // ── Auth Gate (soft-gate bottom sheet) ───────────────────────────────────────
+
+  /// Title shown at the top of the soft-gate sheet.
+  String get authGateTitle =>
+      _t('Sign in to continue', 'ለቀጣይ ይግቡ', 'Gal si aad u sii wadato');
+
+  /// Body text variants per action type.
+  String get authGatePost => _t(
+    'Sign in to post a listing or service.',
+    'ዝርዝር ወይም አገልግሎት ለማስተዋወቅ ይግቡ።',
+    'Gal si aad u dajiso xayaysiis ama adeeg.',
+  );
+  String get authGateSave => _t(
+    'Sign in to save listings and view them later.',
+    'ዝርዝሮችን ለማስቀመጥ እና ቆይተው ለማየት ይግቡ።',
+    'Gal si aad u keydesho xayaysiisyada oo dambe aad u aragto.',
+  );
+  String get authGateMessages => _t(
+    'Sign in to chat with sellers and buyers.',
+    'ከሻጮች እና ገዢዎች ጋር ለመወያየት ይግቡ።',
+    'Gal si aad ula xariirto iibiyayaasha iyo iibsadayaasha.',
+  );
+  String get authGateNotifications => _t(
+    'Sign in to receive notifications about your listings and applications.',
+    'ስለ ዝርዝሮችዎ እና ማቅረቢያዎችዎ ማሳወቂያዎችን ለማግኘት ይግቡ።',
+    'Gal si aad u hesho ogeysiisyada ku saabsan xayaysiisyadaada iyo codsigaaga.',
+  );
+  String get authGateProfile => _t(
+    'Sign in to edit your profile and manage your account.',
+    'ፕሮፋይልዎን ለማርትዕ እና መለያዎን ለማስተዳደር ይግቡ።',
+    'Gal si aad u wax ka beddeshid xogta oo aad maamusho akoonkaaga.',
+  );
+  String get authGateApply => _t(
+    'Sign in to apply for this job.',
+    'ለዚህ ሥራ ለማመልከት ይግቡ።',
+    'Gal si aad codsato shaqadan.',
+  );
+  String get authGateGeneric => _t(
+    'Sign in to use this feature.',
+    'ይህን ባህሪ ለመጠቀም ይግቡ።',
+    'Gal si aad isticmaasho astaamahan.',
+  );
+
+  /// CTA buttons on the sheet.
+  String get authGateSignIn => _t('Sign In', 'ግባ', 'Gal');
+  String get authGateSignUp => _t('Create Account', 'መለያ ፍጠር', 'Samee akoon');
+  String get authGateDismiss => _t('Maybe later', 'ቆይቼ', 'Dambe');
+  String get authGateLoginWithEmail =>
+      _t('Log in with Email', 'በኢሜይል ግባ', 'Ku gal Iimaylka');
+  String get authGateNoAccount => _t(
+    "Don't have an account?",
+    'መለያ የለዎትም?',
+    'Akoon ma lihid?',
+  );
+  String get authGateCreateNow => _t('Create one now', 'አሁን ፍጠር', 'Hadda samee');
 
   // ── Messages Screen ──────────────────────────────────────────────────────────
   String get messagesRefreshed => _t('Chat list updated', 'የቻት ዝርዝር ታደሰ', 'Liiska sheekada waa la cusboonaysiiyey');
@@ -827,6 +1084,13 @@ class AppStrings {
   String get detailOpenMaps => _t('Open in Maps', 'በካርታ ክፈት', 'Ku fur khariidadda');
   String get detailOpeningMaps => _t('Opening Google Maps...', 'Google Maps እየከፈቱ...', 'Waa la furaya Google Maps...');
   String get detailContactDetailsTitle => _t('Contact Details', 'የእውቂያ ዝርዝሮች', 'Faahfaahinta xiriirka');
+  String get detailCallSeller => _t('Call Seller', 'ሻጩን ይደውሉ', 'Wac Iibiyaha');
+  String get detailRequestCall => _t('Request Call', 'ጥሪ ጠይቅ', 'Codsiga Wicitaanka');
+  String get detailRequestCallSent => _t('Call request sent to the seller!', 'ጥሪ ጥያቄ ለሻጩ ተልኳል!', 'Codsiga wicitaanka ayaa loo diray iibiyaha!');
+  String get detailRequestCallFailed => _t('Could not send request. Please try again.', 'ጥያቄ መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።', 'Codsi la diray ma ahayn. Fadlan isku day mar kale.');
+  String get detailRequestCallMessage => _t('📞 Hi! I saw your listing on Koolan and would like you to call me back.', '📞 ሰላም! ዝርዝርዎን በ Koolan አይቻለሁ፤ ደውሎ ወደ እኔ ይደውሉ።', '📞 Salaan! Waxaan arkay xayaysiiskaaga Koolan-ka waxaanan jeclaan lahaa inaad igula xirto.');
+  String get detailNoPhone => _t('Phone number not available for this seller.', 'ለዚህ ሻጭ ስልክ ቁጥር አይገኝም።', 'Lambarka telefoonku kuma jiro iibiyahan.');
+  String get detailFetchingPhone => _t('Fetching seller info…', 'የሻጭ መረጃ እየጫነ…', 'Waxaa la rarayo macluumaadka iibiyaha…');
   String get detailContactHidden => _t(
     'Contact details are shared after 3 messages are exchanged, or when either party taps "Share phone number" in the chat.',
     'የእውቂያ ዝርዝሮች ከ3 መልዕክቶች ልውውጥ በኋላ ወይም ማንኛውም ወገን "ስልክ ቁጥር ያጋሩ" ሲጫን ይጋራሉ።',
@@ -966,6 +1230,30 @@ class AppStrings {
     'ይህ ይዘት ከዋናው ቋንቋ በማሽን ተተርጉሟል።',
     'Qoraalkan waxaa turjumay mashiin ka ah luqadda asalka ah.',
   );
+
+  // ── Public Profile Screen ────────────────────────────────────────────────────
+  String get publicProfileTitle =>
+      _t('Profile', 'መገለጫ', 'Xogta');
+  String get publicProfileServices =>
+      _t('Services', 'አገልግሎቶች', 'Adeegyada');
+  String get publicProfileReviews =>
+      _t('Reviews', 'ግምገማዎች', 'Dib-u-eegisyada');
+  String get publicProfileNoServices => _t(
+    'No services posted yet',
+    'ምንም አገልግሎቶች አልተለጠፉም',
+    'Wali adeeg la ma dajin',
+  );
+  String get publicProfileNoBio => _t(
+    'No bio provided',
+    'ምንም ባዮ አልቀረበም',
+    'Xog gaaban la\'ahan',
+  );
+  String get publicProfileLoading =>
+      _t('Loading profile…', 'መገለጫ በመጫን ላይ…', 'Xogta waa la soo rarayaa…');
+  String get publicProfileNotFound =>
+      _t('Profile not found', 'መገለጫ አልተገኘም', 'Xogta lama helin');
+  String get publicProfileRatingLabel =>
+      _t('Rating', 'ደረጃ', 'Derejayn');
 
   // ── Fayda ID Verification Screen ─────────────────────────────────────────────
   String get faydaTitle =>

@@ -5,6 +5,7 @@ import 'core/constants/colors.dart';
 import 'core/router/routes.dart';
 import 'core/theme/app_theme.dart';
 import 'features/cars/presentation/screens/category_list_screen.dart';
+import 'shared/widgets/auth_gate_sheet.dart';
 import 'features/chat/presentation/screens/active_chat_screen.dart';
 import 'features/chat/presentation/screens/messages_screen.dart';
 import 'features/favorites/presentation/screens/saved_screen.dart';
@@ -34,6 +35,7 @@ import 'features/hiring/presentation/screens/hiring_management_screen.dart';
 import 'features/hiring/presentation/screens/my_applications_screen.dart';
 import 'features/hiring/presentation/screens/notifications_screen.dart';
 import 'features/listings/presentation/screens/my_listings_screen.dart';
+import 'features/profile/presentation/screens/public_profile_screen.dart';
 import 'shared/services/app_state.dart';
 
 class KoolanApp extends StatefulWidget {
@@ -361,6 +363,11 @@ class _AppShell extends StatelessWidget {
         key: ValueKey('edit_listing_${screen.listingId}'),
         listingId: screen.listingId,
       );
+    } else if (screen is PublicProfileScreenRoute) {
+      return PublicProfileScreen(
+        key: ValueKey('public_profile_${screen.userId}'),
+        userId: screen.userId,
+      );
     }
     return const SizedBox.shrink();
   }
@@ -537,7 +544,7 @@ class _BottomNavBar extends StatelessWidget {
     ];
 
     return Container(
-      height: 80,
+      height: 84,
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border(
@@ -557,18 +564,46 @@ class _BottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: tabs.map((tab) {
           if (tab.isFab) {
-            return InkWell(
-              onTap: onPostFab,
-              borderRadius: BorderRadius.circular(28),
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  shape: BoxShape.circle,
+            return Expanded(
+              child: InkWell(
+                onTap: () {
+                  // Auth gate: posting a listing requires sign-in.
+                  if (!appState.isSignedIn) {
+                    showAuthGateSheet(context, reason: AuthGateReason.post);
+                    return;
+                  }
+                  onPostFab();
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Colored rounded-square icon container — stands out
+                    // without overflowing, mirrors the size of other tab icons.
+                    Container(
+                      width: 40,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: cs.onPrimary,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tab.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: cs.primary,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(Icons.add,
-                    color: cs.onPrimaryContainer, size: 28),
               ),
             );
           }
@@ -576,7 +611,22 @@ class _BottomNavBar extends StatelessWidget {
           final selected = _isSelected(current, tab.route);
           return Expanded(
             child: InkWell(
-              onTap: () => appState.switchTab(tab.route),
+              onTap: () {
+                // Auth gate: Saved, Messages, and Profile require sign-in.
+                final needsAuth = tab.route is SavedScreenRoute ||
+                    tab.route is MessagesScreenRoute ||
+                    tab.route is ProfileScreenRoute;
+                if (needsAuth && !appState.isSignedIn) {
+                  final reason = tab.route is SavedScreenRoute
+                      ? AuthGateReason.save
+                      : tab.route is MessagesScreenRoute
+                          ? AuthGateReason.messages
+                          : AuthGateReason.profile;
+                  showAuthGateSheet(context, reason: reason);
+                  return;
+                }
+                appState.switchTab(tab.route);
+              },
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -595,7 +645,7 @@ class _BottomNavBar extends StatelessWidget {
                   Text(
                     tab.label,
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight:
                           selected ? FontWeight.bold : FontWeight.w500,
                       color: selected

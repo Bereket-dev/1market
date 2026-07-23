@@ -4,6 +4,7 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/rating_stars.dart';
 import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/similar_section.dart';
 
@@ -155,6 +156,23 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           fontSize: 15,
                           color: cs.onSurface,
                           fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // ── View owner profile ───────────────────────────────
+                      OutlinedButton.icon(
+                        onPressed: () => state.pushScreen(
+                          PublicProfileScreenRoute(service.ownerId),
+                        ),
+                        icon: const Icon(Icons.person_outline, size: 16),
+                        label: Text(state.s.detailViewProfile),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          side: BorderSide(color: cs.outlineVariant),
+                          textStyle: const TextStyle(fontSize: 13),
                         ),
                       ),
                       const Divider(height: 32),
@@ -372,6 +390,13 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final state = KoolanAppStateScope.of(context);
+
+    // Defensive auth gate (belt-and-suspenders; the toggle already blocks guests).
+    if (!state.isSignedIn) {
+      showAuthGateSheet(context, reason: AuthGateReason.generic);
+      return;
+    }
+
     setState(() {
       _submitting = true;
       _submitError = null;
@@ -432,11 +457,19 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
               label: Text(
                 _showForm ? s.commonCancel : s.reviewsSubmitTitle,
               ),
-              onPressed: () => setState(() {
-                _showForm = !_showForm;
-                _submitError = null;
-                _successMessage = null;
-              }),
+              onPressed: () {
+                // Auth gate: only block the *open* direction.
+                // Closing (cancel) is always allowed.
+                if (!_showForm && !state.isSignedIn) {
+                  showAuthGateSheet(context, reason: AuthGateReason.generic);
+                  return;
+                }
+                setState(() {
+                  _showForm = !_showForm;
+                  _submitError = null;
+                  _successMessage = null;
+                });
+              },
             ),
           ],
         ),

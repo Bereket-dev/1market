@@ -4,14 +4,19 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/sync_status_badge.dart';
+import '../../../../shared/models/syncable_entity.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PostWizardScreen
+// PostWizardScreen  —  single-screen consolidated listing form
 //
-// Covers three marketplace categories: CARS, HOUSES, LAND (3 steps each).
-// SKILLS is NOT a marketplace listing — it is a Service profile. Selecting
-// "Professional Service" on Step 1 immediately redirects the user to
-// ServiceManagementScreen with an explanation, instead of continuing the wizard.
+// All eligible classification fields (category, condition/status, every spec)
+// use a dropdown with a final "Other…" option that reveals a free-text field.
+// Free-text fields (title, price, description) remain open TextFormFields.
+//
+// Marketplace categories: CARS, HOUSES, LAND.
+// "Professional Service / Skill" → immediate redirect to ServiceManagementScreen
+//   (no wizard steps apply).
 // ─────────────────────────────────────────────────────────────────────────────
 
 class PostWizardScreen extends StatefulWidget {
@@ -23,9 +28,7 @@ class PostWizardScreen extends StatefulWidget {
 
 class _PostWizardScreenState extends State<PostWizardScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  // Total steps for marketplace listings (CARS / HOUSES / LAND)
-  static const int _totalSteps = 3;
+  bool _submitAttempted = false;
 
   @override
   void initState() {
@@ -35,154 +38,161 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
     });
   }
 
-  void _onNext(KoolanAppState state) {
-    // If SKILLS is selected, redirect instead of advancing the wizard.
-    if (state.postCategory == 'SKILLS') {
-      _redirectToServiceManagement(state);
-      return;
-    }
-    if (_formKey.currentState?.validate() ?? false) {
-      if (state.postStep < _totalSteps) {
-        setState(() => state.postStep++);
-      } else {
-        state.submitPost();
-      }
-    }
-  }
-
-  void _redirectToServiceManagement(KoolanAppState state) {
-    // Pop the wizard first, then push service management so Back works cleanly.
-    state.popScreen();
-    state.pushScreen(ServiceManagementScreenRoute());
+  Future<void> _onSubmit(KoolanAppState state) async {
+    setState(() => _submitAttempted = true);
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    await state.submitPost();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
-    final isSkills = state.postCategory == 'SKILLS';
+    final top = MediaQuery.of(context).padding.top;
+    final bottom = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: Form(
         key: _formKey,
+        autovalidateMode: _submitAttempted
+            ? AutovalidateMode.onUserInteraction
+            : AutovalidateMode.disabled,
         child: Column(
           children: [
-            _WizardHeader(
-              state: state,
-              totalSteps: _totalSteps,
-              isSkills: isSkills,
-            ),
+            // ── Header ────────────────────────────────────────────────────
+            _PostFormHeader(state: state, top: top),
+
+            // ── Scrollable form body ──────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: _buildStep(state, cs),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Section 1: Basic Info ─────────────────────────────
+                    _FormSection(
+                      label: state.s.wizardSectionBasic,
+                      required: true,
+                      child: _BasicInfoSection(
+                        state: state,
+                        onRebuild: () => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── Section 2: Location ───────────────────────────────
+                    // Only shown once a marketplace category is picked
+                    if (_isMarketplaceCat(state.postCategory)) ...[
+                      _FormSection(
+                        label: state.s.wizardSectionLocation,
+                        required: true,
+                        child: _LocationSection(
+                          state: state,
+                          onRebuild: () => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Section 3: Specifications ─────────────────────
+                      _FormSection(
+                        label: state.s.wizardSectionSpecs,
+                        required: false,
+                        child: _SpecsSection(
+                          state: state,
+                          onRebuild: () => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Section 4: Description ────────────────────────
+                      _FormSection(
+                        label: state.s.wizardSectionDescription,
+                        required: false,
+                        child: _DescriptionSection(state: state),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Section 5: Photos ─────────────────────────────
+                      _FormSection(
+                        label: state.s.wizardSectionMedia,
+                        required: false,
+                        child: _PhotosSection(
+                          state: state,
+                          onRebuild: () => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // ── Upload error ──────────────────────────────────────
+                    if (state.listingImageUploadError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          state.listingImageUploadError!,
+                          style: TextStyle(
+                              fontSize: 13, color: cs.error),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-            _WizardFooter(
-              state: state,
-              isSkills: isSkills,
-              totalSteps: _totalSteps,
-              onNext: () => _onNext(state),
-            ),
+
+            // ── Submit footer ─────────────────────────────────────────────
+            if (_isMarketplaceCat(state.postCategory))
+              _SubmitFooter(
+                state: state,
+                bottom: bottom,
+                onSubmit: () => _onSubmit(state),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStep(KoolanAppState state, ColorScheme cs) {
-    switch (state.postStep) {
-      case 1:
-        return _Step1Category(
-          state: state,
-          onRebuild: () => setState(() {}),
-        );
-      case 2:
-        return _Step2Details(state: state);
-      case 3:
-        return _Step3Finalize(
-          state: state,
-          onRebuild: () => setState(() {}),
-        );
-      default:
-        return _Step1Category(
-          state: state,
-          onRebuild: () => setState(() {}),
-        );
-    }
-  }
+  bool _isMarketplaceCat(String cat) =>
+      cat == 'CARS' || cat == 'HOUSES' || cat == 'LAND';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Header + progress bar
+// Header
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _WizardHeader extends StatelessWidget {
+class _PostFormHeader extends StatelessWidget {
   final KoolanAppState state;
-  final int totalSteps;
-  final bool isSkills;
-  const _WizardHeader({
-    required this.state,
-    required this.totalSteps,
-    required this.isSkills,
-  });
+  final double top;
+  const _PostFormHeader({required this.state, required this.top});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // Safe area top
-    final top = MediaQuery.of(context).padding.top;
-
     return Container(
-      padding: EdgeInsets.fromLTRB(8, top + 8, 16, 12),
-      child: Column(
+      padding: EdgeInsets.fromLTRB(4, top + 8, 16, 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back, color: cs.primary),
-                onPressed: () {
-                  if (state.postStep > 1) {
-                    state.postStep--;
-                  } else {
-                    state.popScreen();
-                  }
-                },
-              ),
-              Expanded(
-                child: Text(
-                  state.s.wizardTitle,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              // Step indicator — hidden when SKILLS selected (no steps apply)
-              if (!isSkills)
-                Text(
-                  '${state.postStep} / $totalSteps',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-            ],
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: cs.primary),
+            tooltip: state.s.wizardBack,
+            onPressed: () => state.popScreen(),
           ),
-          if (!isSkills) ...[
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: LinearProgressIndicator(
-                value: state.postStep / totalSteps,
-                color: cs.primary,
-                backgroundColor: cs.surfaceContainerHighest,
-                minHeight: 5,
-                borderRadius: BorderRadius.circular(3),
+          Expanded(
+            child: Text(
+              state.s.wizardTitle,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
               ),
             ),
-          ],
+          ),
+          // Sync status badge — shows draft/pending/synced state
+          if (state.isUploadingListingImages)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: SyncStatusBadge(status: SyncStatus.pending),
+            ),
         ],
       ),
     );
@@ -190,223 +200,605 @@ class _WizardHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Footer CTA
+// Section wrapper — renders a titled card-like grouping
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _WizardFooter extends StatelessWidget {
-  final KoolanAppState state;
-  final bool isSkills;
-  final int totalSteps;
-  final VoidCallback onNext;
-  const _WizardFooter({
-    required this.state,
-    required this.isSkills,
-    required this.totalSteps,
-    required this.onNext,
+class _FormSection extends StatelessWidget {
+  final String label;
+  final bool required;
+  final Widget child;
+  const _FormSection({
+    required this.label,
+    required this.required,
+    required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isLastStep = state.postStep == totalSteps;
-
-    final label = isSkills
-        ? 'Go to My Services'
-        : isLastStep
-            ? state.s.wizardSubmit
-            : state.s.wizardNext;
-
-    final icon = isSkills
-        ? Icons.arrow_forward_rounded
-        : isLastStep
-            ? Icons.check_rounded
-            : Icons.arrow_forward_rounded;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        8,
-        24,
-        MediaQuery.of(context).padding.bottom + 16,
-      ),
-      child: FilledButton.icon(
-        onPressed: onNext,
-        icon: Icon(icon),
-        label: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(54),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Step 1 — Category picker
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _Step1Category extends StatelessWidget {
-  final KoolanAppState state;
-  final VoidCallback onRebuild;
-  const _Step1Category({required this.state, required this.onRebuild});
-
-  @override
-  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = state.s;
-
-    // SKILLS card is rendered differently — it explains the redirect.
-    final cats = [
-      (s.wizardCatCarsTitle,   s.wizardCatCarsDesc,   Icons.directions_car_rounded, 'CARS'),
-      (s.wizardCatHousesTitle, s.wizardCatHousesDesc, Icons.home_rounded,            'HOUSES'),
-      (s.wizardCatLandTitle,   s.wizardCatLandDesc,   Icons.landscape_rounded,       'LAND'),
-    ];
-
+    // required indicator: use the AppStrings getter (goes through _t)
+    final s = KoolanAppStateScope.of(context).s;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 8),
-        Text(
-          s.wizardStartPosting,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: cs.onSurface,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          s.wizardSelectType,
-          style: TextStyle(color: cs.onSurfaceVariant),
-        ),
-        const SizedBox(height: 20),
-
-        // ── Marketplace listing options ───────────────────────────────────
-        ...cats.map((c) {
-          final (title, desc, icon, key) = c;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _CategoryCard(
-              title: title,
-              desc: desc,
-              icon: icon,
-              catKey: key,
-              isSelected: state.postCategory == key,
-              isRedirect: false,
-              onTap: () {
-                state.postCategory = key;
-                onRebuild();
-              },
+        Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: cs.primary,
+                letterSpacing: 0.3,
+              ),
             ),
-          );
-        }),
-
-        const SizedBox(height: 4),
-        Divider(color: cs.outlineVariant.withValues(alpha: 0.4)),
-        const SizedBox(height: 12),
-
-        // ── Skills / Professional Service — redirects to service mgmt ────
-        _SkillsRedirectCard(state: state),
-
-        const SizedBox(height: 8),
+            if (required)
+              Text(
+                s.wizardRequired,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: cs.error,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: cs.outlineVariant.withValues(alpha: 0.4),
+            ),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: child,
+        ),
       ],
     );
   }
 }
 
-// Regular category selection card
-class _CategoryCard extends StatelessWidget {
-  final String title;
-  final String desc;
-  final IconData icon;
-  final String catKey;
-  final bool isSelected;
-  final bool isRedirect;
-  final VoidCallback onTap;
+// ─────────────────────────────────────────────────────────────────────────────
+// _DropdownOrOther
+//
+// A dropdown that shows a list of translated options plus a final "Other…"
+// option. When "Other…" is selected the dropdown collapses and a TextFormField
+// appears so the user can type a custom value.
+//
+// The [value] / [onChanged] pair track the *internal* state value — the caller
+// stores it in AppState. When value equals [_otherSentinel] the free-text
+// field is active.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _CategoryCard({
-    required this.title,
-    required this.desc,
-    required this.icon,
-    required this.catKey,
-    required this.isSelected,
-    required this.isRedirect,
-    required this.onTap,
+const String _otherSentinel = '__other__';
+
+class _DropdownOrOther extends StatefulWidget {
+  final String label;
+  final bool isRequired;
+  final String? currentValue;
+  final List<String> options; // translated display strings
+  final List<String> optionKeys; // internal keys (same length as options)
+  final String otherLabel; // translated "Other…"
+  final String otherHint; // translated placeholder for free-text
+  final String? requiredError;
+  final ValueChanged<String> onChanged;
+
+  const _DropdownOrOther({
+    required this.label,
+    required this.isRequired,
+    required this.currentValue,
+    required this.options,
+    required this.optionKeys,
+    required this.otherLabel,
+    required this.otherHint,
+    required this.onChanged,
+    this.requiredError,
+  });
+
+  @override
+  State<_DropdownOrOther> createState() => _DropdownOrOtherState();
+}
+
+class _DropdownOrOtherState extends State<_DropdownOrOther> {
+  late TextEditingController _otherCtrl;
+  bool _isOther = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If the current value is not in the known option keys it was typed — restore
+    final inOptions = widget.currentValue == null ||
+        widget.optionKeys.contains(widget.currentValue);
+    _isOther = !inOptions && widget.currentValue!.isNotEmpty;
+    _otherCtrl = TextEditingController(text: _isOther ? widget.currentValue : '');
+  }
+
+  @override
+  void dispose() {
+    _otherCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
+
+    // Resolve the dropdown value: if _isOther use the sentinel, otherwise use
+    // the currentValue if it's in the known keys (else null = no selection).
+    String? dropdownValue;
+    if (_isOther) {
+      dropdownValue = _otherSentinel;
+    } else if (widget.currentValue != null &&
+        widget.optionKeys.contains(widget.currentValue)) {
+      dropdownValue = widget.currentValue;
+    }
+
+    final allOptionKeys = [...widget.optionKeys, _otherSentinel];
+    final allOptionLabels = [...widget.options, widget.otherLabel];
+
+    final inputDecoration = InputDecoration(
+      filled: true,
+      fillColor: cs.surface,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide:
+            BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: cs.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: cs.error),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label row
+        _FieldLabel(
+          label: widget.label,
+          isRequired: widget.isRequired,
+          requiredSuffix: s.wizardRequired,
+        ),
+        const SizedBox(height: 8),
+
+        // Dropdown
+        DropdownButtonFormField<String>(
+          initialValue: dropdownValue,
+          dropdownColor: cs.surfaceContainerHighest,
+          style: TextStyle(color: cs.onSurface, fontSize: 14),
+          decoration: inputDecoration,
+          validator: widget.isRequired
+              ? (v) {
+                  if (v == null) return widget.requiredError;
+                  if (v == _otherSentinel && _otherCtrl.text.trim().isEmpty) {
+                    return widget.requiredError;
+                  }
+                  return null;
+                }
+              : null,
+          items: List.generate(allOptionKeys.length, (i) {
+            final key = allOptionKeys[i];
+            final lbl = allOptionLabels[i];
+            final isOtherItem = key == _otherSentinel;
+            return DropdownMenuItem<String>(
+              value: key,
+              child: Text(
+                lbl,
+                style: TextStyle(
+                  color: isOtherItem
+                      ? cs.onSurfaceVariant
+                      : cs.onSurface,
+                  fontStyle: isOtherItem
+                      ? FontStyle.italic
+                      : FontStyle.normal,
+                ),
+              ),
+            );
+          }),
+          onChanged: (v) {
+            if (v == _otherSentinel) {
+              setState(() {
+                _isOther = true;
+                _otherCtrl.clear();
+              });
+              widget.onChanged('');
+            } else if (v != null) {
+              setState(() => _isOther = false);
+              widget.onChanged(v);
+            }
+          },
+        ),
+
+        // "Other" free-text field — slides in when sentinel is selected
+        if (_isOther) ...[
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _otherCtrl,
+            autofocus: true,
+            style: TextStyle(color: cs.onSurface, fontSize: 14),
+            decoration: inputDecoration.copyWith(
+              hintText: widget.otherHint,
+              hintStyle: TextStyle(
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+            ),
+            validator: widget.isRequired
+                ? (v) => (v == null || v.trim().isEmpty)
+                    ? widget.requiredError
+                    : null
+                : null,
+            onChanged: (v) => widget.onChanged(v),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _FieldLabel — label + optional required asterisk
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  final bool isRequired;
+  final String requiredSuffix;
+  const _FieldLabel({
+    required this.label,
+    required this.isRequired,
+    required this.requiredSuffix,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? cs.primaryContainer.withValues(alpha: 0.3)
-            : cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isSelected
-              ? cs.primary
-              : cs.outlineVariant.withValues(alpha: 0.5),
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor:
-                    isSelected ? cs.primary : cs.surfaceContainerHighest,
-                child: Icon(
-                  icon,
-                  color: isSelected ? cs.onPrimary : cs.primary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      desc,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isSelected)
-                Icon(Icons.check_circle_rounded, color: cs.primary, size: 20),
-            ],
-          ),
-        ),
-      ),
+    return Row(
+      children: [
+        Text(label,
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: cs.onSurface)),
+        if (isRequired)
+          Text(requiredSuffix,
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: cs.error)),
+      ],
     );
   }
 }
 
-// Skills redirect card — explains that skills & job posts live on Profile,
-// then navigates directly there on tap. No extra button needed.
+// ─────────────────────────────────────────────────────────────────────────────
+// _TextInputField — reusable labelled TextFormField
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TextInputField extends StatelessWidget {
+  final String label;
+  final String initial;
+  final String hint;
+  final bool isRequired;
+  final ValueChanged<String> onChanged;
+  final String? Function(String?)? validator;
+  final TextInputType keyboardType;
+  final int maxLines;
+
+  const _TextInputField({
+    required this.label,
+    required this.initial,
+    required this.hint,
+    required this.isRequired,
+    required this.onChanged,
+    this.validator,
+    this.keyboardType = TextInputType.text,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(
+          label: label,
+          isRequired: isRequired,
+          requiredSuffix: s.wizardRequired,
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          initialValue: initial,
+          onChanged: onChanged,
+          validator: validator,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          style: TextStyle(color: cs.onSurface, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+            filled: true,
+            fillColor: cs.surface,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                  color: cs.outlineVariant.withValues(alpha: 0.5)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: cs.primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: cs.error),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 1 — Basic Info
+// Category dropdown + condition dropdown + title + price
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BasicInfoSection extends StatelessWidget {
+  final KoolanAppState state;
+  final VoidCallback onRebuild;
+  const _BasicInfoSection({required this.state, required this.onRebuild});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state.s;
+
+    // ── Category: fixed known set (CARS / HOUSES / LAND) ─────────────────────
+    // "Other" is not applicable for category — skills redirect is a separate card.
+    final catKeys = ['CARS', 'HOUSES', 'LAND'];
+    final catLabels = [
+      s.wizardCatCarsTitle,
+      s.wizardCatHousesTitle,
+      s.wizardCatLandTitle,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Category picker ────────────────────────────────────────────────
+        _CategoryPickerField(
+          state: state,
+          catKeys: catKeys,
+          catLabels: catLabels,
+          onChanged: (v) {
+            state.postCategory = v;
+            // Reset condition and specs when category changes
+            state.postCondition = '';
+            state.postSpec1 = '';
+            state.postSpec2 = '';
+            state.postSpec3 = '';
+            state.postSpec4 = '';
+            onRebuild();
+          },
+        ),
+
+        // ── Skills redirect card ───────────────────────────────────────────
+        const SizedBox(height: 12),
+        _SkillsRedirectCard(state: state),
+
+        // ── Fields below only shown for marketplace categories ─────────────
+        if (state.postCategory == 'CARS' ||
+            state.postCategory == 'HOUSES' ||
+            state.postCategory == 'LAND') ...[
+          const SizedBox(height: 16),
+
+          // Condition / Status
+          _DropdownOrOther(
+            label: s.wizardConditionLabel,
+            isRequired: true,
+            currentValue: state.postCondition.isEmpty ? null : state.postCondition,
+            options: _conditionOptions(state.postCategory, s),
+            optionKeys: _conditionOptions(state.postCategory, s),
+            otherLabel: s.wizardOther,
+            otherHint: s.wizardOtherHint,
+            requiredError: s.wizardConditionRequired,
+            onChanged: (v) {
+              state.postCondition = v;
+              onRebuild();
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Title — free text (brand + year drives searchability)
+          _TextInputField(
+            label: s.wizardTitleLabel,
+            initial: state.postTitle,
+            hint: _titleHint(state.postCategory, s),
+            isRequired: true,
+            onChanged: (v) => state.postTitle = v,
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? s.wizardTitleRequired
+                : null,
+          ),
+          const SizedBox(height: 16),
+
+          // Price — free text (ETB amount)
+          _TextInputField(
+            label: _priceLabel(state.postCategory, s),
+            initial: state.postPrice,
+            hint: _priceHint(state.postCategory, s),
+            isRequired: true,
+            onChanged: (v) => state.postPrice = v,
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? s.wizardPriceRequired
+                : null,
+            keyboardType: TextInputType.number,
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<String> _conditionOptions(String cat, AppStrings s) {
+    return switch (cat) {
+      'CARS' => [
+          s.wizardCondCarNew,
+          s.wizardCondCarUsed,
+          s.wizardCondCarFair,
+          s.wizardCondCarParts,
+        ],
+      'HOUSES' => [
+          s.wizardCondHouseForRent,
+          s.wizardCondHouseForSale,
+          s.wizardCondHouseNewBuild,
+          s.wizardCondHouseRenovated,
+        ],
+      _ => [
+          s.wizardCondLandAvailable,
+          s.wizardCondLandTitleReady,
+          s.wizardCondLandNegotiable,
+        ],
+    };
+  }
+
+  String _titleHint(String cat, AppStrings s) => switch (cat) {
+        'CARS' => s.wizardCarsTitleHint,
+        'HOUSES' => s.wizardHousesTitleHint,
+        _ => s.wizardLandTitleHint,
+      };
+
+  String _priceLabel(String cat, AppStrings s) => switch (cat) {
+        'CARS' => s.wizardCarsPriceLabel,
+        'HOUSES' => s.wizardHousesPriceLabel,
+        _ => s.wizardLandPriceLabel,
+      };
+
+  String _priceHint(String cat, AppStrings s) => switch (cat) {
+        'CARS' => s.wizardCarsPriceHint,
+        'HOUSES' => s.wizardHousesPriceHint,
+        _ => s.wizardLandPriceHint,
+      };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Category picker field — inline radio-style cards (no "Other" for category)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CategoryPickerField extends StatelessWidget {
+  final KoolanAppState state;
+  final List<String> catKeys;
+  final List<String> catLabels;
+  final ValueChanged<String> onChanged;
+  const _CategoryPickerField({
+    required this.state,
+    required this.catKeys,
+    required this.catLabels,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = state.s;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(
+          label: s.wizardCategoryLabel,
+          isRequired: true,
+          requiredSuffix: s.wizardRequired,
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: List.generate(catKeys.length, (i) {
+            final key = catKeys[i];
+            final lbl = catLabels[i];
+            final selected = state.postCategory == key;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: i < catKeys.length - 1 ? 8 : 0),
+                child: GestureDetector(
+                  onTap: () => onChanged(key),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 6),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? cs.primaryContainer.withValues(alpha: 0.35)
+                          : cs.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected
+                            ? cs.primary
+                            : cs.outlineVariant.withValues(alpha: 0.5),
+                        width: selected ? 2 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          _catIcon(key),
+                          color: selected ? cs.primary : cs.onSurfaceVariant,
+                          size: 22,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          lbl,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: selected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: selected
+                                ? cs.primary
+                                : cs.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  IconData _catIcon(String key) => switch (key) {
+        'CARS' => Icons.directions_car_rounded,
+        'HOUSES' => Icons.home_rounded,
+        _ => Icons.landscape_rounded,
+      };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Skills redirect card — no wizard steps; taps through to Profile
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _SkillsRedirectCard extends StatelessWidget {
   final KoolanAppState state;
   const _SkillsRedirectCard({required this.state});
@@ -414,54 +806,55 @@ class _SkillsRedirectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
+    final s = state.s;
     return InkWell(
       onTap: () {
-        // Pop the wizard, then go straight to the Profile screen.
         state.popScreen();
         state.pushScreen(ProfileScreenRoute());
       },
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          color: cs.tertiaryContainer.withValues(alpha: 0.25),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: cs.tertiary.withValues(alpha: 0.45)),
+          color: cs.tertiaryContainer.withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.tertiary.withValues(alpha: 0.4)),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
+              radius: 18,
               backgroundColor: cs.tertiaryContainer,
-              child: Icon(Icons.person_rounded, color: cs.tertiary),
+              child: Icon(Icons.person_rounded, color: cs.tertiary, size: 18),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title row with "Profile" badge
                   Row(
                     children: [
-                      Text(
-                        'Post Your Skill or Job',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: cs.onSurface,
+                      Expanded(
+                        child: Text(
+                          s.wizardSkillsCardTitle,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: cs.onSurface,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: cs.tertiary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'Profile',
+                          s.wizardSkillsCardBadge,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -471,29 +864,27 @@ class _SkillsRedirectCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 5),
-                  // Clear two-line description
+                  const SizedBox(height: 4),
                   Text(
-                    'Your skills (services) and job posts are managed from your Profile — not here. Tap to go to your Profile and add them.',
+                    s.wizardSkillsCardDesc,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: cs.onSurfaceVariant,
-                      height: 1.45,
+                      height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  // Pill hints showing what's available on Profile
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
                     children: [
                       _MiniPill(
                         icon: Icons.construction_rounded,
-                        label: 'Add a Service',
+                        label: s.wizardSkillsAddService,
                         cs: cs,
                       ),
                       _MiniPill(
                         icon: Icons.work_outline,
-                        label: 'Post a Job',
+                        label: s.wizardSkillsPostJob,
                         cs: cs,
                       ),
                     ],
@@ -501,9 +892,9 @@ class _SkillsRedirectCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: cs.tertiary),
+                size: 13, color: cs.tertiary),
           ],
         ),
       ),
@@ -515,12 +906,13 @@ class _MiniPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final ColorScheme cs;
-  const _MiniPill({required this.icon, required this.label, required this.cs});
+  const _MiniPill(
+      {required this.icon, required this.label, required this.cs});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: cs.tertiary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -528,12 +920,12 @@ class _MiniPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: cs.tertiary),
+          Icon(icon, size: 10, color: cs.tertiary),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
               color: cs.tertiary,
             ),
@@ -545,190 +937,288 @@ class _MiniPill extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 2 — Details (title, price, location)
+// Section 2 — Location (dropdown + Other)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Step2Details extends StatelessWidget {
+class _LocationSection extends StatelessWidget {
   final KoolanAppState state;
-  const _Step2Details({required this.state});
-
-  static ({String titleHint, String priceLabel, String priceHint}) _hints(
-      String cat, AppStrings s) =>
-      switch (cat) {
-        'CARS' => (
-            titleHint: s.wizardCarsTitleHint,
-            priceLabel: s.wizardCarsPriceLabel,
-            priceHint: s.wizardCarsPriceHint,
-          ),
-        'HOUSES' => (
-            titleHint: s.wizardHousesTitleHint,
-            priceLabel: s.wizardHousesPriceLabel,
-            priceHint: s.wizardHousesPriceHint,
-          ),
-        _ => (
-            titleHint: s.wizardLandTitleHint,
-            priceLabel: s.wizardLandPriceLabel,
-            priceHint: s.wizardLandPriceHint,
-          ),
-      };
+  final VoidCallback onRebuild;
+  const _LocationSection({required this.state, required this.onRebuild});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final s = state.s;
-    final h = _hints(state.postCategory, s);
+    final kebeleKeys = [
+      'Kebele 01',
+      'Kebele 02',
+      'Kebele 03',
+      'Kebele 04',
+      'Kebele 05',
+      'Kebele 06',
+    ];
+    final kebeleLabels = [
+      s.wizardLocationKebele01,
+      s.wizardLocationKebele02,
+      s.wizardLocationKebele03,
+      s.wizardLocationKebele04,
+      s.wizardLocationKebele05,
+      s.wizardLocationKebele06,
+    ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 8),
-        Text(
-          s.wizardDetailsTitle,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: cs.onSurface,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(s.wizardDetailsSubtitle,
-            style: TextStyle(color: cs.onSurfaceVariant)),
-        const SizedBox(height: 24),
-        _WizardField(
-          label: s.wizardTitleLabel,
-          initial: state.postTitle,
-          hint: h.titleHint,
-          onChanged: (v) => state.postTitle = v,
-          validator: (v) =>
-              (v == null || v.trim().isEmpty) ? s.wizardTitleRequired : null,
-        ),
-        const SizedBox(height: 16),
-        _WizardField(
-          label: h.priceLabel,
-          initial: state.postPrice,
-          hint: h.priceHint,
-          onChanged: (v) => state.postPrice = v,
-          validator: (v) =>
-              (v == null || v.trim().isEmpty) ? s.wizardPriceRequired : null,
-          keyboardType: TextInputType.number,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          s.wizardLocationZone,
-          style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: state.postLocation,
-          dropdownColor: cs.surfaceContainerHighest,
-          style: TextStyle(color: cs.onSurface, fontSize: 14),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: cs.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: cs.outlineVariant.withValues(alpha: 0.5)),
-            ),
-          ),
-          items: [
-            'Kebele 01',
-            'Kebele 02',
-            'Kebele 03',
-            'Kebele 04',
-            'Kebele 05',
-            'Kebele 06',
-          ]
-              .map((k) => DropdownMenuItem(value: k, child: Text(k)))
-              .toList(),
-          onChanged: (v) => state.postLocation = v ?? 'Kebele 06',
-        ),
-        const SizedBox(height: 8),
-      ],
+    return _DropdownOrOther(
+      label: s.wizardLocationLabel,
+      isRequired: true,
+      currentValue: state.postLocation,
+      options: kebeleLabels,
+      optionKeys: kebeleKeys,
+      otherLabel: s.wizardOther,
+      otherHint: s.wizardOtherHint,
+      requiredError: s.wizardCategoryRequired,
+      onChanged: (v) {
+        state.postLocation = v.isEmpty ? 'Kebele 06' : v;
+        onRebuild();
+      },
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 3 — Finalize (description + photos)
+// Section 3 — Specifications (4 dropdowns with Other, per category)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Step3Finalize extends StatefulWidget {
+class _SpecsSection extends StatelessWidget {
   final KoolanAppState state;
   final VoidCallback onRebuild;
-  const _Step3Finalize({required this.state, required this.onRebuild});
+  const _SpecsSection({required this.state, required this.onRebuild});
 
-  @override
-  State<_Step3Finalize> createState() => _Step3FinalizeState();
-}
-
-class _Step3FinalizeState extends State<_Step3Finalize> {
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final s = widget.state.s;
-    final pickedPaths = widget.state.postImagePaths;
+    final s = state.s;
+    final cat = state.postCategory;
+
+    final specs = _specConfig(cat, s);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 8),
-        Text(
-          s.wizardFinalizeTitle,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: cs.onSurface,
+        for (int i = 0; i < specs.length; i++) ...[
+          if (i > 0) const SizedBox(height: 14),
+          _DropdownOrOther(
+            label: specs[i].label,
+            isRequired: false,
+            currentValue: _specValue(i),
+            options: specs[i].options,
+            optionKeys: specs[i].options, // keys == display strings for specs
+            otherLabel: s.wizardOther,
+            otherHint: s.wizardOtherHint,
+            onChanged: (v) {
+              _setSpec(i, v);
+              onRebuild();
+            },
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(s.wizardFinalizeSubtitle,
-            style: TextStyle(color: cs.onSurfaceVariant)),
-        const SizedBox(height: 24),
+        ],
+      ],
+    );
+  }
 
-        // ── Description ────────────────────────────────────────────────────
-        Text(s.wizardDescriptionLabel,
-            style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
-        const SizedBox(height: 8),
-        TextFormField(
-          initialValue: widget.state.postDescription,
-          onChanged: (v) => widget.state.postDescription = v,
-          maxLines: 4,
-          style: TextStyle(color: cs.onSurface),
-          decoration: InputDecoration(
-            hintText: s.wizardDescriptionHint,
-            hintStyle: TextStyle(
-                color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
-            filled: true,
-            fillColor: cs.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: cs.outlineVariant.withValues(alpha: 0.5)),
-            ),
+  String _specValue(int i) {
+    return switch (i) {
+      0 => state.postSpec1,
+      1 => state.postSpec2,
+      2 => state.postSpec3,
+      _ => state.postSpec4,
+    };
+  }
+
+  void _setSpec(int i, String v) {
+    switch (i) {
+      case 0:
+        state.postSpec1 = v;
+      case 1:
+        state.postSpec2 = v;
+      case 2:
+        state.postSpec3 = v;
+      default:
+        state.postSpec4 = v;
+    }
+  }
+
+  List<_SpecDef> _specConfig(String cat, AppStrings s) {
+    return switch (cat) {
+      'CARS' => [
+          _SpecDef(
+            label: s.wizardCarsSpec1Label,
+            options: [
+              '2024', '2023', '2022', '2021', '2020',
+              '2019', '2018', '2017', '2016', '2015',
+              '2014', '2013', '2012', '2010', '2008',
+              '2005', '2000',
+            ],
           ),
-        ),
-        const SizedBox(height: 20),
+          _SpecDef(
+            label: s.wizardCarsSpec2Label,
+            options: [
+              s.wizardCarsMileage1,
+              s.wizardCarsMileage2,
+              s.wizardCarsMileage3,
+              s.wizardCarsMileage4,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardCarsSpec3Label,
+            options: [
+              s.wizardCarsTxAutomatic,
+              s.wizardCarsTxManual,
+              s.wizardCarsTxCVT,
+              s.wizardCarsTxAWD,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardCarsSpec4Label,
+            options: [
+              s.wizardCarsFuelPetrol,
+              s.wizardCarsFuelDiesel,
+              s.wizardCarsFuelHybrid,
+              s.wizardCarsFuelElectric,
+              s.wizardCarsFuelGas,
+            ],
+          ),
+        ],
+      'HOUSES' => [
+          _SpecDef(
+            label: s.wizardHousesSpec1Label,
+            options: [
+              s.wizardHousesBed1,
+              s.wizardHousesBed2,
+              s.wizardHousesBed3,
+              s.wizardHousesBed4,
+              s.wizardHousesBed5,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardHousesSpec2Label,
+            options: [
+              s.wizardHousesBath1,
+              s.wizardHousesBath2,
+              s.wizardHousesBath3,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardHousesSpec3Label,
+            options: [
+              s.wizardHousesArea1,
+              s.wizardHousesArea2,
+              s.wizardHousesArea3,
+              s.wizardHousesArea4,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardHousesSpec4Label,
+            options: [
+              s.wizardHousesSec1,
+              s.wizardHousesSec2,
+              s.wizardHousesSec3,
+              s.wizardHousesSec4,
+            ],
+          ),
+        ],
+      _ /* LAND */ => [
+          _SpecDef(
+            label: s.wizardLandSpec1Label,
+            options: [
+              s.wizardLandSize1,
+              s.wizardLandSize2,
+              s.wizardLandSize3,
+              s.wizardLandSize4,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardLandSpec2Label,
+            options: [
+              s.wizardLandUse1,
+              s.wizardLandUse2,
+              s.wizardLandUse3,
+              s.wizardLandUse4,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardLandSpec3Label,
+            options: [
+              s.wizardLandDeed1,
+              s.wizardLandDeed2,
+              s.wizardLandDeed3,
+            ],
+          ),
+          _SpecDef(
+            label: s.wizardLandSpec4Label,
+            options: [
+              s.wizardLandRoad1,
+              s.wizardLandRoad2,
+              s.wizardLandRoad3,
+            ],
+          ),
+        ],
+    };
+  }
+}
 
-        // ── Images section ─────────────────────────────────────────────────
+class _SpecDef {
+  final String label;
+  final List<String> options;
+  const _SpecDef({required this.label, required this.options});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 4 — Description (free-text, optional)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DescriptionSection extends StatelessWidget {
+  final KoolanAppState state;
+  const _DescriptionSection({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state.s;
+    return _TextInputField(
+      label: s.wizardDescriptionLabel,
+      initial: state.postDescription,
+      hint: s.wizardDescriptionHint,
+      isRequired: false,
+      onChanged: (v) => state.postDescription = v,
+      maxLines: 4,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 5 — Photos (up to 8 images)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PhotosSection extends StatelessWidget {
+  final KoolanAppState state;
+  final VoidCallback onRebuild;
+  const _PhotosSection({required this.state, required this.onRebuild});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = state.s;
+    final paths = state.postImagePaths;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Count indicator
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Photos',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: cs.onSurface),
+            _FieldLabel(
+              label: s.wizardPhotosLabel,
+              isRequired: false,
+              requiredSuffix: s.wizardRequired,
             ),
             Text(
-              '${pickedPaths.length}/8',
+              '${paths.length}/8',
               style: TextStyle(
                   fontSize: 12, color: cs.onSurfaceVariant),
             ),
@@ -736,28 +1226,31 @@ class _Step3FinalizeState extends State<_Step3Finalize> {
         ),
         const SizedBox(height: 8),
 
-        // Grid of picked images + add button
-        if (pickedPaths.isNotEmpty)
+        // Horizontal thumbnail strip + add button
+        if (paths.isNotEmpty)
           SizedBox(
             height: 100,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: pickedPaths.length + (pickedPaths.length < 8 ? 1 : 0),
+              itemCount: paths.length + (paths.length < 8 ? 1 : 0),
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                if (index == pickedPaths.length) {
-                  // Add more button
+                if (index == paths.length) {
                   return _AddImageButton(
-                    onTap: () => widget.state.pickListingImages(context),
+                    onTap: () async {
+                      await state.pickListingImages(context);
+                      onRebuild();
+                    },
                     cs: cs,
+                    label: s.wizardAttachMedia,
                   );
                 }
                 return _ImageThumbnail(
-                  path: pickedPaths[index],
+                  path: paths[index],
                   cs: cs,
                   onRemove: () {
-                    widget.state.removeListingImage(index);
-                    setState(() {});
+                    state.removeListingImage(index);
+                    onRebuild();
                   },
                 );
               },
@@ -765,19 +1258,19 @@ class _Step3FinalizeState extends State<_Step3Finalize> {
           ),
 
         // Full-width upload zone when no images yet
-        if (pickedPaths.isEmpty)
+        if (paths.isEmpty)
           InkWell(
             onTap: () async {
-              await widget.state.pickListingImages(context);
-              setState(() {});
+              await state.pickListingImages(context);
+              onRebuild();
             },
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(18),
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: cs.outlineVariant.withValues(alpha: 0.4),
                 ),
@@ -785,8 +1278,8 @@ class _Step3FinalizeState extends State<_Step3Finalize> {
               child: Column(
                 children: [
                   Icon(Icons.cloud_upload_outlined,
-                      size: 44, color: cs.primary),
-                  const SizedBox(height: 10),
+                      size: 40, color: cs.primary),
+                  const SizedBox(height: 8),
                   Text(
                     s.wizardAttachMedia,
                     style: TextStyle(
@@ -797,28 +1290,18 @@ class _Step3FinalizeState extends State<_Step3Finalize> {
                     s.wizardMediaHint,
                     style: TextStyle(
                         fontSize: 12,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                        color: cs.onSurfaceVariant
+                            .withValues(alpha: 0.6)),
                   ),
                 ],
               ),
             ),
           ),
-
-        // Upload progress / error feedback
-        if (widget.state.listingImageUploadError != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            widget.state.listingImageUploadError!,
-            style: TextStyle(fontSize: 12, color: cs.error),
-          ),
-        ],
-        const SizedBox(height: 8),
       ],
     );
   }
 }
 
-// Thumbnail for a picked image with a remove button
 class _ImageThumbnail extends StatelessWidget {
   final String path;
   final ColorScheme cs;
@@ -846,9 +1329,7 @@ class _ImageThumbnail extends StatelessWidget {
             onTap: onRemove,
             child: Container(
               decoration: BoxDecoration(
-                color: cs.error,
-                shape: BoxShape.circle,
-              ),
+                  color: cs.error, shape: BoxShape.circle),
               padding: const EdgeInsets.all(4),
               child: Icon(Icons.close_rounded,
                   size: 14, color: cs.onError),
@@ -860,95 +1341,146 @@ class _ImageThumbnail extends StatelessWidget {
   }
 }
 
-// "+" button to add more images
 class _AddImageButton extends StatelessWidget {
   final VoidCallback onTap;
   final ColorScheme cs;
-  const _AddImageButton({required this.onTap, required this.cs});
+  final String label;
+  const _AddImageButton(
+      {required this.onTap, required this.cs, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 100,
-        height: 100,
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.5)),
+    return Tooltip(
+      message: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: cs.outlineVariant.withValues(alpha: 0.5)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_photo_alternate_rounded,
+                  size: 28, color: cs.primary),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 10, color: cs.onSurfaceVariant),
+              ),
+            ],
+          ),
         ),
-        child: Icon(Icons.add_photo_alternate_rounded,
-            size: 32, color: cs.primary),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared form field widget
+// Submit footer — single CTA button + offline banner
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _WizardField extends StatelessWidget {
-  final String label;
-  final String initial;
-  final String hint;
-  final ValueChanged<String> onChanged;
-  final String? Function(String?)? validator;
-  final TextInputType keyboardType;
-
-  const _WizardField({
-    required this.label,
-    required this.initial,
-    required this.hint,
-    required this.onChanged,
-    this.validator,
-    this.keyboardType = TextInputType.text,
+class _SubmitFooter extends StatelessWidget {
+  final KoolanAppState state;
+  final double bottom;
+  final VoidCallback onSubmit;
+  const _SubmitFooter({
+    required this.state,
+    required this.bottom,
+    required this.onSubmit,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style:
-                TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
-        const SizedBox(height: 8),
-        TextFormField(
-          initialValue: initial,
-          onChanged: onChanged,
-          validator: validator,
-          keyboardType: keyboardType,
-          style: TextStyle(color: cs.onSurface),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-                color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
-            filled: true,
-            fillColor: cs.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+    final s = state.s;
+    final isUploading = state.isUploadingListingImages;
+
+    return Container(
+      color: cs.surface,
+      padding: EdgeInsets.fromLTRB(20, 8, 20, bottom + 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Offline warning banner
+          _OfflineBanner(state: state),
+
+          const SizedBox(height: 8),
+
+          // Submit button
+          FilledButton.icon(
+            onPressed: isUploading ? null : onSubmit,
+            icon: isUploading
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: cs.onPrimary,
+                    ),
+                  )
+                : Icon(Icons.check_rounded),
+            label: Text(
+              s.wizardSubmit,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: cs.outlineVariant.withValues(alpha: 0.5)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: cs.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: cs.error),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(54),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Offline banner — shown when device is offline
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _OfflineBanner extends StatelessWidget {
+  final KoolanAppState state;
+  const _OfflineBanner({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = state.s;
+
+    // dataError is set by submitPost on network failure;
+    // show the offline message so the user knows the draft will sync later.
+    if (state.dataError == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.errorContainer.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.error.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, size: 16, color: cs.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              s.wizardOfflineBanner,
+              style: TextStyle(fontSize: 12, color: cs.onErrorContainer),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

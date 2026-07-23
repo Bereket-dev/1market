@@ -89,3 +89,8 @@ class EditListingScreenRoute extends KoolanScreen {
   final String listingId;
   EditListingScreenRoute(this.listingId);
 }
+
+class PublicProfileScreenRoute extends KoolanScreen {
+  final String userId;
+  PublicProfileScreenRoute(this.userId);
+}

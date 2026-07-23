@@ -9,6 +9,7 @@ import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/recommendation_engine.dart';
 import '../../../../shared/services/scorable_adapters.dart';
+import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
@@ -322,6 +323,11 @@ class HomeScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          // Auth gate: posting a listing requires sign-in.
+          if (!state.isSignedIn) {
+            showAuthGateSheet(context, reason: AuthGateReason.post);
+            return;
+          }
           showModalBottomSheet(
             context: context,
             backgroundColor: Colors.transparent,
@@ -412,7 +418,17 @@ class _HomeHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(24),
-                  onTap: () => state.pushScreen(NotificationsScreenRoute()),
+                  onTap: () {
+                    // Auth gate: notifications require sign-in.
+                    if (!state.isSignedIn) {
+                      showAuthGateSheet(
+                        context,
+                        reason: AuthGateReason.notifications,
+                      );
+                      return;
+                    }
+                    state.pushScreen(NotificationsScreenRoute());
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Icon(
@@ -465,7 +481,14 @@ class _HomeHeader extends StatelessWidget {
 
           // ── Profile avatar ─────────────────────────────────────────────────
           GestureDetector(
-            onTap: () => state.pushScreen(ProfileScreenRoute()),
+            onTap: () {
+              // Auth gate: profile requires sign-in.
+              if (!state.isSignedIn) {
+                showAuthGateSheet(context, reason: AuthGateReason.profile);
+                return;
+              }
+              state.pushScreen(ProfileScreenRoute());
+            },
             child: Container(
               width: 38,
               height: 38,
