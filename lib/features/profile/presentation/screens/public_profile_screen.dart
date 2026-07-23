@@ -64,9 +64,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
 
     final profile = state.getCachedPublicProfile(widget.userId);
     final reviews = state.getReviewsForUser(widget.userId);
-    // All services belonging to this user that are available
+    // Only services this user has marked as publicly available
     final services = state.allServices
-        .where((sv) => sv.ownerId == widget.userId)
+        .where((sv) => sv.ownerId == widget.userId && sv.availability)
         .toList();
 
     if (_loading && profile == null) {
