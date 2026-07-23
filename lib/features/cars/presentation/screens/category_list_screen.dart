@@ -190,7 +190,6 @@ class CategoryListScreen extends StatefulWidget {
 class _CategoryListScreenState extends State<CategoryListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  bool _verifiedOnly = false;
   bool _gridMode = true;              // default: 2-column grid to show more items
   _SortMode _sortMode = _SortMode.newest;
   final _filters = _FilterState();
@@ -423,8 +422,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 
     // Apply category + search first (via app_state), then local filters, then sort.
     final base     = state.getFilteredListings();
-    final verified = _verifiedOnly ? base.where((l) => l.verified).toList() : base;
-    final filtered = _filters.apply(verified);
+    final filtered = _filters.apply(base);
     final results  = _applySortMode(filtered, _sortMode);
 
     return Scaffold(
@@ -500,21 +498,6 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
             child: Row(
               children: [
-                // Verified toggle
-                Row(
-                  children: [
-                    Text(s.catVerifiedOnly,
-                        style: TextStyle(
-                            fontSize: 11, color: cs.onSurfaceVariant)),
-                    Transform.scale(
-                      scale: 0.75,
-                      child: Switch(
-                        value: _verifiedOnly,
-                        onChanged: (v) => setState(() => _verifiedOnly = v),
-                      ),
-                    ),
-                  ],
-                ),
                 const Spacer(),
                 // Sort chip
                 BrowseFilterChip(

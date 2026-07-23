@@ -60,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatarUrl = profile?.avatarUrl;
     final bannerUrl = profile?.bannerUrl;
     final city = profile?.city ?? 'Jigjiga';
-    final isVerified = profile != null;
+    final isVerified = profile?.faydaVerified ?? false;
 
     // Fallback banner when user hasn't set one yet.
     const fallbackBanner =
@@ -512,7 +512,7 @@ class _ServicesTab extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: services.length > 3 ? 3 : services.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final service = services[index];
               return _ProfileServiceCard(
@@ -1096,7 +1096,7 @@ class _ListingsTab extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: listings.length > 3 ? 3 : listings.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, i) {
               final l = listings[i];
               return _ProfileListingCard(

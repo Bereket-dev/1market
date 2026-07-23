@@ -597,18 +597,6 @@ class _TileActions extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-
-        // Verified badge if applicable
-        if (listing.verified)
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: cs.tertiary.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child:
-                Icon(Icons.verified_rounded, size: 16, color: cs.tertiary),
-          ),
       ],
     );
   }

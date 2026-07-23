@@ -296,7 +296,7 @@ class _ProfileSliverHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   // Verified badge (if applicable)
-                  if (profile != null)
+                  if (profile != null && profile!.faydaVerified)
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),

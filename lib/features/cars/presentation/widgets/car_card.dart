@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/icon_for_spec.dart';
-import '../../../../core/widgets/verified_badge.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
@@ -59,16 +58,8 @@ class PremiumClassifiedCard extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            if (listing.verified) ...[
-                              const VerifiedBadge(),
-                              const SizedBox(width: 6),
-                            ],
-                            _ConditionPill(
-                                status: listing.conditionOrStatus, cs: cs),
-                          ],
-                        ),
+                        _ConditionPill(
+                            status: listing.conditionOrStatus, cs: cs),
                         _SaveButton(
                             isSaved: listing.isSaved,
                             onTap: onSaveToggle,
@@ -198,15 +189,13 @@ class ListingCompactCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Save + verified overlay
+                // Save overlay
                 Positioned(
                   top: 6,
                   right: 6,
                   child: _SaveButton(
                       isSaved: listing.isSaved, onTap: onSaveToggle, cs: cs),
                 ),
-                if (listing.verified)
-                  const Positioned(top: 6, left: 6, child: VerifiedBadge()),
               ],
             ),
 

@@ -125,14 +125,6 @@ class AppStrings {
     'ሁሉንም ዝርዝሮች ይመልከቱ',
     'Arag dhammaan xayaysiisyada',
   );
-  String get homeTrustTitle =>
-      _t('Trusted Community', 'ታመነ ማህበረሰብ', 'Bulshada la믿aha ah');
-  String get homeVerifiedStats => _t(
-    '98% verified listings in Jigjiga',
-    '98% የተረጋገጡ ዝርዝሮች',
-    '98% xayaysiis xaqiijiyey',
-  );
-  String get homeSeeStats => _t('See stats', 'ስታቲስቲክስ ይመልከቱ', 'Arag tirooyin');
   String get homeNoNotifications => _t(
     'No new notifications',
     'አዲስ ማሳወቂያ የለም',
@@ -156,8 +148,6 @@ class AppStrings {
   );
 
   // ── Category List Screen ────────────────────────────────────────────────────
-  String get catVerifiedOnly =>
-      _t('Verified only', 'የተረጋገጡ ብቻ', 'Kuwa xaqiijiyey oo kaliya');
   String get catAll => _t('All', 'ሁሉም', 'Dhammaan');
   String get catForSale => _t('For Sale', 'ለሽያጭ', 'Iib');
   String get catForRent => _t('For Rent', 'ለኪራይ', 'Kiradda');
@@ -723,9 +713,6 @@ class AppStrings {
     'Taabo badhanka dhexe + si aad isla markiiba u daabacdo xayaysiiskaaga adeegga xirfadeed.',
   );
   String get profileProfSummary => _t('Professional Summary', 'ሙያዊ ማጠቃለያ', 'Kooban xirfadeed');
-  String get profileEscrowTitle => _t('Escrow Safety Vault', 'የኤስክሮ ደህንነት ካቢኔ', 'Khisaanada Ammaan ee Escrow');
-  String get profileEscrowActive => _t('Active', 'ንቁ', 'Firfircoon');
-  String get profileEscrowWallet => _t('Secured Escrow Wallet', 'የተጠበቀ የኤስክሮ ዋሌት', 'Boorso Escrow oo Ammaan ah');
   String get profileSpecialties => _t('Verified Specialties', 'የተረጋገጡ ልዩ ሙያዎች', 'Takhasuusyada la Xaqiijiyey');
   String get servicesTitle => _t('Services', 'አገልግሎቶች', 'Adeegyada');
   String get servicesAddNew => _t('Add new service', 'አዲስ አገልግሎት ያክሉ', 'Ku dar adeeg cusub');
@@ -976,10 +963,6 @@ class AppStrings {
       _t('No CV uploaded', 'ሲቪ አልቀረበም', 'CV lama soo gelin');
   String get applicantDetailExperience =>
       _t('Years of experience', 'የልምድ ዓመታት', 'Sanadaha Khibradda');
-  String get applicantDetailVerified =>
-      _t('Verified', 'የተረጋገጠ', 'La xaqiijiyey');
-  String get applicantDetailUnverified =>
-      _t('Unverified', 'ያልተረጋገጠ', 'La xaqiijin');
   String get applicantDetailNoReviews =>
       _t('No reviews yet', 'ምንም ግምገማ የለም', 'Wali dib-u-eegis la\'ahan');
   String get applicantDetailSubmittedAt =>
@@ -1025,12 +1008,6 @@ class AppStrings {
   String get settingsPhoneVerification => _t('Phone Verification', 'ስልክ ማረጋገጫ', 'Xaqiijinta telefoonka');
   String get settingsPhoneVerified => _t('Verified', 'ተረጋግጧል', 'Xaqiijiyey');
   String get settingsPrefCategory => _t('Preferred Category', 'ተመራጭ ምድብ', 'Qaybta la doortay');
-  String get settingsTrustSection => _t('Trust & Escrow Safety', 'ደህንነት እና ኤስክሮ', 'Ammaan & Escrow');
-  String get settingsIdVerification => _t('ID Document Verification', 'ዋስትና ማረጋገጫ', 'Xaqiijinta aqoonsiga');
-  String get settingsIdVerified => _t('Active', 'ንቁ', 'Firfircoon');
-  String get settingsWallet => _t('Secure Wallet Account', 'የኤስክሮ ዋሌት', 'Xisaabta Escrow');
-  String get settingsWalletSub =>
-      _t('Configure payout banks & escrow conditions', 'የክፍያ ባንኮችን ያዋቅሩ', 'Habaynta bangiga');
   String get settingsSystemSection => _t('System preferences', 'የስርዓት ቅንብሮች', 'Doorashada nidaamka');
   String get settingsLogOut => _t('Log Out Account', 'ከሂሳብ ውጣ', 'Ka bax xisaabta');
 
@@ -1151,9 +1128,6 @@ class AppStrings {
     'ጥያቄ ለመላክ ይግቡ',
     'Gal si aad codsi u dirtid',
   );
-  String get detailVerifiedListing => _t('Verified Listing', 'የተረጋገጠ ዝርዝር', 'Xayaysiis la xaqiijiyey');
-  String get detailVerifiedPro => _t('Verified Skilled Professional', 'የተረጋገጠ ባለሙያ', 'Xirfadle la xaqiijiyey');
-
   // ── Category List Screen ─────────────────────────────────────────────────────
   String get catNoMatchingListings => _t('No matching listings found', 'ተዛማጅ ዝርዝሮች አልተገኙም', 'Xayaysiis ku habboon ma helin');
   String get catClearFilters => _t('Try clearing your query filters', 'ማጣሪያዎቹን ለማጽዳት ይሞክሩ', 'Isku day nadiifi shaandhaynta');
@@ -1219,18 +1193,6 @@ class AppStrings {
   // Transmission options
   String get catTransAuto   => _t('Automatic', 'አውቶማቲክ', 'Otomaatig');
   String get catTransManual => _t('Manual',    'ማኑዋል',    'Gacanta');
-
-  // ── Home screen trust badge cards ─────────────────────────────────────────────
-  String get homeTrustHomeowner => _t(
-    'A homeowner in Kebele 03 just got verified',
-    'የቀበሌ 03 ቤት ባለቤት አሁን ተረጋገጠ',
-    'Milkiile guriga Kebele 03 ayaa la xaqiijiyey',
-  );
-  String get homeTrustDriver => _t(
-    'A security professional driver just joined',
-    'የደህንነት ባለሙያ ሾፌር ለቀላቀለ',
-    'Wadaad xirfadleh oo ammaaneed ayaa ku biirtay',
-  );
 
   // ── Post Wizard step 2/3 hints (English-only data; structural, not translatable) ──
   // These are placeholder hints for form fields — they describe data format,

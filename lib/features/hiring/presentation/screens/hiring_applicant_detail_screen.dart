@@ -211,8 +211,6 @@ class _HiringApplicantDetailScreenState
             profile: _applicantProfile,
             submittedAt: app.submittedAt,
             submittedLabel: s.applicantDetailSubmittedAt,
-            verifiedLabel: s.applicantDetailVerified,
-            unverifiedLabel: s.applicantDetailUnverified,
           ),
           const SizedBox(height: 20),
 
@@ -413,8 +411,6 @@ class _ProfileCard extends StatelessWidget {
   final UserProfile? profile;
   final DateTime submittedAt;
   final String submittedLabel;
-  final String verifiedLabel;
-  final String unverifiedLabel;
 
   const _ProfileCard({
     required this.applicantName,
@@ -422,8 +418,6 @@ class _ProfileCard extends StatelessWidget {
     this.profile,
     required this.submittedAt,
     required this.submittedLabel,
-    required this.verifiedLabel,
-    required this.unverifiedLabel,
   });
 
   @override

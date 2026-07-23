@@ -750,6 +750,7 @@ class KoolanAppState extends ChangeNotifier {
           'onboarding_complete': true,
           if (onboardingGoal != null) 'preferred_category': onboardingGoal,
           'language': locale,
+          if (verified) 'fayda_verified': true,
         });
       } catch (e) {
         // Profile update failed (network, RLS, etc.) — not fatal for onboarding.
@@ -761,6 +762,7 @@ class KoolanAppState extends ChangeNotifier {
       onboardingComplete: true,
       preferredCategory: onboardingGoal,
       language: locale,
+      faydaVerified: verified ? true : profile?.faydaVerified,
     );
     // Persist locally so we never re-show onboarding even when offline.
     await app_local.LocalStorage.markOnboardingComplete();

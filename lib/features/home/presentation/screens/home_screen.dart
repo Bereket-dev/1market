@@ -13,7 +13,6 @@ import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
-import '../widgets/trust_badge_card.dart';
 import '../widgets/recent_listing_card.dart';
 import '../../data/category_picker_sheet.dart';
 
@@ -141,54 +140,6 @@ class HomeScreen extends StatelessWidget {
                         ]),
                       ),
                     ),
-                  ),
-
-                  // Trust strip
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              state.s.homeTrustTitle,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: cs.onSurface,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () => ScaffoldMessenger.of(context)
-                                  .showSnackBar(SnackBar(
-                                      content:
-                                          Text(state.s.homeVerifiedStats))),
-                              child: Text(state.s.homeSeeStats,
-                                  style: TextStyle(color: cs.primary)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 24),
-                        child: Row(children: [
-                          TrustBadgeCard(
-                            icon: Icons.home,
-                            text: state.s.homeTrustHomeowner,
-                          ),
-                          const SizedBox(width: 16),
-                          TrustBadgeCard(
-                            icon: Icons.person,
-                            text: state.s.homeTrustDriver,
-                          ),
-                        ]),
-                      ),
-                    ],
                   ),
 
                   // ── Find Jobs banner ─────────────────────────────────────

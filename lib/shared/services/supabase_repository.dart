@@ -155,7 +155,6 @@ class SupabaseRepository {
           'price': price,
           'image_url': imageUrl,
           'location': location,
-          'verified': true,
           'condition_or_status': conditionOrStatus,
           'description': description,
           'spec1_label': spec1Label,

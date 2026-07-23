@@ -49,17 +49,6 @@ class RecentListingCard extends StatelessWidget {
                           color: cs.surfaceContainerHighest),
                     ),
                   ),
-                  if (listing.verified)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: CircleAvatar(
-                        radius: 9,
-                        backgroundColor: cs.tertiary,
-                        child: Icon(Icons.check,
-                            size: 11, color: cs.onTertiary),
-                      ),
-                    ),
                 ],
               ),
               const SizedBox(width: 14),
