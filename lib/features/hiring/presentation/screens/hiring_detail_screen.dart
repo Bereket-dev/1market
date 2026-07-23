@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/router/routes.dart';
@@ -191,6 +192,11 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Hero image (if present) ────────────────────────────────
+            if (post.imageUrl.isNotEmpty) ...[
+              _HiringHeroCarousel(imageUrl: post.imageUrl),
+              const SizedBox(height: 20),
+            ],
             // ── Title + status ─────────────────────────────────────────
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,6 +362,110 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
             // ── Similar hiring posts ──────────────────────────────────
             const SizedBox(height: 8),
             SimilarHiringSection(anchor: post),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Hiring hero carousel ──────────────────────────────────────────────────────
+// Renders a swipeable PageView when the post has multiple images, or a single
+// image when it has only one. HiringPost currently carries one imageUrl — the
+// widget is structured to grow when imageUrls is added to the model.
+
+class _HiringHeroCarousel extends StatefulWidget {
+  final String imageUrl;
+  const _HiringHeroCarousel({required this.imageUrl});
+
+  @override
+  State<_HiringHeroCarousel> createState() => _HiringHeroCarouselState();
+}
+
+class _HiringHeroCarouselState extends State<_HiringHeroCarousel> {
+  int _currentPage = 0;
+
+  List<String> get _images => [
+    if (widget.imageUrl.isNotEmpty) widget.imageUrl,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs     = Theme.of(context).colorScheme;
+    final images = _images;
+    final multi  = images.length > 1;
+
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: 220,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Photo(s) ───────────────────────────────────────────────
+            if (!multi)
+              CachedNetworkImage(
+                imageUrl: images.first,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(
+                  color: cs.primaryContainer.withValues(alpha: 0.25),
+                  child: Center(
+                      child: CircularProgressIndicator(color: cs.primary)),
+                ),
+                errorWidget: (_, _, _) => Container(
+                  color: cs.primaryContainer.withValues(alpha: 0.25),
+                  child: Icon(Icons.work_outline_rounded,
+                      size: 64, color: cs.primary.withValues(alpha: 0.4)),
+                ),
+              )
+            else
+              PageView.builder(
+                itemCount: images.length,
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                itemBuilder: (_, i) => CachedNetworkImage(
+                  imageUrl: images[i],
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(
+                    color: cs.primaryContainer.withValues(alpha: 0.25),
+                    child: Center(
+                        child: CircularProgressIndicator(color: cs.primary)),
+                  ),
+                  errorWidget: (_, _, _) => Container(
+                    color: cs.primaryContainer.withValues(alpha: 0.25),
+                    child: Icon(Icons.work_outline_rounded,
+                        size: 64, color: cs.primary.withValues(alpha: 0.4)),
+                  ),
+                ),
+              ),
+
+            // ── Dot indicators – only when multi ──────────────────────
+            if (multi)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(images.length, (i) {
+                    final active = i == _currentPage;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width:  active ? 18 : 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  }),
+                ),
+              ),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/router/routes.dart';
@@ -5,7 +6,6 @@ import '../../../../core/widgets/rating_stars.dart';
 import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
-import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/similar_section.dart';
 
 /// Read-only detail view for a service.
@@ -64,19 +64,12 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Hero image ─────────────────────────────────────────
-                SizedBox(
-                  height: 260,
-                  width: double.infinity,
-                  child: service.imageUrl.isNotEmpty
-                      ? CachedImageWidget(
-                          imageUrl: service.imageUrl,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 260,
-                          errorWidget: _ServiceHeroPlaceholder(cs: cs),
-                        )
-                      : _ServiceHeroPlaceholder(cs: cs),
+                // ── Hero image carousel ────────────────────────────────
+                _ServiceHeroCarousel(
+                  imageUrl: service.imageUrl,
+                  ownerId: service.ownerId,
+                  state: state,
+                  serviceId: service.id,
                 ),
 
                 Padding(
@@ -249,6 +242,126 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Service hero carousel ─────────────────────────────────────────────────────
+// Renders a swipeable PageView carousel when the service has multiple images,
+// or a single image / placeholder when it has zero or one.
+// Currently Service only carries imageUrl — the widget is structured to
+// accept a list so it can grow when imageUrls is added to the model.
+
+class _ServiceHeroCarousel extends StatefulWidget {
+  /// Primary cover image URL.
+  final String imageUrl;
+  final String ownerId;
+  final KoolanAppState state;
+  final String serviceId;
+
+  const _ServiceHeroCarousel({
+    required this.imageUrl,
+    required this.ownerId,
+    required this.state,
+    required this.serviceId,
+  });
+
+  @override
+  State<_ServiceHeroCarousel> createState() => _ServiceHeroCarouselState();
+}
+
+class _ServiceHeroCarouselState extends State<_ServiceHeroCarousel> {
+  int _currentPage = 0;
+
+  List<String> get _images => [
+    if (widget.imageUrl.isNotEmpty) widget.imageUrl,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs     = Theme.of(context).colorScheme;
+    final images = _images;
+    final multi  = images.length > 1;
+
+    return SizedBox(
+      height: 260,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ── Photo(s) ─────────────────────────────────────────────────
+          if (images.isEmpty)
+            _ServiceHeroPlaceholder(cs: cs)
+          else if (!multi)
+            CachedNetworkImage(
+              imageUrl: images.first,
+              fit: BoxFit.cover,
+              placeholder: (_, _) => Container(
+                color: cs.primaryContainer.withValues(alpha: 0.25),
+                child: Center(
+                    child: CircularProgressIndicator(color: cs.primary)),
+              ),
+              errorWidget: (_, _, _) => _ServiceHeroPlaceholder(cs: cs),
+            )
+          else
+            PageView.builder(
+              itemCount: images.length,
+              onPageChanged: (i) => setState(() => _currentPage = i),
+              itemBuilder: (_, i) => CachedNetworkImage(
+                imageUrl: images[i],
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(
+                  color: cs.primaryContainer.withValues(alpha: 0.25),
+                  child: Center(
+                      child: CircularProgressIndicator(color: cs.primary)),
+                ),
+                errorWidget: (_, _, _) => _ServiceHeroPlaceholder(cs: cs),
+              ),
+            ),
+
+          // ── Gradient scrim ───────────────────────────────────────────
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.center,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.40),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Dot indicators – only when multi ─────────────────────────
+          if (multi)
+            Positioned(
+              bottom: 14,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(images.length, (i) {
+                  final active = i == _currentPage;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width:  active ? 18 : 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  );
+                }),
+              ),
+            ),
         ],
       ),
     );

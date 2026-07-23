@@ -128,17 +128,41 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hero image  (single image from DB – no fake page counter)
+// Hero image  – single image OR swipeable PageView carousel when multiple
+// images exist.  Dot indicators are shown only when count > 1.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _HeroImage extends StatelessWidget {
+class _HeroImage extends StatefulWidget {
   final Listing listing;
   final KoolanAppState state;
   const _HeroImage({required this.listing, required this.state});
 
   @override
+  State<_HeroImage> createState() => _HeroImageState();
+}
+
+class _HeroImageState extends State<_HeroImage> {
+  int _currentPage = 0;
+
+  /// Builds the full ordered image list: primary first, extras after,
+  /// deduped and with empty strings filtered out.
+  List<String> get _images {
+    final all = <String>[
+      if (widget.listing.imageUrl.isNotEmpty) widget.listing.imageUrl,
+      ...widget.listing.imageUrls.where((u) => u.isNotEmpty),
+    ];
+    // Deduplicate while preserving order.
+    final seen = <String>{};
+    return all.where(seen.add).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs      = Theme.of(context).colorScheme;
+    final listing = widget.listing;
+    final state   = widget.state;
+    final images  = _images;
+    final multi   = images.length > 1;
 
     return SizedBox(
       height: 280,
@@ -146,29 +170,53 @@ class _HeroImage extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Photo ──────────────────────────────────────────────────────
-          listing.imageUrl.isNotEmpty
-              ? CachedNetworkImage(
-                  imageUrl: listing.imageUrl,
-                  cacheManager: KoolanImageCacheManager.instance,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(
-                    color: cs.surfaceContainerHighest,
-                    child: Center(
-                      child: CircularProgressIndicator(color: cs.primary),
-                    ),
+          // ── Photo(s) ───────────────────────────────────────────────────
+          if (images.isEmpty)
+            Container(
+              color: cs.surfaceContainerHighest,
+              child: Icon(Icons.image_not_supported,
+                  size: 48, color: cs.outline),
+            )
+          else if (!multi)
+            // Single image — no PageView overhead
+            CachedNetworkImage(
+              imageUrl: images.first,
+              cacheManager: KoolanImageCacheManager.instance,
+              fit: BoxFit.cover,
+              placeholder: (_, _) => Container(
+                color: cs.surfaceContainerHighest,
+                child: Center(
+                  child: CircularProgressIndicator(color: cs.primary),
+                ),
+              ),
+              errorWidget: (_, _, _) => Container(
+                color: cs.surfaceContainerHighest,
+                child: Icon(Icons.image_not_supported,
+                    size: 48, color: cs.outline),
+              ),
+            )
+          else
+            // Multiple images — swipeable carousel
+            PageView.builder(
+              itemCount: images.length,
+              onPageChanged: (i) => setState(() => _currentPage = i),
+              itemBuilder: (_, i) => CachedNetworkImage(
+                imageUrl: images[i],
+                cacheManager: KoolanImageCacheManager.instance,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(
+                  color: cs.surfaceContainerHighest,
+                  child: Center(
+                    child: CircularProgressIndicator(color: cs.primary),
                   ),
-                  errorWidget: (_, _, _) => Container(
-                    color: cs.surfaceContainerHighest,
-                    child: Icon(Icons.image_not_supported,
-                        size: 48, color: cs.outline),
-                  ),
-                )
-              : Container(
+                ),
+                errorWidget: (_, _, _) => Container(
                   color: cs.surfaceContainerHighest,
                   child: Icon(Icons.image_not_supported,
                       size: 48, color: cs.outline),
                 ),
+              ),
+            ),
 
           // ── Gradient scrim so top buttons are always legible ───────────
           Positioned.fill(
@@ -231,6 +279,32 @@ class _HeroImage extends StatelessWidget {
             bottom: 16,
             child: _ConditionPill(label: listing.conditionOrStatus),
           ),
+
+          // ── Dot indicators – bottom-center, only when multi-image ──────
+          if (multi)
+            Positioned(
+              bottom: 14,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(images.length, (i) {
+                  final active = i == _currentPage;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width:  active ? 18 : 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  );
+                }),
+              ),
+            ),
         ],
       ),
     );
