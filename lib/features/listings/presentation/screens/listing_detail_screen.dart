@@ -804,6 +804,11 @@ class _ContactActionsState extends State<_ContactActions> {
     final s     = KoolanAppStateScope.of(context).s;
     final phone = widget.resolvedPhone;
 
+    // Hide the entire section when phone is unknown and not currently fetching.
+    if (!widget.fetchingPhone && (phone == null || phone.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       child: Container(
@@ -833,7 +838,7 @@ class _ContactActionsState extends State<_ContactActions> {
             ),
             const SizedBox(height: 14),
 
-            // ── Phone number (if available) ────────────────────────────
+            // ── Phone number or loading indicator ─────────────────────
             if (widget.fetchingPhone)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -850,12 +855,13 @@ class _ContactActionsState extends State<_ContactActions> {
                     const SizedBox(width: 8),
                     Text(
                       s.detailFetchingPhone,
-                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                      style:
+                          TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                     ),
                   ],
                 ),
               )
-            else if (phone != null && phone.isNotEmpty)
+            else
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
@@ -863,7 +869,7 @@ class _ContactActionsState extends State<_ContactActions> {
                     Icon(Icons.phone_rounded, size: 15, color: cs.primary),
                     const SizedBox(width: 8),
                     Text(
-                      phone,
+                      phone!,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -872,68 +878,62 @@ class _ContactActionsState extends State<_ContactActions> {
                     ),
                   ],
                 ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  s.detailNoPhone,
-                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                ),
               ),
 
-            // ── Action buttons ─────────────────────────────────────────
-            Row(
-              children: [
-                // Call button — only active when phone is available
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: (phone != null && phone.isNotEmpty)
-                        ? () => _callPhone(phone)
-                        : null,
-                    icon: const Icon(Icons.call_rounded, size: 18),
-                    label: Text(
-                      s.detailCallSeller,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(46),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Request Call button — always active (sends a chat message)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _requestCallLoading ? null : _requestCall,
-                    icon: _requestCallLoading
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: cs.primary,
-                            ),
-                          )
-                        : Icon(Icons.phone_callback_rounded,
-                            size: 18, color: cs.primary),
-                    label: Text(
-                      s.detailRequestCall,
-                      style: TextStyle(
-                          color: cs.primary, fontWeight: FontWeight.bold),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(46),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      side: BorderSide(color: cs.primary),
+            // ── Action buttons — only shown once phone is known ────────
+            if (!widget.fetchingPhone && phone != null && phone.isNotEmpty)
+              Row(
+                children: [
+                  // Call — directly opens device dialler
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _callPhone(phone),
+                      icon: const Icon(Icons.call_rounded, size: 18),
+                      label: Text(
+                        s.detailCallSeller,
+                        style:
+                            const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(46),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 10),
+                  // Request Call — sends a chat message
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          _requestCallLoading ? null : _requestCall,
+                      icon: _requestCallLoading
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: cs.primary,
+                              ),
+                            )
+                          : Icon(Icons.phone_callback_rounded,
+                              size: 18, color: cs.primary),
+                      label: Text(
+                        s.detailRequestCall,
+                        style: TextStyle(
+                            color: cs.primary,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(46),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: cs.primary),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

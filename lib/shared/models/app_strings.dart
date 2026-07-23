@@ -65,6 +65,23 @@ class AppStrings {
   String get authHidePassword =>
       _t('Hide password', 'ፓስወርድ ደብቅ', 'Qari erayga sirta');
 
+  // ── Phone prompt during post ──────────────────────────────────────────────
+  String get wizardPhonePromptTitle =>
+      _t('Add your phone number', 'ስልክ ቁጥርዎን ያክሉ', 'Ku dar lambarka telefoonkaaga');
+  String get wizardPhonePromptBody => _t(
+    'Buyers will use this to contact you about your listing. It will also be saved to your profile.',
+    'ገዢዎች ስለ ማስታወቂያዎ ለማነጋገር ይጠቀሙበታል። በፕሮፋይልዎ ላይ ይቀመጣል።',
+    'Iibsadayaashu waxay u isticmaali doonaan inay kula xiriiraan xayaysiiskaaga. Waxaa kaloo lagu keydin doonaa xogtaada.',
+  );
+  String get wizardPhonePromptHint =>
+      _t('+251 9X XXX XXXX', '+251 9X XXX XXXX', '+251 9X XXX XXXX');
+  String get wizardPhonePromptRequired =>
+      _t('Phone number is required', 'ስልክ ቁጥር ያስፈልጋል', 'Lambarka telefoonka waa lagama maarmaan');
+  String get wizardPhonePromptSave =>
+      _t('Save & Continue', 'አስቀምጥ እና ቀጥል', 'Keydi oo sii wad');
+  String get wizardPhonePromptSkip =>
+      _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
+
   // ── Language onboarding ───────────────────────────────────────────────────────
   String get languageTitle =>
       _t('Choose your language', 'ቋንቋዎን ይምረጡ', 'Dooro luqaddaada');
