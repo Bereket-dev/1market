@@ -128,7 +128,7 @@ class _RootGate extends StatelessWidget {
           onRetry: appState.retryInitialization,
         );
       case OnboardingPhase.auth:
-        return const AuthScreen();
+        return const AuthScreen(fromOnboarding: true);
       case OnboardingPhase.language:
         return const LanguageScreen();
       case OnboardingPhase.location:

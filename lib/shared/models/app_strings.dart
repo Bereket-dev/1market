@@ -116,6 +116,7 @@ class AppStrings {
   String get homeCategoryHouses => _t('Houses', 'ቤቶች', 'Guryaha');
   String get homeCategoryLand => _t('Land', 'መሬት', 'Dhul');
   String get homeCategorySkills => _t('Skills', 'ችሎታዎች', 'Xirfadlayaasha');
+  String get homeCategoryOthers => _t('Others', 'ሌሎች', 'Kuwa kale');
   String get homeSearchHint =>
       _t('Search listings...', 'ዝርዝሮችን ፈልግ...', 'Raadi xayaysiisyada...');
   String get homeRecentlyAdded =>
@@ -206,6 +207,7 @@ class AppStrings {
   String get savedCatHouses => _t('Houses', 'ቤቶች',    'Guryo');
   String get savedCatLand   => _t('Land',   'መሬት',    'Dhul');
   String get savedCatSkills => _t('Skills', 'ክህሎቶች',  'Xirfadaha');
+  String get savedCatOthers => _t('Others', 'ሌሎች',    'Kuwa kale');
 
   // ── Compare Overlay ─────────────────────────────────────────────────────────
   String get compareTitle =>
@@ -438,6 +440,12 @@ class AppStrings {
   String get wizardLandSpec3Label => _t('Title Deed', 'የፊርማ ሰነድ', 'Warqadda hantida');
   String get wizardLandSpec4Label => _t('Road Access', 'ወደ መንገድ ደረሰኝ', 'Gaaritaanka wadada');
 
+  // Others — 4 generic custom spec labels (free-text, user fills value)
+  String get wizardOthersSpec1Label => _t('Detail 1 (optional)', 'ዝርዝር 1 (አስፈላጊ ካልሆነ)', 'Faahfaahin 1 (ikhtiyaari)');
+  String get wizardOthersSpec2Label => _t('Detail 2 (optional)', 'ዝርዝር 2 (አስፈላጊ ካልሆነ)', 'Faahfaahin 2 (ikhtiyaari)');
+  String get wizardOthersSpec3Label => _t('Detail 3 (optional)', 'ዝርዝር 3 (አስፈላጊ ካልሆነ)', 'Faahfaahin 3 (ikhtiyaari)');
+  String get wizardOthersSpec4Label => _t('Detail 4 (optional)', 'ዝርዝር 4 (አስፈላጊ ካልሆነ)', 'Faahfaahin 4 (ikhtiyaari)');
+
   // Plot size options
   String get wizardLandSize1 => _t('Under 200 m²', 'ከ200 ካ.ሜ. በታች', '200 m² ka yar');
   String get wizardLandSize2 => _t('200 – 500 m²', '200 – 500 ካ.ሜ.', '200 – 500 m²');
@@ -605,6 +613,8 @@ class AppStrings {
   String get wizardCatHousesDesc => _t('List houses, apartments, villas.', 'ቤቶች፣ አፓርትማዎች እና ቪላዎች ያስቀምጡ።', 'Ku daji guryaha, dabaqyada, villada.');
   String get wizardCatLandTitle => _t('Land / Plots', 'መሬት / ቦታዎች', 'Dhulka / Goobaha');
   String get wizardCatLandDesc => _t('Sell or lease farming fields or commercial sites.', 'የእርሻ ቦታዎችን ወይም የንግድ ቦታዎችን ይሸጡ ወይም ያከራዩ።', 'Iib ama kiri beerta beeraha ama goobaha ganacsiga.');
+  String get wizardCatOthersTitle => _t('Other / Miscellaneous', 'ሌሎች / ልዩ ልዩ', 'Kale / Kala duwan');
+  String get wizardCatOthersDesc => _t("Anything that doesn't fit the above categories.", 'ከላይ ባሉ ምድቦች የማይካተት ማናቸውም ነገር።', 'Wax kasta oo aan ku dhicin qaybaha kore.');
   String get wizardDetailsTitle => _t('Details & Title', 'ዝርዝሮች እና ርዕስ', 'Faahfaahin & Cinwaan');
   String get wizardDetailsSubtitle =>
       _t('Describe your listing with a clear title and pricing.', 'ዝርዝርዎን ግልጽ ርዕስ እና ዋጋ ያስቀምጡ።', 'Si cad uga sheeg xayaysiiskaaga cinwaan iyo qiimaha.');

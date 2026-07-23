@@ -25,6 +25,7 @@ class CategoryPickerSheet extends StatelessWidget {
       _PickerOption((s) => s.homeCategoryHouses, Icons.home, 'HOUSES'),
       _PickerOption((s) => s.homeCategoryLand, Icons.landscape, 'LAND'),
       _PickerOption((s) => s.homeCategorySkills, Icons.construction, 'SKILLS'),
+      _PickerOption((s) => s.homeCategoryOthers, Icons.category_outlined, 'OTHERS'),
     ];
 
     return Container(

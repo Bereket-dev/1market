@@ -748,7 +748,29 @@ class KoolanAppState extends ChangeNotifier {
 
   Future<void> completeGoalSelection(String goal) async {
     onboardingGoal = goal;
+    // Persist to local storage first (works offline).
     await app_local.LocalStorage.savePreferredCategory(goal);
+    // Also write to the DB immediately so the preference is available for
+    // server-side analytics and recommendation features.
+    if (_repo != null) {
+      try {
+        await _repo!.updateProfile({'preferred_category': goal});
+        profile = profile?.copyWith(
+          preferredCategory: goal,
+          syncStatus: SyncStatus.synced,
+        );
+        debugPrint('[GoalSelection] preferred_category saved to DB: $goal');
+      } catch (e) {
+        // Non-fatal — the goal is saved locally and will sync later.
+        profile = profile?.copyWith(
+          preferredCategory: goal,
+          syncStatus: SyncStatus.pending,
+        );
+        debugPrint('[GoalSelection] DB write failed (will sync later): $e');
+      }
+    } else {
+      profile = profile?.copyWith(preferredCategory: goal);
+    }
     await app_local.LocalStorage.saveOnboardingPhase('verification');
     onboardingPhase = OnboardingPhase.verification;
     notifyListeners();
@@ -2290,6 +2312,8 @@ class KoolanAppState extends ChangeNotifier {
         return 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=500&q=80';
       case 'LAND':
         return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=500&q=80';
+      case 'OTHERS':
+        return 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=500&q=80';
       default:
         return 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80';
     }
@@ -2301,6 +2325,8 @@ class KoolanAppState extends ChangeNotifier {
       ? 'Bedrooms'
       : cat == 'LAND'
       ? 'Size'
+      : cat == 'OTHERS'
+      ? 'Detail 1'
       : 'Category';
   String _specDefault1(String cat) => cat == 'CARS'
       ? '2023'
@@ -2308,6 +2334,8 @@ class KoolanAppState extends ChangeNotifier {
       ? '3 Bed'
       : cat == 'LAND'
       ? '500 sqm'
+      : cat == 'OTHERS'
+      ? ''
       : 'Worker';
 
   String _specLabel2(String cat) => cat == 'CARS'
@@ -2316,6 +2344,8 @@ class KoolanAppState extends ChangeNotifier {
       ? 'Bathrooms'
       : cat == 'LAND'
       ? 'Land Use'
+      : cat == 'OTHERS'
+      ? 'Detail 2'
       : 'Experience';
   String _specDefault2(String cat) => cat == 'CARS'
       ? '5,000 km'
@@ -2323,6 +2353,8 @@ class KoolanAppState extends ChangeNotifier {
       ? '2 Bath'
       : cat == 'LAND'
       ? 'Residential'
+      : cat == 'OTHERS'
+      ? ''
       : '3 years';
 
   String _specLabel3(String cat) => cat == 'CARS'
@@ -2331,6 +2363,8 @@ class KoolanAppState extends ChangeNotifier {
       ? 'Area'
       : cat == 'LAND'
       ? 'Title Deed'
+      : cat == 'OTHERS'
+      ? 'Detail 3'
       : 'Skills';
   String _specDefault3(String cat) => cat == 'CARS'
       ? 'Automatic'
@@ -2338,6 +2372,8 @@ class KoolanAppState extends ChangeNotifier {
       ? '150m²'
       : cat == 'LAND'
       ? 'Available'
+      : cat == 'OTHERS'
+      ? ''
       : 'General Support';
 
   String _specLabel4(String cat) => cat == 'CARS'
@@ -2346,6 +2382,8 @@ class KoolanAppState extends ChangeNotifier {
       ? 'Security'
       : cat == 'LAND'
       ? 'Road Access'
+      : cat == 'OTHERS'
+      ? 'Detail 4'
       : 'Status';
   String _specDefault4(String cat) => cat == 'CARS'
       ? 'Petrol'
@@ -2353,6 +2391,8 @@ class KoolanAppState extends ChangeNotifier {
       ? '24/7'
       : cat == 'LAND'
       ? 'Yes'
+      : cat == 'OTHERS'
+      ? ''
       : 'Verified';
 }
 

@@ -7,7 +7,7 @@ import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
 
 // Valid preferred-category values — must match the CHECK constraint in Supabase.
-const _kCategories = ['CARS', 'HOUSES', 'LAND', 'SKILLS'];
+const _kCategories = ['CARS', 'HOUSES', 'LAND', 'SKILLS', 'OTHERS'];
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -374,10 +374,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         ..._kCategories.map((cat) {
                           final label = switch (cat) {
-                            'CARS' => s.homeCategoryCars,
+                            'CARS'   => s.homeCategoryCars,
                             'HOUSES' => s.homeCategoryHouses,
-                            'LAND' => s.homeCategoryLand,
-                            _ => s.homeCategorySkills,
+                            'LAND'   => s.homeCategoryLand,
+                            'SKILLS' => s.homeCategorySkills,
+                            'OTHERS' => s.homeCategoryOthers,
+                            _        => s.homeCategoryOthers,
                           };
                           return DropdownMenuItem<String?>(
                             value: cat,

@@ -13,6 +13,8 @@ import 'reset_password_screen.dart';
 //
 // Single shared screen for sign-in and sign-up. Reached two ways:
 //   1. First-install onboarding  (onboardingPhase == .auth)
+//      → [fromOnboarding] = true: hides the tab-switcher and goes straight
+//        to sign-up so the user is never asked to "log in" during signup.
 //   2. Soft-gate bottom sheet CTAs via appState.goToAuth(signUpMode: …)
 //      pendingSignUpMode is consumed in initState to pre-select the tab.
 //
@@ -20,7 +22,13 @@ import 'reset_password_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  /// When true the screen is shown as part of the first-install onboarding
+  /// flow. The tab-switcher (Sign In / Sign Up) is hidden and the screen
+  /// always starts in sign-up mode so users are never prompted to log in
+  /// during the signup journey.
+  final bool fromOnboarding;
+
+  const AuthScreen({super.key, this.fromOnboarding = false});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -47,6 +55,10 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    // Onboarding flow always starts in sign-up mode.
+    if (widget.fromOnboarding) {
+      _isSignUp = true;
+    }
     // Consume pendingSignUpMode so bottom-sheet "Create Account" pre-selects
     // the sign-up tab automatically.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -318,24 +330,28 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(height: 28),
 
               // ── Tab switcher ──────────────────────────────────────────────
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment(value: false, label: Text(s.authSignIn)),
-                  ButtonSegment(value: true, label: Text(s.authSignUp)),
-                ],
-                selected: {_isSignUp},
-                onSelectionChanged: (v) => _switchTab(v.first),
-                style: SegmentedButton.styleFrom(
-                  selectedBackgroundColor: cs.primaryContainer,
-                  selectedForegroundColor: cs.onPrimaryContainer,
-                  side: BorderSide(
-                      color: cs.outlineVariant.withValues(alpha: 0.6)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              // Hidden during first-install onboarding — users should always
+              // sign up, not be prompted to log in mid-flow.
+              if (!widget.fromOnboarding) ...[
+                SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(value: false, label: Text(s.authSignIn)),
+                    ButtonSegment(value: true, label: Text(s.authSignUp)),
+                  ],
+                  selected: {_isSignUp},
+                  onSelectionChanged: (v) => _switchTab(v.first),
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor: cs.primaryContainer,
+                    selectedForegroundColor: cs.onPrimaryContainer,
+                    side: BorderSide(
+                        color: cs.outlineVariant.withValues(alpha: 0.6)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
+              ],
 
               // ── Form ──────────────────────────────────────────────────────
               Form(

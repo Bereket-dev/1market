@@ -506,6 +506,7 @@ class _IconPlaceholder extends StatelessWidget {
       'HOUSES' => Icons.home_rounded,
       'LAND' => Icons.landscape_rounded,
       'SKILLS' => Icons.construction_rounded,
+      'OTHERS' => Icons.category_outlined,
       _ => Icons.inventory_2_outlined,
     };
     return Container(

@@ -242,7 +242,7 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
   }
 
   bool _isMarketplaceCat(String cat) =>
-      cat == 'CARS' || cat == 'HOUSES' || cat == 'LAND';
+      cat == 'CARS' || cat == 'HOUSES' || cat == 'LAND' || cat == 'OTHERS';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -663,11 +663,13 @@ class _BasicInfoSection extends StatelessWidget {
 
     // ── Category: fixed known set (CARS / HOUSES / LAND) ─────────────────────
     // "Other" is not applicable for category — skills redirect is a separate card.
-    final catKeys = ['CARS', 'HOUSES', 'LAND'];
+    // CARS / HOUSES / LAND / OTHERS (SKILLS has its own redirect card below)
+    final catKeys = ['CARS', 'HOUSES', 'LAND', 'OTHERS'];
     final catLabels = [
       s.wizardCatCarsTitle,
       s.wizardCatHousesTitle,
       s.wizardCatLandTitle,
+      s.wizardCatOthersTitle,
     ];
 
     return Column(
@@ -694,13 +696,11 @@ class _BasicInfoSection extends StatelessWidget {
         const SizedBox(height: 12),
         _SkillsRedirectCard(state: state),
 
-        // ── Fields below only shown for marketplace categories ─────────────
+        // ── Condition/Status — CARS / HOUSES / LAND only (OTHERS skips fixed fields)
         if (state.postCategory == 'CARS' ||
             state.postCategory == 'HOUSES' ||
             state.postCategory == 'LAND') ...[
           const SizedBox(height: 16),
-
-          // Condition / Status
           _DropdownOrOther(
             label: s.wizardConditionLabel,
             isRequired: true,
@@ -715,9 +715,14 @@ class _BasicInfoSection extends StatelessWidget {
               onRebuild();
             },
           ),
-          const SizedBox(height: 16),
+        ],
 
-          // Title — free text (brand + year drives searchability)
+        // ── Title + Price — all marketplace categories including OTHERS ────────
+        if (state.postCategory == 'CARS' ||
+            state.postCategory == 'HOUSES' ||
+            state.postCategory == 'LAND' ||
+            state.postCategory == 'OTHERS') ...[
+          const SizedBox(height: 16),
           _TextInputField(
             label: s.wizardTitleLabel,
             initial: state.postTitle,
@@ -729,8 +734,6 @@ class _BasicInfoSection extends StatelessWidget {
                 : null,
           ),
           const SizedBox(height: 16),
-
-          // Price — free text (ETB amount)
           _TextInputField(
             label: _priceLabel(state.postCategory, s),
             initial: state.postPrice,
@@ -772,18 +775,21 @@ class _BasicInfoSection extends StatelessWidget {
   String _titleHint(String cat, AppStrings s) => switch (cat) {
         'CARS' => s.wizardCarsTitleHint,
         'HOUSES' => s.wizardHousesTitleHint,
+        'OTHERS' => s.wizardCatOthersTitle,
         _ => s.wizardLandTitleHint,
       };
 
   String _priceLabel(String cat, AppStrings s) => switch (cat) {
         'CARS' => s.wizardCarsPriceLabel,
         'HOUSES' => s.wizardHousesPriceLabel,
+        'OTHERS' => s.wizardLandPriceLabel,
         _ => s.wizardLandPriceLabel,
       };
 
   String _priceHint(String cat, AppStrings s) => switch (cat) {
         'CARS' => s.wizardCarsPriceHint,
         'HOUSES' => s.wizardHousesPriceHint,
+        'OTHERS' => s.wizardLandPriceHint,
         _ => s.wizardLandPriceHint,
       };
 }
@@ -879,6 +885,8 @@ class _CategoryPickerField extends StatelessWidget {
   IconData _catIcon(String key) => switch (key) {
         'CARS' => Icons.directions_car_rounded,
         'HOUSES' => Icons.home_rounded,
+        'LAND' => Icons.landscape_rounded,
+        'OTHERS' => Icons.category_outlined,
         _ => Icons.landscape_rounded,
       };
 }
@@ -1210,7 +1218,16 @@ class _SpecsSection extends StatelessWidget {
             ],
           ),
         ],
-      _ /* LAND */ => [
+      // OTHERS: 4 optional free-text spec pairs (label + custom value).
+      // No preset options — the poster types whatever detail is relevant.
+      // Uses the _DropdownOrOther widget's "Other…" free-text mode via empty options.
+      'OTHERS' => [
+          _SpecDef(label: s.wizardOthersSpec1Label, options: []),
+          _SpecDef(label: s.wizardOthersSpec2Label, options: []),
+          _SpecDef(label: s.wizardOthersSpec3Label, options: []),
+          _SpecDef(label: s.wizardOthersSpec4Label, options: []),
+        ],
+      _ /* LAND and any future categories */ => [
           _SpecDef(
             label: s.wizardLandSpec1Label,
             options: [

@@ -701,10 +701,53 @@ class _Step2Body extends StatelessWidget {
 
 // ── Step 3: Success ───────────────────────────────────────────────────────────
 
-class _SuccessBody extends StatelessWidget {
+class _SuccessBody extends StatefulWidget {
   final VoidCallback onContinue;
 
   const _SuccessBody({super.key, required this.onContinue});
+
+  @override
+  State<_SuccessBody> createState() => _SuccessBodyState();
+}
+
+class _SuccessBodyState extends State<_SuccessBody>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animCtrl;
+  late final Animation<double> _scaleAnim;
+  bool _isProceeding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _scaleAnim = CurvedAnimation(
+      parent: _animCtrl,
+      curve: Curves.elasticOut,
+    );
+    // Delay slightly so the AnimatedSwitcher transition completes first.
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _animCtrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleContinue() async {
+    if (_isProceeding) return;
+    setState(() => _isProceeding = true);
+    try {
+      widget.onContinue();
+    } catch (_) {
+      if (mounted) setState(() => _isProceeding = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -716,19 +759,22 @@ class _SuccessBody extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // ── Success animation placeholder ─────────────────────────────────
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: const Color(0xFF078A4E).withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF078A4E), width: 3),
-            ),
-            child: const Icon(
-              Icons.verified_rounded,
-              size: 52,
-              color: Color(0xFF078A4E),
+          // ── Animated success badge ─────────────────────────────────────────
+          ScaleTransition(
+            scale: _scaleAnim,
+            child: Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                color: const Color(0xFF078A4E).withOpacity(0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF078A4E), width: 3),
+              ),
+              child: const Icon(
+                Icons.verified_rounded,
+                size: 58,
+                color: Color(0xFF078A4E),
+              ),
             ),
           ),
           const SizedBox(height: 28),
@@ -768,7 +814,7 @@ class _SuccessBody extends StatelessWidget {
           Text(
             s.faydaSuccess,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.w900,
               color: cs.onSurface,
             ),
@@ -784,25 +830,67 @@ class _SuccessBody extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 12),
+
+          // What's next callout
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: cs.outlineVariant.withOpacity(0.4),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 18, color: cs.onSurfaceVariant),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    s.faydaContinue,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: cs.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           const Spacer(),
 
+          // ── Explicit NEXT button — only navigation trigger ─────────────────
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
-              onPressed: onContinue,
+            child: FilledButton.icon(
+              onPressed: _isProceeding ? null : _handleContinue,
+              icon: _isProceeding
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+              label: Text(
+                _isProceeding ? '' : 'Go to Home',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+              ),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF078A4E),
                 minimumSize: const Size.fromHeight(52),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                s.faydaContinue,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.white,
                 ),
               ),
             ),

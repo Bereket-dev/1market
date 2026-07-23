@@ -100,6 +100,16 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                         ]),
+                        // Others — full-width tile (5th category, layout 2+2+1)
+                        const SizedBox(height: 12),
+                        CompactCategoryCard(
+                          title: state.s.homeCategoryOthers,
+                          subtitle: state.s.homeCategoryOthers,
+                          icon: Icons.category_outlined,
+                          color: const Color(0xFF475569),
+                          onTap: () => state.pushScreen(
+                              CategoryListScreenRoute('OTHERS')),
+                        ),
                       ],
                     ),
                   ),
@@ -805,6 +815,7 @@ class _CategoryIconPlaceholder extends StatelessWidget {
       'HOUSES' => Icons.home_rounded,
       'LAND' => Icons.landscape_rounded,
       'SKILLS' => Icons.construction_rounded,
+      'OTHERS' => Icons.category_outlined,
       _ => Icons.inventory_2_outlined,
     };
     return Container(

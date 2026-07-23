@@ -207,6 +207,7 @@ class _CategoryChips extends StatelessWidget {
         'HOUSES' => Icons.home_rounded,
         'LAND'   => Icons.landscape_rounded,
         'SKILLS' => Icons.construction_rounded,
+        'OTHERS' => Icons.category_outlined,
         _        => Icons.inventory_2_outlined,
       };
 
@@ -215,6 +216,7 @@ class _CategoryChips extends StatelessWidget {
         'HOUSES' => s.savedCatHouses,
         'LAND'   => s.savedCatLand,
         'SKILLS' => s.savedCatSkills,
+        'OTHERS' => s.savedCatOthers,
         _        => cat,
       };
 

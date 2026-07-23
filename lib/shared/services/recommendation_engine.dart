@@ -62,6 +62,7 @@ const Map<String, String> kGoalToCategoryCode = {
   'HOUSES': 'HOUSES',
   'LAND': 'LAND',
   'SKILLS': 'SKILLS',
+  'OTHERS': 'OTHERS',
   'ALL': 'ALL',
 };
 
