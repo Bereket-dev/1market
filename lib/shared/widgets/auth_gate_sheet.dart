@@ -29,6 +29,8 @@ enum AuthGateReason {
   notifications,
   profile,
   apply,
+  chat,
+  requestCall,
   generic,
 }
 

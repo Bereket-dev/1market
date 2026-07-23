@@ -804,6 +804,13 @@ class _ContactActionsState extends State<_ContactActions> {
   Future<void> _requestCall() async {
     final state = KoolanAppStateScope.of(context);
     final s     = state.s;
+
+    // Auth gate: request call sends a chat message — requires sign-in.
+    if (!state.isSignedIn) {
+      showAuthGateSheet(context, reason: AuthGateReason.requestCall);
+      return;
+    }
+
     setState(() => _requestCallLoading = true);
 
     // Ensure chat thread exists.
@@ -1002,7 +1009,7 @@ class _StickyBarState extends State<_StickyBar> {
     // Auth gate: chatting requires sign-in.
     if (!state.isSignedIn) {
       if (!mounted) return;
-      showAuthGateSheet(context, reason: AuthGateReason.messages);
+      showAuthGateSheet(context, reason: AuthGateReason.chat);
       return;
     }
 
@@ -1029,11 +1036,6 @@ class _StickyBarState extends State<_StickyBar> {
   }
 
     Future<void> openViewingSheet() async {
-      // Auth gate: booking a viewing requires sign-in.
-      if (!widget.state.isSignedIn) {
-        showAuthGateSheet(context, reason: AuthGateReason.messages);
-        return;
-      }
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,

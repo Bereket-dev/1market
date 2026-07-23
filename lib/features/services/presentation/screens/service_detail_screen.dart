@@ -504,7 +504,7 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
     if (!_formKey.currentState!.validate()) return;
     final state = KoolanAppStateScope.of(context);
 
-    // Defensive auth gate (belt-and-suspenders; the toggle already blocks guests).
+    // Auth gate: submitting a review requires sign-in.
     if (!state.isSignedIn) {
       showAuthGateSheet(context, reason: AuthGateReason.generic);
       return;
@@ -571,12 +571,6 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
                 _showForm ? s.commonCancel : s.reviewsSubmitTitle,
               ),
               onPressed: () {
-                // Auth gate: only block the *open* direction.
-                // Closing (cancel) is always allowed.
-                if (!_showForm && !state.isSignedIn) {
-                  showAuthGateSheet(context, reason: AuthGateReason.generic);
-                  return;
-                }
                 setState(() {
                   _showForm = !_showForm;
                   _submitError = null;

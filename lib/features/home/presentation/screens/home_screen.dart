@@ -443,7 +443,7 @@ class _HomeHeader extends StatelessWidget {
           // ── Profile avatar ─────────────────────────────────────────────────
           GestureDetector(
             onTap: () {
-              // Auth gate: profile requires sign-in.
+              // Auth gate: own profile requires sign-in.
               if (!state.isSignedIn) {
                 showAuthGateSheet(context, reason: AuthGateReason.profile);
                 return;
