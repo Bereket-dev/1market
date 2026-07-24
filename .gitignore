@@ -39,3 +39,6 @@ Pods/
 .env
 .env.*
 !.env.example
+
+# Android secrets (contains Facebook App ID and Client Token)
+android/app/src/main/res/values/strings.xml

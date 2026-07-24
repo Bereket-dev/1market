@@ -76,10 +76,16 @@ class KoolanAppState extends ChangeNotifier {
           }
 
           if (event.event == AuthChangeEvent.signedIn &&
-              event.session != null &&
-              _pendingOAuthCompletion) {
+              event.session != null) {
             _pendingOAuthCompletion = false;
-            await onFreshAuth();
+            // Only run the fresh-auth flow when we are on the auth screen or
+            // still initializing. If the user is already through onboarding
+            // (e.g. token refresh fired signedIn), skip to avoid restarting
+            // the onboarding flow.
+            if (onboardingPhase == OnboardingPhase.auth ||
+                onboardingPhase == OnboardingPhase.initializing) {
+              await onFreshAuth();
+            }
             return;
           }
 
@@ -2324,6 +2330,10 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   void markOAuthPending() => _pendingOAuthCompletion = true;
+
+  /// Cancels the pending-OAuth flag without completing sign-in.
+  /// Called when the user returns to the app without finishing the OAuth flow.
+  void clearOAuthPending() => _pendingOAuthCompletion = false;
 
   @override
   void dispose() {

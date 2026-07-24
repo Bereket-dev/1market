@@ -155,21 +155,36 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
     }
 
     try {
-      if (!mounted) return;
       appState.markOAuthPending();
+      // Close the sheet before opening the browser so the user isn't stuck
+      // looking at a half-open sheet during the OAuth flow.
+      if (mounted) Navigator.of(context).pop();
 
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
-        authScreenLaunchMode: LaunchMode.externalApplication,
+        // inAppWebView keeps the Chrome Custom Tab in the app's task stack so
+        // the io.supabase.koolan://login-callback/ deep link is reliably
+        // intercepted. externalApplication opens a separate browser process
+        // that may not hand the redirect back to this app.
+        authScreenLaunchMode: LaunchMode.inAppWebView,
       );
-
-      // Auth result arrives via deep link — app_state handles it.
-      // Sheet stays open until the deep link triggers navigation.
+      // Session arrives via the deep-link / auth state listener in app_state.
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) {
+        final isCancelled = e.message.toLowerCase().contains('access_denied') ||
+            e.message.toLowerCase().contains('access denied');
+        if (!isCancelled) setState(() => _error = e.message);
+        _appState?.clearOAuthPending();
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) {
+        final msg = e.toString().toLowerCase();
+        final isCancelled =
+            msg.contains('access_denied') || msg.contains('access denied');
+        if (!isCancelled) setState(() => _error = e.toString());
+        _appState?.clearOAuthPending();
+      }
     } finally {
       if (mounted) setState(() => _loadingFacebook = false);
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/constants/colors.dart';
 import 'core/router/routes.dart';
@@ -54,6 +55,34 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
     super.initState();
     _appState = KoolanAppState();
     WidgetsBinding.instance.addObserver(this);
+    // Handle the case where the app is cold-started from a deep link
+    // (e.g. Facebook OAuth redirect while the app was not running).
+    // supabase_flutter v2 uses app_links internally and processes the
+    // initial URI automatically, but we trigger a session check here so
+    // the auth state stream fires onFreshAuth if a valid PKCE code arrived.
+    _handleColdStartDeepLink();
+  }
+
+  /// Called once on startup. If the app was launched via a
+  /// io.supabase.koolan://login-callback/ deep link (cold start from OAuth
+  /// redirect), supabase_flutter will have already exchanged the code by the
+  /// time the first frame renders. We listen for the signedIn event in
+  /// app_state.dart, but if the event was already emitted before the listener
+  /// was attached we check the session explicitly here.
+  Future<void> _handleColdStartDeepLink() async {
+    // Wait one frame so KoolanAppState has set up its auth listener first.
+    await Future<void>.delayed(Duration.zero);
+    try {
+      final client = Supabase.instance.client;
+      final session = client.auth.currentSession;
+      if (session != null &&
+          _appState.onboardingPhase == OnboardingPhase.initializing) {
+        debugPrint('[DeepLink] Cold-start session found — calling onFreshAuth');
+        await _appState.onFreshAuth();
+      }
+    } catch (e) {
+      debugPrint('[DeepLink] Cold-start check error: $e');
+    }
   }
 
   @override
