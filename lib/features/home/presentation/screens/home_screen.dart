@@ -238,22 +238,38 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount:
-                              math.min(state.allListings.length, 3),
-                          separatorBuilder: (context2, idx) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final listing = state.allListings[index];
-                            return RecentListingCard(
-                              listing: listing,
-                              onTap: () => state.pushScreen(
-                                  ListingDetailScreenRoute(listing.id)),
-                            );
-                          },
-                        ),
+                        if (state.isLoadingData && state.allListings.isEmpty)
+                          // Skeleton shimmer while listings are loading.
+                          Column(
+                            children: List.generate(
+                              3,
+                              (i) => Padding(
+                                padding: EdgeInsets.only(
+                                    bottom: i < 2 ? 12 : 0),
+                                child: const _SkeletonCard(
+                                  width: double.infinity,
+                                  height: 80,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount:
+                                math.min(state.allListings.length, 3),
+                            separatorBuilder: (context2, idx) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final listing = state.allListings[index];
+                              return RecentListingCard(
+                                listing: listing,
+                                onTap: () => state.pushScreen(
+                                    ListingDetailScreenRoute(listing.id)),
+                              );
+                            },
+                          ),
                         const SizedBox(height: 16),
                         OutlinedButton(
                           onPressed: () => state.pushScreen(
@@ -514,6 +530,61 @@ class _AvatarPlaceholder extends StatelessWidget {
   }
 }
 
+// ── Skeleton shimmer card ─────────────────────────────────────────────────────
+//
+// Used in the Recommended and Recently-Added sections while [isLoadingData]
+// is true and the lists are empty. Pulses between surfaceContainerHighest and
+// surfaceContainerHigh to suggest content is on its way.
+
+class _SkeletonCard extends StatefulWidget {
+  final double width;
+  final double height;
+  const _SkeletonCard({required this.width, required this.height});
+
+  @override
+  State<_SkeletonCard> createState() => _SkeletonCardState();
+}
+
+class _SkeletonCardState extends State<_SkeletonCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return FadeTransition(
+      opacity: _opacity,
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Recommended for You section ───────────────────────────────────────────────
 //
 // Caching strategy: recommendations are computed once when the widget first
@@ -638,7 +709,21 @@ class _RecommendedSectionState extends State<_RecommendedSection> {
             ),
           ),
           const SizedBox(height: 12),
-          if (_recommendations.isEmpty)
+          if (_recommendations.isEmpty && state.isLoadingData)
+            // Skeleton shimmer while data is loading.
+            SizedBox(
+              height: 180,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: 4,
+                separatorBuilder: (_, i) => const SizedBox(width: 12),
+                itemBuilder: (_, i) => const _SkeletonCard(
+                  width: 160,
+                  height: 180,
+                ),
+              ),
+            )
+          else if (_recommendations.isEmpty)
             // Empty state — graceful, not broken.
             Padding(
               padding: const EdgeInsets.only(bottom: 8),

@@ -643,6 +643,9 @@ class KoolanAppState extends ChangeNotifier {
           onboardingPhase = OnboardingPhase.ready;
         }
         notifyListeners();
+        // Load public data immediately so listings/services/jobs are visible
+        // without requiring the user to pull-to-refresh first.
+        unawaited(loadAllData());
         return;
       }
 
@@ -677,10 +680,20 @@ class KoolanAppState extends ChangeNotifier {
 
       // ── Decide which onboarding phase to show ───────────────────────────────
 
-      // No language chosen yet (first auth ever).
-      if (!sessionRestored || resolvedProfile?.language == null) {
-        onboardingPhase = OnboardingPhase.language;
-        notifyListeners();
+      // Returning user — onboarding was already completed in a prior session
+      // (either locally or on the server). Skip everything and enter the app.
+      // This MUST be checked before the language/sessionRestored gate below so
+      // that users re-signing-in on a new device (no local sessionRestored flag)
+      // are not sent back through the onboarding flow.
+      if (onboardingDone || resolvedProfile?.onboardingComplete == true) {
+        // Sync local flags so future sign-ins also skip immediately.
+        if (!sessionRestored) {
+          await app_local.LocalStorage.markSessionRestored();
+        }
+        if (!onboardingDone) {
+          await app_local.LocalStorage.markOnboardingComplete();
+        }
+        await _enterApp();
         return;
       }
 
@@ -691,9 +704,10 @@ class KoolanAppState extends ChangeNotifier {
         return;
       }
 
-      // Onboarding already finished (local flag or profile flag).
-      if (onboardingDone || resolvedProfile?.onboardingComplete == true) {
-        await _enterApp();
+      // No language chosen yet (first auth ever on this device).
+      if (!sessionRestored || resolvedProfile?.language == null) {
+        onboardingPhase = OnboardingPhase.language;
+        notifyListeners();
         return;
       }
 
@@ -761,11 +775,31 @@ class KoolanAppState extends ChangeNotifier {
       _repo = SupabaseRepository(client);
     }
 
-    await app_local.LocalStorage.clearSessionRestored();
     profile = await _repo!.ensureProfile();
     if (profile != null) {
       await app_local.LocalStorage.saveProfileCache(profile!.toJson());
     }
+
+    // ── Returning user: skip the entire onboarding flow ───────────────────────
+    // If the device has the onboarding-complete flag OR the profile's
+    // onboarding_complete field is true, the user already went through the
+    // language / location / goal / verification steps on a previous session.
+    // Drop them straight into the app — no need to ask again.
+    final locallyDone = await app_local.LocalStorage.isOnboardingComplete();
+    final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
+    final profileDone = profile?.onboardingComplete == true;
+
+    if (locallyDone || sessionRestored || profileDone) {
+      // Restore locale from profile if available.
+      if (profile?.language != null) {
+        locale = profile!.language!;
+        await app_local.LocalStorage.saveLanguage(locale);
+      }
+      await _enterApp();
+      return;
+    }
+
+    // ── New account: start onboarding from the language step ─────────────────
     onboardingPhase = OnboardingPhase.language;
     await app_local.LocalStorage.saveOnboardingPhase('language');
     notifyListeners();
@@ -2384,6 +2418,9 @@ class KoolanAppState extends ChangeNotifier {
     initError = null;
     dataError = null;
     notifyListeners();
+    // Reload public data so guest users see listings/services/jobs immediately
+    // after sign-out without needing to pull-to-refresh.
+    unawaited(loadAllData());
   }
 
   /// Legacy hard-reset used only by the error-recovery path in _initialize.

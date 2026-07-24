@@ -6,28 +6,32 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
 import '../../../shared/services/app_state.dart';
+import 'create_account_screen.dart';
 import 'reset_password_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AuthScreen
+// AuthScreen — sign-in only
 //
-// Single shared screen for sign-in and sign-up. Reached two ways:
-//   1. First-install onboarding  (onboardingPhase == .auth)
-//      → [fromOnboarding] = true: hides the tab-switcher and goes straight
-//        to sign-up so the user is never asked to "log in" during signup.
-//   2. Soft-gate bottom sheet CTAs via appState.goToAuth(signUpMode: …)
-//      pendingSignUpMode is consumed in initState to pre-select the tab.
+// Layout (top → bottom):
+//   • App title / headline
+//   • Google button
+//   • Facebook button
+//   • Or-divider
+//   • Email field
+//   • Password field
+//   • Forgot password link  →  pushes ResetPasswordScreen
+//   • Sign In button
+//   • Error banner (if any)
+//   • Bottom: "Don't have an account? Create one with email"
+//     → pushes CreateAccountScreen
 //
-// Both entry points share this exact widget; every fix here covers both.
+// fromOnboarding: true  → on first frame, immediately push CreateAccountScreen
+//                         so the first-install flow still goes to sign-up.
+// goToAuth(signUpMode: true) → same push via pendingSignUpMode flag.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AuthScreen extends StatefulWidget {
-  /// When true the screen is shown as part of the first-install onboarding
-  /// flow. The tab-switcher (Sign In / Sign Up) is hidden and the screen
-  /// always starts in sign-up mode so users are never prompted to log in
-  /// during the signup journey.
   final bool fromOnboarding;
-
   const AuthScreen({super.key, this.fromOnboarding = false});
 
   @override
@@ -35,44 +39,39 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
-  final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  final _confirmPasswordCtrl = TextEditingController();
-  final _fullNameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
+  final _formKey       = GlobalKey<FormState>();
+  final _emailCtrl     = TextEditingController();
+  final _passwordCtrl  = TextEditingController();
 
-  // Independent visibility state per field.
-  bool _passwordVisible = false;
-  bool _confirmPasswordVisible = false;
-
-  bool _isLoading = false;
-  bool _isSignUp = false;
+  bool   _passwordVisible     = false;
+  bool   _isLoading           = false;
   String? _error;
 
-  /// True while the Facebook OAuth Chrome Custom Tab is open so that on app
-  /// resume (user pressed Back without completing auth) we can cancel the
-  /// loading state.
   bool _facebookOAuthInFlight = false;
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Onboarding flow always starts in sign-up mode.
-    if (widget.fromOnboarding) {
-      _isSignUp = true;
-    }
-    // Consume pendingSignUpMode so bottom-sheet "Create Account" pre-selects
-    // the sign-up tab automatically.
+
+    // If this screen was opened in sign-up mode (onboarding or auth-gate
+    // "Create account" tap), push CreateAccountScreen on the first frame so
+    // the user lands there directly. AuthScreen stays in the back-stack so
+    // the user can pop back to sign-in.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      bool shouldSignUp = widget.fromOnboarding;
       final appState = KoolanAppStateScope.of(context);
       if (appState.pendingSignUpMode) {
-        setState(() => _isSignUp = true);
+        shouldSignUp = true;
         appState.clearPendingSignUpMode();
+      }
+      if (shouldSignUp) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CreateAccountScreen()),
+        );
       }
     });
   }
@@ -82,28 +81,17 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
-    _confirmPasswordCtrl.dispose();
-    _fullNameCtrl.dispose();
-    _phoneCtrl.dispose();
     super.dispose();
   }
 
-  /// When the user presses Back inside the Facebook Chrome Custom Tab, Android
-  /// resumes the app without firing the deep-link callback.
-  /// Detect this via the lifecycle transition to [resumed] while the Facebook
-  /// OAuth is still marked in-flight, then cancel the loading state.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _facebookOAuthInFlight) {
-      // Give supabase_flutter one frame to process a deep-link that may have
-      // arrived simultaneously, then clear the loading state if no session
-      // was established.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final client = AppSupabaseConfig.clientOrNull();
         final hasSession = client?.auth.currentSession != null;
         if (!hasSession && _facebookOAuthInFlight) {
-          debugPrint('[FB] App resumed without session — user cancelled OAuth');
           setState(() {
             _facebookOAuthInFlight = false;
             _isLoading = false;
@@ -114,20 +102,17 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     }
   }
 
-  // ── UI helpers (class-level so they can reference _passwordCtrl etc.) ──────
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
-  /// Consistent filled input decoration matching the rest of the app.
   InputDecoration _fieldDeco(
     BuildContext context, {
     required String label,
-    String? hint,
     Widget? prefixIcon,
     Widget? suffixIcon,
   }) {
     final cs = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      hintText: hint,
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
       filled: true,
@@ -138,8 +123,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide:
-            BorderSide(color: cs.outlineVariant.withValues(alpha: 0.6)),
+        borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.6)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -153,38 +137,30 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: cs.error, width: 1.5),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
-  /// Eye-toggle suffix widget — independent per field, with accessible tooltip.
-  Widget _eyeToggle(
-    BuildContext context, {
-    required bool visible,
-    required VoidCallback onToggle,
-  }) {
+  Widget _eyeToggle(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s  = KoolanAppStateScope.of(context).s;
     return Tooltip(
-      message: visible ? s.authHidePassword : s.authShowPassword,
+      message: _passwordVisible ? s.authHidePassword : s.authShowPassword,
       child: IconButton(
         icon: Icon(
-          visible
+          _passwordVisible
               ? Icons.visibility_off_outlined
               : Icons.visibility_outlined,
           color: cs.onSurfaceVariant,
           size: 22,
         ),
-        onPressed: onToggle,
+        onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
       ),
     );
   }
 
-  // ── Logic helpers ─────────────────────────────────────────────────────────
-
-  String _friendlyAuthMessage(String message) {
-    final lower = message.toLowerCase();
+  String _friendlyError(String msg) {
+    final lower = msg.toLowerCase();
     if (lower.contains('not authenticated') ||
         lower.contains('user not confirmed') ||
         lower.contains('email not confirmed') ||
@@ -193,72 +169,31 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
         lower.contains('confirm your email')) {
       return KoolanAppStateScope.of(context).s.authConfirmationRequired;
     }
-    return message;
+    return msg;
   }
 
-  void _switchTab(bool signUp) {
-    setState(() {
-      _isSignUp = signUp;
-      _error = null;
-      _passwordVisible = false;
-      _confirmPasswordVisible = false;
-      if (!signUp) {
-        _fullNameCtrl.clear();
-        _confirmPasswordCtrl.clear();
-        _phoneCtrl.clear();
-      }
-    });
-  }
+  // ── Sign-in ────────────────────────────────────────────────────────────────
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-
-  Future<void> _submit() async {
+  Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
+    setState(() { _isLoading = true; _error = null; });
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
-      setState(() =>
-          _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable);
-      if (mounted) setState(() => _isLoading = false);
+      setState(() {
+        _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable;
+        _isLoading = false;
+      });
       return;
     }
-
     try {
-      final auth = client.auth;
-      if (_isSignUp) {
-        final phone = _phoneCtrl.text.trim();
-        final fullName = _fullNameCtrl.text.trim();
-        final response = await auth.signUp(
-          email: _emailCtrl.text.trim(),
-          password: _passwordCtrl.text,
-          emailRedirectTo: AppSupabaseConfig.emailRedirectUrl,
-          data: {
-            if (fullName.isNotEmpty) 'full_name': fullName,
-            if (phone.isNotEmpty) 'phone': phone,
-          },
-        );
-        if (!mounted) return;
-        if (response.session == null) {
-          setState(() => _error =
-              KoolanAppStateScope.of(context).s.authConfirmationRequired);
-          return;
-        }
-        await KoolanAppStateScope.of(context).onFreshAuth();
-        return;
-      }
-
-      await auth.signInWithPassword(
+      await client.auth.signInWithPassword(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
       );
       if (!mounted) return;
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = _friendlyAuthMessage(e.message));
+      setState(() => _error = _friendlyError(e.message));
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -266,34 +201,27 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     }
   }
 
-  // ── Google sign-in ────────────────────────────────────────────────────────
+  // ── Google ─────────────────────────────────────────────────────────────────
 
   Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
+    setState(() { _isLoading = true; _error = null; });
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
-      setState(() =>
-          _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable);
-      if (mounted) setState(() => _isLoading = false);
+      setState(() {
+        _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable;
+        _isLoading = false;
+      });
       return;
     }
-
     try {
       final googleSignIn = GoogleSignIn(
         serverClientId: AppSupabaseConfig.googleWebClientId,
         clientId: Platform.isAndroid
             ? AppSupabaseConfig.googleAndroidClientId
             : AppSupabaseConfig.googleIosClientId,
-        scopes: const <String>['email', 'profile'],
+        scopes: const ['email', 'profile'],
       );
-
-      // Always show account-picker by discarding the cached account first.
       await googleSignIn.signOut();
-
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         if (mounted) {
@@ -302,14 +230,12 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
         }
         return;
       }
-
-      final googleAuth = await googleUser.authentication;
-      final idToken = googleAuth.idToken;
+      final googleAuth  = await googleUser.authentication;
+      final idToken     = googleAuth.idToken;
       final accessToken = googleAuth.accessToken;
       if (idToken == null || accessToken == null) {
-        throw Exception('Google authentication tokens were not returned.');
+        throw Exception('Google tokens were not returned.');
       }
-
       if (!mounted) return;
       KoolanAppStateScope.of(context).markOAuthPending();
       await client.auth.signInWithIdToken(
@@ -317,7 +243,6 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
         idToken: idToken,
         accessToken: accessToken,
       );
-
       if (!mounted) return;
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
@@ -329,91 +254,72 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     }
   }
 
-  // ── Facebook sign-in ──────────────────────────────────────────────────────
+  // ── Facebook ───────────────────────────────────────────────────────────────
 
   Future<void> _signInWithFacebook() async {
-    setState(() {
-      _isLoading = true;
-      _facebookOAuthInFlight = false;
-      _error = null;
-    });
-
+    setState(() { _isLoading = true; _facebookOAuthInFlight = false; _error = null; });
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
-      setState(() =>
-          _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable);
-      if (mounted) setState(() => _isLoading = false);
+      setState(() {
+        _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable;
+        _isLoading = false;
+      });
       return;
     }
-
     try {
       if (!mounted) return;
       KoolanAppStateScope.of(context).markOAuthPending();
-
-      // Use externalApplication (Chrome Custom Tab / system browser) so that
-      // after Facebook redirects back to Supabase, the final redirect to
-      // io.supabase.koolan://login-callback/ is handled by Android's intent
-      // system rather than the WebView. inAppWebView intercepts the redirect
-      // inside the WebView which cannot handle custom schemes — it prepends
-      // http:// and fails with ERR_CLEARTEXT_NOT_PERMITTED.
       setState(() => _facebookOAuthInFlight = true);
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
-
-      // _facebookOAuthInFlight stays true until:
-      //   • didChangeAppLifecycleState detects resume-without-session (cancel)
-      //   • app_state.onFreshAuth fires via onAuthStateChange (success)
-      // Either path clears it; nothing more to do here.
     } on AuthException catch (e) {
       if (mounted) {
-        final isCancelled = e.message.toLowerCase().contains('access_denied') ||
+        final cancelled = e.message.toLowerCase().contains('access_denied') ||
             e.message.toLowerCase().contains('access denied');
         setState(() {
-          _error = isCancelled ? null : e.message;
+          _error = cancelled ? null : e.message;
           _isLoading = false;
           _facebookOAuthInFlight = false;
         });
-        if (isCancelled) KoolanAppStateScope.of(context).clearOAuthPending();
+        if (cancelled) KoolanAppStateScope.of(context).clearOAuthPending();
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().toLowerCase();
-        final isCancelled =
-            msg.contains('access_denied') || msg.contains('access denied');
+        final msg       = e.toString().toLowerCase();
+        final cancelled = msg.contains('access_denied') || msg.contains('access denied');
         setState(() {
-          _error = isCancelled ? null : e.toString();
+          _error = cancelled ? null : e.toString();
           _isLoading = false;
           _facebookOAuthInFlight = false;
         });
-        if (isCancelled) KoolanAppStateScope.of(context).clearOAuthPending();
+        if (cancelled) KoolanAppStateScope.of(context).clearOAuthPending();
       }
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
-    final s = state.s;
+    final s  = KoolanAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final tt = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Headline ──────────────────────────────────────────────────
+              // ── Headline ───────────────────────────────────────────────────
               Text(
-                _isSignUp ? s.authCreateAccount : s.authSignIn,
-                style: textTheme.headlineMedium?.copyWith(
+                s.authSignIn,
+                style: tt.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                   color: cs.onSurface,
                 ),
@@ -421,60 +327,46 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
               const SizedBox(height: 6),
               Text(
                 s.authSubtitle,
-                style:
-                    textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
 
-              // ── Tab switcher ──────────────────────────────────────────────
-              // Hidden during first-install onboarding — users should always
-              // sign up, not be prompted to log in mid-flow.
-              if (!widget.fromOnboarding) ...[
-                SegmentedButton<bool>(
-                  segments: [
-                    ButtonSegment(value: false, label: Text(s.authSignIn)),
-                    ButtonSegment(value: true, label: Text(s.authSignUp)),
-                  ],
-                  selected: {_isSignUp},
-                  onSelectionChanged: (v) => _switchTab(v.first),
-                  style: SegmentedButton.styleFrom(
-                    selectedBackgroundColor: cs.primaryContainer,
-                    selectedForegroundColor: cs.onPrimaryContainer,
-                    side: BorderSide(
-                        color: cs.outlineVariant.withValues(alpha: 0.6)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+              // ── Google ─────────────────────────────────────────────────────
+              _SocialButton(
+                onPressed: _isLoading ? null : _signInWithGoogle,
+                logo: const _GoogleLogo(),
+                label: s.authGoogle,
+              ),
+              const SizedBox(height: 10),
+
+              // ── Facebook ───────────────────────────────────────────────────
+              _SocialButton(
+                onPressed: _isLoading ? null : _signInWithFacebook,
+                logo: const _FacebookLogo(),
+                label: s.authFacebook,
+              ),
+              const SizedBox(height: 24),
+
+              // ── Or-divider ─────────────────────────────────────────────────
+              Row(
+                children: [
+                  Expanded(child: Divider(color: cs.outlineVariant.withValues(alpha: 0.6))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(s.authOrContinue,
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
+                  Expanded(child: Divider(color: cs.outlineVariant.withValues(alpha: 0.6))),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-              // ── Form ──────────────────────────────────────────────────────
+              // ── Email + Password form ──────────────────────────────────────
               Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Full name — sign-up only
-                    if (_isSignUp) ...[
-                      TextFormField(
-                        controller: _fullNameCtrl,
-                        keyboardType: TextInputType.name,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: _fieldDeco(
-                          context,
-                          label: s.authFullName,
-                          prefixIcon:
-                              const Icon(Icons.person_outline_rounded),
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? s.authFullNameRequired
-                            : null,
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-
                     // Email
                     TextFormField(
                       controller: _emailCtrl,
@@ -483,13 +375,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                       decoration: _fieldDeco(
                         context,
                         label: s.authEmail,
-                        prefixIcon:
-                            const Icon(Icons.mail_outline_rounded),
+                        prefixIcon: const Icon(Icons.mail_outline_rounded),
                       ),
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return s.authEmailRequired;
-                        }
+                        if (v == null || v.trim().isEmpty) return s.authEmailRequired;
                         if (!v.contains('@')) return s.authEmailInvalid;
                         return null;
                       },
@@ -503,82 +392,27 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                       decoration: _fieldDeco(
                         context,
                         label: s.authPassword,
-                        prefixIcon:
-                            const Icon(Icons.lock_outline_rounded),
-                        suffixIcon: _eyeToggle(
-                          context,
-                          visible: _passwordVisible,
-                          onToggle: () => setState(
-                              () => _passwordVisible = !_passwordVisible),
-                        ),
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: _eyeToggle(context),
                       ),
-                      validator: (v) => (v == null || v.length < 6)
-                          ? s.authPasswordMin
-                          : null,
+                      validator: (v) =>
+                          (v == null || v.length < 6) ? s.authPasswordMin : null,
                     ),
+                    const SizedBox(height: 4),
 
-                    // Confirm password — sign-up only
-                    if (_isSignUp) ...[
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _confirmPasswordCtrl,
-                        obscureText: !_confirmPasswordVisible,
-                        decoration: _fieldDeco(
-                          context,
-                          label: s.authConfirmPassword,
-                          prefixIcon:
-                              const Icon(Icons.lock_outline_rounded),
-                          suffixIcon: _eyeToggle(
-                            context,
-                            visible: _confirmPasswordVisible,
-                            onToggle: () => setState(() =>
-                                _confirmPasswordVisible =
-                                    !_confirmPasswordVisible),
+                    // Forgot password
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ResetPasswordScreen(),
                           ),
                         ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) {
-                            return s.authPasswordMin;
-                          }
-                          if (v != _passwordCtrl.text) {
-                            return s.authPasswordsDoNotMatch;
-                          }
-                          return null;
-                        },
+                        child: Text(s.authForgotPassword,
+                            style: TextStyle(color: cs.primary, fontSize: 13)),
                       ),
-                      const SizedBox(height: 14),
-
-                      // Phone — optional
-                      TextFormField(
-                        controller: _phoneCtrl,
-                        keyboardType: TextInputType.phone,
-                        decoration: _fieldDeco(
-                          context,
-                          label: s.editProfilePhone,
-                          hint: '+251 9X XXX XXXX',
-                          prefixIcon: const Icon(Icons.phone_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-
-                    // Forgot password — sign-in only
-                    if (!_isSignUp)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ResetPasswordScreen(),
-                            ),
-                          ),
-                          child: Text(
-                            s.authForgotPassword,
-                            style:
-                                TextStyle(color: cs.primary, fontSize: 13),
-                          ),
-                        ),
-                      ),
+                    ),
 
                     // Error banner
                     if (_error != null) ...[
@@ -596,11 +430,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                                 color: cs.error, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(
-                                _error!,
-                                style: TextStyle(
-                                    color: cs.error, fontSize: 13),
-                              ),
+                              child: Text(_error!,
+                                  style:
+                                      TextStyle(color: cs.error, fontSize: 13)),
                             ),
                           ],
                         ),
@@ -608,76 +440,58 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                       const SizedBox(height: 12),
                     ],
 
-                    // Primary CTA
+                    // Sign-in button
                     FilledButton(
-                      onPressed: _isLoading ? null : _submit,
+                      onPressed: _isLoading ? null : _signIn,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                       child: _isLoading
                           ? SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: cs.onPrimary,
-                              ),
+                                  strokeWidth: 2, color: cs.onPrimary),
                             )
-                          : Text(
-                              _isSignUp
-                                  ? s.authCreateAccount
-                                  : s.authContinue,
+                          : Text(s.authContinue,
                               style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                                  fontSize: 15, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 32),
 
-              const SizedBox(height: 24),
-
-              // ── Or-divider ────────────────────────────────────────────────
+              // ── Bottom: create account link ────────────────────────────────
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Divider(
-                        color: cs.outlineVariant.withValues(alpha: 0.6)),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  Text(s.authGateNoAccount,
+                      style:
+                          TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: _isLoading
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const CreateAccountScreen(),
+                              ),
+                            ),
                     child: Text(
-                      s.authOrContinue,
+                      s.authGateCreateNow,
                       style: TextStyle(
-                          color: cs.onSurfaceVariant, fontSize: 13),
+                        color: cs.primary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                        decorationColor: cs.primary,
+                      ),
                     ),
                   ),
-                  Expanded(
-                    child: Divider(
-                        color: cs.outlineVariant.withValues(alpha: 0.6)),
-                  ),
                 ],
-              ),
-              const SizedBox(height: 16),
-
-              // ── Google ────────────────────────────────────────────────────
-              _SocialButton(
-                onPressed: _isLoading ? null : _signInWithGoogle,
-                logo: const _GoogleLogo(),
-                label: s.authGoogle,
-              ),
-              const SizedBox(height: 10),
-
-              // ── Facebook ──────────────────────────────────────────────────
-              _SocialButton(
-                onPressed: _isLoading ? null : _signInWithFacebook,
-                logo: const _FacebookLogo(),
-                label: s.authFacebook,
               ),
             ],
           ),
@@ -688,19 +502,15 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _SocialButton — reusable outlined social-login button
+// Shared widgets (also used by CreateAccountScreen via separate file)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SocialButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Widget logo;
   final String label;
-
-  const _SocialButton({
-    required this.onPressed,
-    required this.logo,
-    required this.label,
-  });
+  const _SocialButton(
+      {required this.onPressed, required this.logo, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -709,9 +519,8 @@ class _SocialButton extends StatelessWidget {
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.8)),
       ),
       child: Row(
@@ -719,31 +528,18 @@ class _SocialButton extends StatelessWidget {
         children: [
           logo,
           const SizedBox(width: 10),
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// _GoogleLogo — official Google "G" multicolor logo (24×24)
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _GoogleLogo extends StatelessWidget {
   const _GoogleLogo();
-
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 24,
-      height: 24,
-      child: CustomPaint(painter: _GoogleLogoPainter()),
-    );
-  }
+  Widget build(BuildContext context) =>
+      SizedBox(width: 24, height: 24, child: CustomPaint(painter: _GoogleLogoPainter()));
 }
 
 class _GoogleLogoPainter extends CustomPainter {
@@ -751,83 +547,39 @@ class _GoogleLogoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    final r = size.width / 2;
-
-    // White circle background
-    canvas.drawCircle(
-      Offset(cx, cy),
-      r,
-      Paint()..color = Colors.white,
-    );
-
+    final r  = size.width / 2;
+    canvas.drawCircle(Offset(cx, cy), r, Paint()..color = Colors.white);
     final rect = Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.78);
-
-    // Clip to the circle
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(
-        Rect.fromCircle(center: Offset(cx, cy), radius: r),
-        Radius.circular(r)));
-
-    // Blue (right arc)
-    canvas.drawArc(
-        rect, -0.52, 1.57, true, Paint()..color = const Color(0xFF4285F4));
-    // Green (bottom arc)
-    canvas.drawArc(
-        rect, 1.05, 1.57, true, Paint()..color = const Color(0xFF34A853));
-    // Yellow (bottom-left arc)
-    canvas.drawArc(
-        rect, 2.62, 1.57, true, Paint()..color = const Color(0xFFFBBC05));
-    // Red (top-left arc)
-    canvas.drawArc(
-        rect, 4.19, 1.57, true, Paint()..color = const Color(0xFFEA4335));
-
+        Rect.fromCircle(center: Offset(cx, cy), radius: r), Radius.circular(r)));
+    canvas.drawArc(rect, -0.52, 1.57, true, Paint()..color = const Color(0xFF4285F4));
+    canvas.drawArc(rect,  1.05, 1.57, true, Paint()..color = const Color(0xFF34A853));
+    canvas.drawArc(rect,  2.62, 1.57, true, Paint()..color = const Color(0xFFFBBC05));
+    canvas.drawArc(rect,  4.19, 1.57, true, Paint()..color = const Color(0xFFEA4335));
     canvas.restore();
-
-    // White center hole
-    canvas.drawCircle(
-      Offset(cx, cy),
-      r * 0.48,
-      Paint()..color = Colors.white,
-    );
-
-    // Blue horizontal bar (the crossbar of the "G")
-    canvas.drawRect(
-      Rect.fromLTWH(cx, cy - r * 0.14, r * 0.78, r * 0.28),
-      Paint()..color = const Color(0xFF4285F4),
-    );
+    canvas.drawCircle(Offset(cx, cy), r * 0.48, Paint()..color = Colors.white);
+    canvas.drawRect(Rect.fromLTWH(cx, cy - r * 0.14, r * 0.78, r * 0.28),
+        Paint()..color = const Color(0xFF4285F4));
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// _FacebookLogo — Facebook brand "f" on blue circle (24×24)
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _FacebookLogo extends StatelessWidget {
   const _FacebookLogo();
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: Color(0xFF1877F2),
-        shape: BoxShape.circle,
-      ),
-      child: const Text(
-        'f',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-          height: 1.0,
-          fontFamily: 'sans-serif',
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        width: 24,
+        height: 24,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+            color: Color(0xFF1877F2), shape: BoxShape.circle),
+        child: const Text('f',
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                height: 1.0)),
+      );
 }
