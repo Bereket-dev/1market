@@ -70,19 +70,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
 
           _SettingsRow(
-            icon: Icons.phone_outlined,
-            title: s.settingsPhoneVerification,
-            subtitle: profile?.phone != null && profile!.phone!.isNotEmpty
-                ? profile.phone!
-                : 'Not added',
-            trailingText: profile?.phone != null && profile!.phone!.isNotEmpty
-                ? s.settingsPhoneVerified
-                : null,
-            onTap: () => appState.pushScreen(EditProfileScreenRoute()),
-          ),
-          const SizedBox(height: 8),
-
-          _SettingsRow(
             icon: Icons.category_outlined,
             title: s.settingsPrefCategory,
             subtitle: _categoryLabel(profile?.preferredCategory, s),

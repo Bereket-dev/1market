@@ -711,6 +711,11 @@ class _SellerCard extends StatelessWidget {
                 // View profile button
                 OutlinedButton(
                   onPressed: () {
+                    // Auth gate: viewing a seller's profile requires sign-in.
+                    if (!state.isSignedIn) {
+                      showAuthGateSheet(context, reason: AuthGateReason.profile);
+                      return;
+                    }
                     final sellerId = listing.sellerId;
                     if (sellerId != null && sellerId.isNotEmpty) {
                       state.pushScreen(PublicProfileScreenRoute(sellerId));
@@ -1036,6 +1041,11 @@ class _StickyBarState extends State<_StickyBar> {
   }
 
     Future<void> openViewingSheet() async {
+      // Auth gate: scheduling a viewing requires sign-in.
+      if (!widget.state.isSignedIn) {
+        showAuthGateSheet(context, reason: AuthGateReason.chat);
+        return;
+      }
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,

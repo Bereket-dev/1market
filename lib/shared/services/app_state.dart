@@ -866,7 +866,39 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
     try {
       if (_repo == null) {
-        allListings = [];
+        // No authenticated session — attempt a read-only repo using the anon
+        // key so guest users can still browse listings and services.
+        // Supabase anon key + public SELECT RLS policy allows this without auth.
+        final client = AppSupabaseConfig.clientOrNull();
+        if (client == null) {
+          allListings = [];
+          chatSessions = [];
+          return;
+        }
+        // Create a temporary read-only repo for the fetch.
+        final anonRepo = SupabaseRepository(client);
+        final listings = await anonRepo.fetchListings();
+        allListings = listings;
+        await app_local.LocalStorage.saveListingsCache(
+          listings.map((l) => l.toJson()).toList(),
+        );
+        try {
+          final services = await anonRepo.fetchServices();
+          allServices = services;
+          await app_local.LocalStorage.saveServicesCache(
+            services.map((s) => s.toJson()).toList(),
+          );
+        } catch (e) {
+          debugPrint('fetchServices (guest) failed: $e');
+        }
+        // Hiring posts are public — fetch them for guests too.
+        try {
+          final posts = await anonRepo.fetchHiringPosts();
+          allHiringPosts = posts;
+        } catch (e) {
+          debugPrint('fetchHiringPosts (guest) failed: $e');
+        }
+        // Chat, applications, and notifications require auth — skip for guests.
         chatSessions = [];
         return;
       }

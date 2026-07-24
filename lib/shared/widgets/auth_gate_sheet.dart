@@ -160,15 +160,15 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
       // looking at a half-open sheet during the OAuth flow.
       if (mounted) Navigator.of(context).pop();
 
-      // Open Facebook OAuth in a Chrome Custom Tab (inAppWebView).
-      // inAppWebView keeps the tab in the app's task stack so the
-      // io.supabase.koolan://login-callback/ deep link is reliably
-      // intercepted. externalApplication opens a separate browser process
-      // that may not hand the redirect back to this app.
+      // Open Facebook OAuth in a Chrome Custom Tab (externalApplication).
+      // Using externalApplication lets Android handle the io.supabase.koolan://
+      // deep link via the intent filter. inAppWebView would intercept the
+      // redirect inside the WebView, mangle it to http://, and fail with
+      // ERR_CLEARTEXT_NOT_PERMITTED.
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
-        authScreenLaunchMode: LaunchMode.inAppWebView,
+        authScreenLaunchMode: LaunchMode.externalApplication,
       );
       // Session arrives via the deep-link / onAuthStateChange listener in
       // app_state. Nothing more to do here.
