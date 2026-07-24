@@ -17,14 +17,33 @@ class HiringBrowseScreen extends StatefulWidget {
 class _HiringBrowseScreenState extends State<HiringBrowseScreen> {
   final TextEditingController _searchController =
       TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   String _categoryFilter = '';
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
   }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    if (_scrollController.offset >= maxScroll - 300) {
+      KoolanAppStateScope.of(context).loadMoreHiringPosts();
+    }
+  }
+
+  Future<void> _onRefresh() => KoolanAppStateScope.of(context).loadAllData();
 
   List<HiringPost> _filter(List<HiringPost> all) {
     return all.where((p) {
@@ -57,7 +76,11 @@ class _HiringBrowseScreenState extends State<HiringBrowseScreen> {
       ..sort();
 
     return Scaffold(
-      body: Column(
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        displacement: 60,
+        strokeWidth: 2.5,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header + search ───────────────────────────────────────────
@@ -168,6 +191,7 @@ class _HiringBrowseScreenState extends State<HiringBrowseScreen> {
                     ),
                   )
                 : ListView.separated(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: results.length,
                     separatorBuilder: (context2, _) =>
@@ -176,8 +200,24 @@ class _HiringBrowseScreenState extends State<HiringBrowseScreen> {
                         _HiringBrowseCard(post: results[index]),
                   ),
           ),
+          // ── Load-more indicator ────────────────────────────────────────
+          if (state.isLoadingMore)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
+      ), // RefreshIndicator
     );
   }
 }

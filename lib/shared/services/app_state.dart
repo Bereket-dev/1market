@@ -140,6 +140,8 @@ class KoolanAppState extends ChangeNotifier {
   }
 
   SupabaseRepository? _repo;
+  // Read-only anon repo used for guest browsing (pagination load-more).
+  SupabaseRepository? _anonRepo;
 
   /// Completes when Supabase fires [AuthChangeEvent.initialSession], meaning
   /// the auth state is fully known. All data fetches must wait for this.
@@ -537,6 +539,12 @@ class KoolanAppState extends ChangeNotifier {
   List<Application> myApplications = [];
   List<Map<String, dynamic>> notifications = [];
 
+  // ── Pagination state ─────────────────────────────────────────────────────────
+  bool hasMoreListings    = true;
+  bool hasMoreServices    = true;
+  bool hasMoreHiringPosts = true;
+  bool isLoadingMore      = false;
+
   /// In-memory set of item IDs the user has viewed this session.
   /// Not persisted — signals collected across phases A–C (save/apply) are the
   /// primary durable signals. This is the minimal addition for the "viewed"
@@ -877,14 +885,17 @@ class KoolanAppState extends ChangeNotifier {
         }
         // Create a temporary read-only repo for the fetch.
         final anonRepo = SupabaseRepository(client);
-        final listings = await anonRepo.fetchListings();
+        _anonRepo = anonRepo;
+        final listings = await anonRepo.fetchListings(limit: SupabaseRepository.kPageSize, offset: 0);
         allListings = listings;
+        hasMoreListings = listings.length >= SupabaseRepository.kPageSize;
         await app_local.LocalStorage.saveListingsCache(
           listings.map((l) => l.toJson()).toList(),
         );
         try {
-          final services = await anonRepo.fetchServices();
+          final services = await anonRepo.fetchServices(limit: SupabaseRepository.kPageSize, offset: 0);
           allServices = services;
+          hasMoreServices = services.length >= SupabaseRepository.kPageSize;
           await app_local.LocalStorage.saveServicesCache(
             services.map((s) => s.toJson()).toList(),
           );
@@ -893,8 +904,9 @@ class KoolanAppState extends ChangeNotifier {
         }
         // Hiring posts are public — fetch them for guests too.
         try {
-          final posts = await anonRepo.fetchHiringPosts();
+          final posts = await anonRepo.fetchHiringPosts(limit: SupabaseRepository.kPageSize, offset: 0);
           allHiringPosts = posts;
+          hasMoreHiringPosts = posts.length >= SupabaseRepository.kPageSize;
         } catch (e) {
           debugPrint('fetchHiringPosts (guest) failed: $e');
         }
@@ -902,14 +914,16 @@ class KoolanAppState extends ChangeNotifier {
         chatSessions = [];
         return;
       }
-      final listings = await _repo!.fetchListings();
+      final listings = await _repo!.fetchListings(limit: SupabaseRepository.kPageSize, offset: 0);
       allListings = listings;
+      hasMoreListings = listings.length >= SupabaseRepository.kPageSize;
       // Cache for offline use.
       await app_local.LocalStorage.saveListingsCache(
         listings.map((l) => l.toJson()).toList(),
       );
-      final services = await _repo!.fetchServices();
+      final services = await _repo!.fetchServices(limit: SupabaseRepository.kPageSize, offset: 0);
       allServices = services;
+      hasMoreServices = services.length >= SupabaseRepository.kPageSize;
       await app_local.LocalStorage.saveServicesCache(
         services.map((s) => s.toJson()).toList(),
       );
@@ -921,7 +935,8 @@ class KoolanAppState extends ChangeNotifier {
       }
       // Hiring posts and applications — non-blocking, fail silently.
       try {
-        final posts = await _repo!.fetchHiringPosts();
+        final posts = await _repo!.fetchHiringPosts(limit: SupabaseRepository.kPageSize, offset: 0);
+        hasMoreHiringPosts = posts.length >= SupabaseRepository.kPageSize;
         final myPostIds = posts
             .where((p) => p.posterId == currentUser?.id)
             .map((p) => p.id)
@@ -1045,6 +1060,81 @@ class KoolanAppState extends ChangeNotifier {
   void setSearchQuery(String query) {
     searchQuery = query;
     notifyListeners();
+  }
+
+  // ── Pagination: load more ────────────────────────────────────────────────────
+
+  /// Appends the next page of listings to [allListings].
+  Future<void> loadMoreListings() async {
+    if (isLoadingMore || !hasMoreListings) return;
+    final repo = _repo ?? _anonRepo;
+    if (repo == null) return;
+    isLoadingMore = true;
+    notifyListeners();
+    try {
+      final page = await repo.fetchListings(
+        limit: SupabaseRepository.kPageSize,
+        offset: allListings.length,
+      );
+      // Merge: avoid duplicates by id in case of real-time inserts.
+      final existingIds = allListings.map((l) => l.id).toSet();
+      final newItems = page.where((l) => !existingIds.contains(l.id)).toList();
+      allListings = [...allListings, ...newItems];
+      hasMoreListings = page.length >= SupabaseRepository.kPageSize;
+    } catch (e) {
+      debugPrint('loadMoreListings failed: $e');
+    } finally {
+      isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  /// Appends the next page of services to [allServices].
+  Future<void> loadMoreServices() async {
+    if (isLoadingMore || !hasMoreServices) return;
+    final repo = _repo ?? _anonRepo;
+    if (repo == null) return;
+    isLoadingMore = true;
+    notifyListeners();
+    try {
+      final page = await repo.fetchServices(
+        limit: SupabaseRepository.kPageSize,
+        offset: allServices.length,
+      );
+      final existingIds = allServices.map((s) => s.id).toSet();
+      final newItems = page.where((s) => !existingIds.contains(s.id)).toList();
+      allServices = [...allServices, ...newItems];
+      hasMoreServices = page.length >= SupabaseRepository.kPageSize;
+    } catch (e) {
+      debugPrint('loadMoreServices failed: $e');
+    } finally {
+      isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  /// Appends the next page of hiring posts to [allHiringPosts].
+  Future<void> loadMoreHiringPosts() async {
+    if (isLoadingMore || !hasMoreHiringPosts) return;
+    final repo = _repo ?? _anonRepo;
+    if (repo == null) return;
+    isLoadingMore = true;
+    notifyListeners();
+    try {
+      final page = await repo.fetchHiringPosts(
+        limit: SupabaseRepository.kPageSize,
+        offset: allHiringPosts.length,
+      );
+      final existingIds = allHiringPosts.map((p) => p.id).toSet();
+      final newItems = page.where((p) => !existingIds.contains(p.id)).toList();
+      allHiringPosts = [...allHiringPosts, ...newItems];
+      hasMoreHiringPosts = page.length >= SupabaseRepository.kPageSize;
+    } catch (e) {
+      debugPrint('loadMoreHiringPosts failed: $e');
+    } finally {
+      isLoadingMore = false;
+      notifyListeners();
+    }
   }
 
   List<Listing> getFilteredListings() {

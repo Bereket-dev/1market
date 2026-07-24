@@ -18,15 +18,34 @@ class ServiceBrowseScreen extends StatefulWidget {
 
 class _ServiceBrowseScreenState extends State<ServiceBrowseScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   String _categoryFilter = '';   // '' = All
   String _locationFilter = '';  // '' = All
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
   }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    if (_scrollController.offset >= maxScroll - 300) {
+      KoolanAppStateScope.of(context).loadMoreServices();
+    }
+  }
+
+  Future<void> _onRefresh() => KoolanAppStateScope.of(context).loadAllData();
 
   List<Service> _filter(List<Service> all) {
     return all.where((s) {
@@ -75,7 +94,11 @@ class _ServiceBrowseScreenState extends State<ServiceBrowseScreen> {
       ..sort();
 
     return Scaffold(
-      body: Column(
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        displacement: 60,
+        strokeWidth: 2.5,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header + search bar ───────────────────────────────────────────
@@ -201,6 +224,7 @@ class _ServiceBrowseScreenState extends State<ServiceBrowseScreen> {
             child: results.isEmpty
                 ? _EmptyBrowse(message: s.servicesBrowseNoResults)
                 : ListView.separated(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: results.length,
                     separatorBuilder: (context, index) =>
@@ -211,8 +235,24 @@ class _ServiceBrowseScreenState extends State<ServiceBrowseScreen> {
                     },
                   ),
           ),
+          // ── Load-more indicator ────────────────────────────────────────────
+          if (state.isLoadingMore)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
+      ), // RefreshIndicator
     );
   }
 }

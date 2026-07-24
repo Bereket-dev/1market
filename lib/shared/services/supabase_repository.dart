@@ -81,11 +81,18 @@ class SupabaseRepository {
 
   // ── Listings ────────────────────────────────────────────────────────────────
 
-  Future<List<Listing>> fetchListings({Set<String>? savedIds}) async {
+  static const int kPageSize = 30;
+
+  Future<List<Listing>> fetchListings({
+    Set<String>? savedIds,
+    int limit = kPageSize,
+    int offset = 0,
+  }) async {
     final rows = await _client
         .from('listings')
         .select('*, profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)')
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
 
     final userId = currentUserId;
     final favorites = savedIds ??
@@ -100,11 +107,15 @@ class SupabaseRepository {
         .toList();
   }
 
-  Future<List<Service>> fetchServices() async {
+  Future<List<Service>> fetchServices({
+    int limit = kPageSize,
+    int offset = 0,
+  }) async {
     final rows = await _client
         .from('services')
         .select()
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
 
     return (rows as List)
         .map((row) => Service.fromJson(row as Map<String, dynamic>))
@@ -520,11 +531,15 @@ class SupabaseRepository {
 
   /// Fetches all hiring posts visible to the current user:
   /// open posts (public) + the user's own closed posts (per RLS).
-  Future<List<HiringPost>> fetchHiringPosts() async {
+  Future<List<HiringPost>> fetchHiringPosts({
+    int limit = kPageSize,
+    int offset = 0,
+  }) async {
     final rows = await _client
         .from('hiring_posts')
         .select()
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
     return (rows as List)
         .map((r) => HiringPost.fromJson(r as Map<String, dynamic>))
         .toList();

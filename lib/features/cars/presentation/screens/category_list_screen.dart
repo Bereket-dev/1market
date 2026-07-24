@@ -3,6 +3,7 @@ import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../widgets/car_card.dart';
 
 // ── Sort mode ─────────────────────────────────────────────────────────────────
@@ -189,6 +190,7 @@ class CategoryListScreen extends StatefulWidget {
 
 class _CategoryListScreenState extends State<CategoryListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   bool _gridMode = true;              // default: 2-column grid to show more items
   _SortMode _sortMode = _SortMode.newest;
@@ -197,6 +199,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = KoolanAppStateScope.of(context);
       state.selectedCategory = widget.categoryName;
@@ -207,7 +210,22 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final current = _scrollController.offset;
+    if (current >= maxScroll - 300) {
+      KoolanAppStateScope.of(context).loadMoreListings();
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    await KoolanAppStateScope.of(context).loadAllData();
   }
 
   // ── Filter actions ────────────────────────────────────────────────────────
@@ -428,6 +446,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          // Auth gate: posting requires sign-in.
+          if (!state.isSignedIn) {
+            showAuthGateSheet(context, reason: AuthGateReason.post);
+            return;
+          }
           state.postCategory =
               widget.categoryName == 'ALL' ? 'CARS' : widget.categoryName;
           state.pushScreen(PostWizardScreenRoute());
@@ -436,7 +459,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
         backgroundColor: cs.primaryContainer,
         child: Icon(Icons.add, color: cs.onPrimaryContainer),
       ),
-      body: Column(
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        displacement: 60,
+        strokeWidth: 2.5,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Header row ────────────────────────────────────────────────
@@ -637,14 +664,32 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                     ? _GridFeed(
                         results: results,
                         state: state,
+                        scrollController: _scrollController,
                       )
                     : _ListFeed(
                         results: results,
                         state: state,
+                        scrollController: _scrollController,
                       ),
           ),
+          // ── Load-more indicator ────────────────────────────────────────
+          if (state.isLoadingMore)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
+      ), // RefreshIndicator
     );
   }
 
@@ -699,11 +744,13 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 class _ListFeed extends StatelessWidget {
   final List<Listing> results;
   final KoolanAppState state;
-  const _ListFeed({required this.results, required this.state});
+  final ScrollController scrollController;
+  const _ListFeed({required this.results, required this.state, required this.scrollController});
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      controller: scrollController,
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
       itemCount: results.length,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
@@ -722,17 +769,19 @@ class _ListFeed extends StatelessWidget {
 class _GridFeed extends StatelessWidget {
   final List<Listing> results;
   final KoolanAppState state;
-  const _GridFeed({required this.results, required this.state});
+  final ScrollController scrollController;
+  const _GridFeed({required this.results, required this.state, required this.scrollController});
 
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
+      controller: scrollController,
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.82, // slightly wider-than-tall — fits image + key info
+        childAspectRatio: 0.82,
       ),
       itemCount: results.length,
       itemBuilder: (context, index) {
