@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/services/app_state.dart';
 
-/// Each goal option — icon, color, and localised label.
+/// Each goal option — icon, color, localised label, and stable category key.
 class _GoalOption {
   final IconData icon;
   final Color color;
   final String Function(dynamic s) label;
   final String Function(dynamic s) description;
+  /// Stable key passed to [KoolanAppState.completeGoalSelection].
+  /// Must be one of: 'CARS', 'HOUSES', 'LAND', 'SKILLS', 'OTHERS',
+  /// or a non-category sentinel like 'POST_LISTING', 'HIRE', 'FIND_JOB'.
+  final String key;
 
   const _GoalOption({
     required this.icon,
     required this.color,
     required this.label,
     required this.description,
+    required this.key,
   });
 }
 
@@ -24,7 +29,10 @@ class GoalSelectionScreen extends StatefulWidget {
 }
 
 class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
-  String? _selectedGoal;
+  /// Index of the selected goal card (-1 = none selected).
+  /// We track index rather than key so that two cards sharing the same
+  /// category key (e.g. both SKILLS goals) can be highlighted independently.
+  int _selectedIndex = -1;
   bool _isSaving = false;
 
   // ── Goal options ────────────────────────────────────────────────────────────
@@ -35,36 +43,42 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
           color: const Color(0xFF6366F1), // indigo
           label: (_) => s.goalPostListing,
           description: (_) => _descPostListing(s),
+          key: 'OTHERS', // "Post a listing" → general marketplace
         ),
         _GoalOption(
           icon: Icons.engineering_rounded,
           color: const Color(0xFF059669), // emerald
           label: (_) => s.goalHireSkilled,
           description: (_) => _descHireSkilled(s),
+          key: 'SKILLS',
         ),
         _GoalOption(
           icon: Icons.work_outline_rounded,
           color: const Color(0xFFF59E0B), // amber
           label: (_) => s.goalFindJob,
           description: (_) => _descFindJob(s),
+          key: 'SKILLS',
         ),
         _GoalOption(
           icon: Icons.directions_car_rounded,
           color: const Color(0xFF3B82F6), // blue
           label: (_) => s.goalFindCar,
           description: (_) => _descFindCar(s),
+          key: 'CARS',
         ),
         _GoalOption(
           icon: Icons.home_rounded,
           color: const Color(0xFFEC4899), // pink
           label: (_) => s.goalRentHome,
           description: (_) => _descRentHome(s),
+          key: 'HOUSES',
         ),
         _GoalOption(
           icon: Icons.landscape_rounded,
           color: const Color(0xFF10B981), // green
           label: (_) => s.goalBuyLand,
           description: (_) => _descBuyLand(s),
+          key: 'LAND',
         ),
       ];
 
@@ -138,10 +152,13 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
   // ── Save and proceed ────────────────────────────────────────────────────────
 
   Future<void> _proceed(KoolanAppState state) async {
-    if (_selectedGoal == null || _isSaving) return;
+    if (_selectedIndex < 0 || _isSaving) return;
     setState(() => _isSaving = true);
     try {
-      await state.completeGoalSelection(_selectedGoal!);
+      final options = _buildOptions(state.s);
+      // Pass the stable key — never the translated label — so the stored
+      // preferred_category is always a valid DB enum value.
+      await state.completeGoalSelection(options[_selectedIndex].key);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -197,10 +214,10 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
                   itemBuilder: (context, index) {
                     final opt = options[index];
                     final label = opt.label(s);
-                    final isSelected = _selectedGoal == label;
+                    final isSelected = _selectedIndex == index;
 
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedGoal = label),
+                      onTap: () => setState(() => _selectedIndex = index),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.easeInOut,
@@ -282,7 +299,7 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
               // ── CTA ────────────────────────────────────────────────────────
               FilledButton(
                 onPressed:
-                    (_selectedGoal == null || _isSaving) ? null : () => _proceed(state),
+                    (_selectedIndex < 0 || _isSaving) ? null : () => _proceed(state),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(

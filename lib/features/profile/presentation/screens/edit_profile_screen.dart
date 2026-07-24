@@ -81,15 +81,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _save(KoolanAppState appState) async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Prevent clearing an existing phone number — only allow adding/changing.
+    final existingPhone = appState.profile?.phone ?? '';
+    final newPhone = _phoneController.text.trim();
+    if (existingPhone.isNotEmpty && newPhone.isEmpty) {
+      // Silently restore the existing phone so the user can't blank it out.
+      _phoneController.text = existingPhone;
+    }
+
     setState(() => _isSaving = true);
     try {
       await appState.submitProfileUpdate(
         displayName: _nameController.text.trim(),
         bio: _bioController.text.trim(),
-        phone: _phoneController.text.trim(),
+        phone: newPhone.isEmpty ? existingPhone : newPhone,
         city: _cityController.text.trim(),
         preferredCategory: _selectedCategory,
       );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -339,12 +357,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Phone
+                    // Phone — can be added or changed, but not deleted once set
                     _field(
                       label: s.editProfilePhone,
                       controller: _phoneController,
                       s: s,
                       keyboardType: TextInputType.phone,
+                      hint: '+251 9X XXX XXXX',
+                      existingValue: appState.profile?.phone,
                     ),
                     const SizedBox(height: 14),
 
@@ -447,7 +467,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     TextInputType keyboardType = TextInputType.text,
     String? hint,
     bool isRequired = false,
+    String? existingValue, // if set, field cannot be cleared
   }) {
+    final hasExisting =
+        existingValue != null && existingValue.trim().isNotEmpty;
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
@@ -456,6 +479,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        helperText: hasExisting ? 'Cannot be removed once set' : null,
+        helperStyle: const TextStyle(fontSize: 11),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
       validator: isRequired
@@ -465,7 +490,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               }
               return null;
             }
-          : null,
+          : hasExisting
+              ? (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Phone number cannot be removed';
+                  }
+                  return null;
+                }
+              : null,
     );
   }
 }

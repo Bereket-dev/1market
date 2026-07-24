@@ -223,11 +223,13 @@ class KoolanAppState extends ChangeNotifier {
     try {
       await _repo?.updateProfile(fields);
       profile = profile?.copyWith(syncStatus: SyncStatus.synced);
+      notifyListeners();
     } catch (e) {
       profile = profile?.copyWith(syncStatus: SyncStatus.failed);
       dataError = e.toString();
+      notifyListeners();
+      rethrow; // Let callers (EditProfileScreen._save) show the error to the user.
     }
-    notifyListeners();
   }
 
   // ── Profile image uploads ─────────────────────────────────────────────────
@@ -2090,9 +2092,11 @@ class KoolanAppState extends ChangeNotifier {
   }
   void resetWizard() {
     postStep = 1;
+    postCategory = 'CARS';   // reset so stale/translated values never leak into dropdowns
     postTitle = '';
     postPrice = '';
     postDescription = '';
+    postLocation = 'Kebele 06'; // reset to default — stale "Other" value would crash kebele dropdown
     postPhysicalAddress = '';
     postMainPhotoAttached = false;
     postImagePaths = [];
