@@ -50,8 +50,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   bool _isSignUp = false;
   String? _error;
 
-  /// True while the Facebook OAuth browser is open so that on app resume (user
-  /// pressed back without completing auth) we can cancel the loading state.
+  /// True while the Facebook OAuth Chrome Custom Tab is open so that on app
+  /// resume (user pressed Back without completing auth) we can cancel the
+  /// loading state.
   bool _facebookOAuthInFlight = false;
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -87,10 +88,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// When the user presses Back in the Facebook OAuth browser (Chrome Custom
-  /// Tab), Android resumes the app without firing the deep-link callback.
-  /// Detect this by checking the lifecycle transition to [resumed] while the
-  /// Facebook OAuth is still marked in-flight.
+  /// When the user presses Back inside the Facebook Chrome Custom Tab, Android
+  /// resumes the app without firing the deep-link callback.
+  /// Detect this via the lifecycle transition to [resumed] while the Facebook
+  /// OAuth is still marked in-flight, then cancel the loading state.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _facebookOAuthInFlight) {
@@ -346,43 +347,28 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     }
 
     try {
-      // Use Supabase's OAuth redirect flow for Facebook.
-      // Facebook's native SDK does not issue ID tokens (JWTs), so
-      // signInWithIdToken does not work. The OAuth flow opens a Chrome
-      // Custom Tab (inAppWebView), which stays in the app's task stack so
-      // the deep-link redirect back to io.supabase.koolan://login-callback/
-      // is reliably intercepted by the Android intent-filter.
-      //
-      // Using LaunchMode.externalApplication (system browser) is unreliable
-      // because a separate browser process may not hand the deep-link back
-      // to the correct app task.
       if (!mounted) return;
       KoolanAppStateScope.of(context).markOAuthPending();
 
-      debugPrint('[FB] Starting OAuth with redirectTo: ${AppSupabaseConfig.redirectUrl}');
-
+      // Use externalApplication (Chrome Custom Tab / system browser) so that
+      // after Facebook redirects back to Supabase, the final redirect to
+      // io.supabase.koolan://login-callback/ is handled by Android's intent
+      // system rather than the WebView. inAppWebView intercepts the redirect
+      // inside the WebView which cannot handle custom schemes — it prepends
+      // http:// and fails with ERR_CLEARTEXT_NOT_PERMITTED.
       setState(() => _facebookOAuthInFlight = true);
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
-        authScreenLaunchMode: LaunchMode.inAppWebView,
+        authScreenLaunchMode: LaunchMode.externalApplication,
       );
-      // _facebookOAuthInFlight stays true until didChangeAppLifecycleState
-      // detects a resume-without-session (user cancelled) or app_state's
-      // onFreshAuth fires (success). Either path clears it.
 
-      debugPrint('[FB] signInWithOAuth returned — waiting for deep-link callback');
-
-      // The session arrives via the deep-link listener in supabase_flutter
-      // (backed by app_links). When the Chrome Custom Tab fires the redirect
-      // to io.supabase.koolan://login-callback/, supabase_flutter exchanges
-      // the PKCE code and emits AuthChangeEvent.signedIn — which app_state
-      // listens to via onAuthStateChange and calls onFreshAuth().
-      // The loading state will be cleared there; nothing more to do here.
+      // _facebookOAuthInFlight stays true until:
+      //   • didChangeAppLifecycleState detects resume-without-session (cancel)
+      //   • app_state.onFreshAuth fires via onAuthStateChange (success)
+      // Either path clears it; nothing more to do here.
     } on AuthException catch (e) {
       if (mounted) {
-        // access_denied means the user cancelled on Facebook's consent screen.
-        // Treat it as a silent cancellation rather than an error.
         final isCancelled = e.message.toLowerCase().contains('access_denied') ||
             e.message.toLowerCase().contains('access denied');
         setState(() {
@@ -390,13 +376,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
           _isLoading = false;
           _facebookOAuthInFlight = false;
         });
-        if (isCancelled) {
-          KoolanAppStateScope.of(context).clearOAuthPending();
-        }
+        if (isCancelled) KoolanAppStateScope.of(context).clearOAuthPending();
       }
     } catch (e) {
       if (mounted) {
-        // Same check for non-AuthException wrappers.
         final msg = e.toString().toLowerCase();
         final isCancelled =
             msg.contains('access_denied') || msg.contains('access denied');
@@ -405,9 +388,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
           _isLoading = false;
           _facebookOAuthInFlight = false;
         });
-        if (isCancelled) {
-          KoolanAppStateScope.of(context).clearOAuthPending();
-        }
+        if (isCancelled) KoolanAppStateScope.of(context).clearOAuthPending();
       }
     }
   }

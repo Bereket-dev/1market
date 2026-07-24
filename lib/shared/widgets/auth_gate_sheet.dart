@@ -160,16 +160,18 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
       // looking at a half-open sheet during the OAuth flow.
       if (mounted) Navigator.of(context).pop();
 
+      // Open Facebook OAuth in a Chrome Custom Tab (inAppWebView).
+      // inAppWebView keeps the tab in the app's task stack so the
+      // io.supabase.koolan://login-callback/ deep link is reliably
+      // intercepted. externalApplication opens a separate browser process
+      // that may not hand the redirect back to this app.
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
-        // inAppWebView keeps the Chrome Custom Tab in the app's task stack so
-        // the io.supabase.koolan://login-callback/ deep link is reliably
-        // intercepted. externalApplication opens a separate browser process
-        // that may not hand the redirect back to this app.
         authScreenLaunchMode: LaunchMode.inAppWebView,
       );
-      // Session arrives via the deep-link / auth state listener in app_state.
+      // Session arrives via the deep-link / onAuthStateChange listener in
+      // app_state. Nothing more to do here.
     } on AuthException catch (e) {
       if (mounted) {
         final isCancelled = e.message.toLowerCase().contains('access_denied') ||

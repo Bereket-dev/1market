@@ -44,4 +44,8 @@ flutter {
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
     implementation("com.google.firebase:firebase-analytics")
+    // Facebook SDK — required for Supabase Facebook OAuth on Android.
+    // The SDK handles ChromeCustomTab launch, deep-link callback (fb<APP_ID>://),
+    // and the LoginManager that Supabase's signInWithOAuth delegates to.
+    implementation("com.facebook.android:facebook-android-sdk:latest.release")
 }
