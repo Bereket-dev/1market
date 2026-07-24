@@ -14,7 +14,6 @@ import '../../../../shared/widgets/cached_image_widget.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/recent_listing_card.dart';
-import '../../data/category_picker_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -305,17 +304,7 @@ class HomeScreen extends StatelessWidget {
             showAuthGateSheet(context, reason: AuthGateReason.post);
             return;
           }
-          showModalBottomSheet(
-            context: context,
-            backgroundColor: Colors.transparent,
-            builder: (context) => CategoryPickerSheet(
-              onSelect: (cat) {
-                Navigator.pop(context);
-                state.postCategory = cat;
-                state.pushScreen(PostWizardScreenRoute());
-              },
-            ),
-          );
+          state.pushScreen(PostWizardScreenRoute());
         },
         backgroundColor: cs.primaryContainer,
         shape: const CircleBorder(),

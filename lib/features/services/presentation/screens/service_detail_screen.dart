@@ -67,6 +67,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                 // ── Hero image carousel ────────────────────────────────
                 _ServiceHeroCarousel(
                   imageUrl: service.imageUrl,
+                  imageUrls: service.imageUrls,
                   ownerId: service.ownerId,
                   state: state,
                   serviceId: service.id,
@@ -257,12 +258,17 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 class _ServiceHeroCarousel extends StatefulWidget {
   /// Primary cover image URL.
   final String imageUrl;
+
+  /// All image URLs (multi-image support).
+  final List<String> imageUrls;
+
   final String ownerId;
   final KoolanAppState state;
   final String serviceId;
 
   const _ServiceHeroCarousel({
     required this.imageUrl,
+    required this.imageUrls,
     required this.ownerId,
     required this.state,
     required this.serviceId,
@@ -274,10 +280,24 @@ class _ServiceHeroCarousel extends StatefulWidget {
 
 class _ServiceHeroCarouselState extends State<_ServiceHeroCarousel> {
   int _currentPage = 0;
+  late final PageController _pageController = PageController();
 
-  List<String> get _images => [
-    if (widget.imageUrl.isNotEmpty) widget.imageUrl,
-  ];
+  /// Builds the full ordered image list: primary first, extras after,
+  /// deduped and with empty strings filtered out.
+  List<String> get _images {
+    final all = <String>[
+      if (widget.imageUrl.isNotEmpty) widget.imageUrl,
+      ...widget.imageUrls.where((u) => u.isNotEmpty),
+    ];
+    final seen = <String>{};
+    return all.where(seen.add).toList();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -307,6 +327,7 @@ class _ServiceHeroCarouselState extends State<_ServiceHeroCarousel> {
             )
           else
             PageView.builder(
+              controller: _pageController,
               itemCount: images.length,
               onPageChanged: (i) => setState(() => _currentPage = i),
               itemBuilder: (_, i) => CachedNetworkImage(
@@ -360,6 +381,63 @@ class _ServiceHeroCarouselState extends State<_ServiceHeroCarousel> {
                     ),
                   );
                 }),
+              ),
+            ),
+
+          // ── Left / right arrow buttons – only when multi ──────────────
+          if (multi && _currentPage > 0)
+            Positioned(
+              left: 12,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _OverlayCircleButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onPressed: () => _pageController.animateToPage(
+                    _currentPage - 1,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                  ),
+                ),
+              ),
+            ),
+          if (multi && _currentPage < images.length - 1)
+            Positioned(
+              right: 12,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _OverlayCircleButton(
+                  icon: Icons.arrow_forward_ios_rounded,
+                  onPressed: () => _pageController.animateToPage(
+                    _currentPage + 1,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                  ),
+                ),
+              ),
+            ),
+
+          // ── Counter badge – only when multi ───────────────────────────
+          if (multi)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 56,
+              right: 16,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_currentPage + 1} / ${images.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
         ],

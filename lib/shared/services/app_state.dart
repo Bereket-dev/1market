@@ -1354,32 +1354,52 @@ class KoolanAppState extends ChangeNotifier {
     }
   }
 
-  Future<void> submitServiceEdit(Service service, {String? newImagePath}) async {
+  Future<void> submitServiceEdit(
+    Service service, {
+    /// New local file paths to upload (multi-image).
+    List<String> newImagePaths = const [],
+    /// Already-uploaded URLs to keep (multi-image).
+    List<String> existingImageUrls = const [],
+    // Legacy single-image path — kept for backward compat, treated as first new image.
+    String? newImagePath,
+  }) async {
     if (currentUser == null) return;
 
     final now = DateTime.now();
     final isNew = service.id.startsWith('local_');
     final userId = currentUser!.id;
 
-    // Upload new image to Cloudinary before saving if provided.
-    String imageUrl = service.imageUrl;
-    if (newImagePath != null) {
-      final file = File(newImagePath);
-      if (await file.exists()) {
-        final result = await CloudinaryUploadService.instance.uploadListingImage(
-          imageFile: file,
-          userId: userId,
-          listingId: service.id,
-          index: 0,
-        );
-        if (result is CloudinaryUploadSuccess) {
-          imageUrl = result.secureUrl;
-        }
+    // Merge legacy single path into the list.
+    final allNewPaths = [
+      if (newImagePath != null) newImagePath,
+      ...newImagePaths,
+    ];
+
+    // Upload all new images to Cloudinary.
+    final uploadedUrls = <String>[];
+    for (int i = 0; i < allNewPaths.length; i++) {
+      final file = File(allNewPaths[i]);
+      if (!await file.exists()) continue;
+      final result = await CloudinaryUploadService.instance.uploadListingImage(
+        imageFile: file,
+        userId: userId,
+        listingId: service.id,
+        index: existingImageUrls.length + i,
+      );
+      if (result is CloudinaryUploadSuccess) {
+        uploadedUrls.add(result.secureUrl);
       }
     }
 
-    final updated = service
-        .copyWith(imageUrl: imageUrl, syncStatus: SyncStatus.pending, localUpdatedAt: now);
+    final mergedUrls = [...existingImageUrls, ...uploadedUrls];
+    final primaryUrl = mergedUrls.isNotEmpty ? mergedUrls.first : service.imageUrl;
+
+    final updated = service.copyWith(
+      imageUrl: primaryUrl,
+      imageUrls: mergedUrls,
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: now,
+    );
 
     final existingIndex = allServices.indexWhere((s) => s.id == updated.id);
     if (existingIndex == -1) {
@@ -1401,6 +1421,7 @@ class KoolanAppState extends ChangeNotifier {
       'location': updated.location,
       'availability': updated.availability,
       'image_url': updated.imageUrl,
+      'image_urls': updated.imageUrls,
       'created_at': updated.createdAt.toIso8601String(),
     };
 
@@ -1541,32 +1562,43 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submitHiringPostEdit(HiringPost post, {String? newImagePath}) async {
+  Future<void> submitHiringPostEdit(
+    HiringPost post, {
+    List<String> newImagePaths = const [],
+    List<String> existingImageUrls = const [],
+  }) async {
     if (currentUser == null) return;
 
     final now = DateTime.now();
     final isNew = post.id.startsWith('local_');
     final userId = currentUser!.id;
 
-    // Upload new image to Cloudinary before saving if provided.
-    String imageUrl = post.imageUrl;
-    if (newImagePath != null) {
-      final file = File(newImagePath);
-      if (await file.exists()) {
-        final result = await CloudinaryUploadService.instance.uploadListingImage(
-          imageFile: file,
-          userId: userId,
-          listingId: post.id,
-          index: 0,
-        );
-        if (result is CloudinaryUploadSuccess) {
-          imageUrl = result.secureUrl;
-        }
+    // Upload any new local images to Cloudinary.
+    final uploadedUrls = <String>[];
+    for (int i = 0; i < newImagePaths.length; i++) {
+      final file = File(newImagePaths[i]);
+      if (!await file.exists()) continue;
+      final result = await CloudinaryUploadService.instance.uploadListingImage(
+        imageFile: file,
+        userId: userId,
+        listingId: post.id,
+        index: existingImageUrls.length + i,
+      );
+      if (result is CloudinaryUploadSuccess) {
+        uploadedUrls.add(result.secureUrl);
       }
     }
 
-    final updated = post
-        .copyWith(imageUrl: imageUrl, syncStatus: SyncStatus.pending, localUpdatedAt: now);
+    final mergedUrls = [...existingImageUrls, ...uploadedUrls];
+    final imageUrl =
+        mergedUrls.isNotEmpty ? mergedUrls.first : post.imageUrl;
+
+    final updated = post.copyWith(
+      imageUrl: imageUrl,
+      imageUrls: mergedUrls,
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: now,
+    );
 
     final existingIndex = allHiringPosts.indexWhere((p) => p.id == updated.id);
     if (existingIndex == -1) {
@@ -1585,6 +1617,7 @@ class KoolanAppState extends ChangeNotifier {
       'price_range': updated.priceRange,
       'status': updated.status,
       'image_url': updated.imageUrl,
+      'image_urls': updated.imageUrls,
       'created_at': updated.createdAt.toIso8601String(),
     };
 

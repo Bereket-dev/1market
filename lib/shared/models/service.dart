@@ -18,6 +18,9 @@ class Service with SyncableEntity {
   /// Cover image URL stored in Cloudinary.
   final String imageUrl;
 
+  /// All image URLs for this service (multi-image support).
+  final List<String> imageUrls;
+
   final DateTime createdAt;
   @override
   final DateTime localUpdatedAt;
@@ -39,12 +42,14 @@ class Service with SyncableEntity {
     required this.location,
     this.availability = true,
     this.imageUrl = '',
+    List<String>? imageUrls,
     DateTime? createdAt,
     DateTime? localUpdatedAt,
     this.remoteUpdatedAt,
     this.syncStatus = SyncStatus.synced,
   })  : createdAt = createdAt ?? DateTime.now(),
         priceRange = formatETB(priceRange),
+        imageUrls = imageUrls ?? const [],
         localUpdatedAt = localUpdatedAt ?? DateTime.now();
 
   factory Service.fromJson(Map<String, dynamic> json) {
@@ -71,6 +76,7 @@ class Service with SyncableEntity {
       location: json['location'] as String? ?? '',
       availability: json['availability'] as bool? ?? false,
       imageUrl: json['image_url'] as String? ?? '',
+      imageUrls: List<String>.from((json['image_urls'] as List?) ?? []),
       createdAt: createdAt ?? DateTime.now(),
       localUpdatedAt: localUpdatedAt ?? updatedAt ?? DateTime.now(),
       remoteUpdatedAt: updatedAt,
@@ -91,6 +97,7 @@ class Service with SyncableEntity {
         'location': location,
         'availability': availability,
         'image_url': imageUrl,
+        'image_urls': imageUrls,
         'created_at': createdAt.toIso8601String(),
         'updated_at': remoteUpdatedAt?.toIso8601String(),
         'local_updated_at': localUpdatedAt.toIso8601String(),
@@ -110,6 +117,7 @@ class Service with SyncableEntity {
     String? location,
     bool? availability,
     String? imageUrl,
+    List<String>? imageUrls,
     DateTime? createdAt,
     DateTime? localUpdatedAt,
     DateTime? remoteUpdatedAt,
@@ -128,6 +136,7 @@ class Service with SyncableEntity {
       location: location ?? this.location,
       availability: availability ?? this.availability,
       imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
       createdAt: createdAt ?? this.createdAt,
       localUpdatedAt: localUpdatedAt ?? this.localUpdatedAt,
       remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,

@@ -37,13 +37,13 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
   /// True when a CV was picked offline and is queued for upload.
   bool _cvPending = false;
 
-  /// Existing cover image URL loaded from the service record.
-  String _existingImageUrl = '';
+  /// Existing image URLs loaded from the service record (already uploaded).
+  List<String> _existingImageUrls = [];
 
-  /// Local file path for a newly picked cover image (not yet uploaded).
-  String? _newImagePath;
+  /// Local file paths for newly picked images (not yet uploaded).
+  List<String> _newImagePaths = [];
 
-  /// Error message from image upload.
+  /// Error message from image pick.
   String? _imageError;
 
   bool _isSaving = false;
@@ -90,7 +90,14 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     _locationController.text = _service?.location ?? '';
     _availability = _service?.availability ?? true;
     _cvFileUrl = _service?.cvFileUrl;
-    _existingImageUrl = _service?.imageUrl ?? '';
+    // Populate image list: prefer imageUrls[], fall back to single imageUrl.
+    if (_service != null) {
+      _existingImageUrls = _service!.imageUrls.isNotEmpty
+          ? List<String>.from(_service!.imageUrls)
+          : _service!.imageUrl.isNotEmpty
+              ? [_service!.imageUrl]
+              : [];
+    }
   }
 
   @override
@@ -122,7 +129,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     final path = result.files.first.path;
     if (path != null) {
       setState(() {
-        _newImagePath = path;
+        _newImagePaths = [path];
         _imageError = null;
       });
     }
@@ -151,7 +158,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
       location: _locationController.text.trim(),
       availability: _availability,
       // Pass existing URL; app_state will replace it if a new image is uploaded.
-      imageUrl: _existingImageUrl,
+      imageUrl: _existingImageUrls.isNotEmpty ? _existingImageUrls.first : '',
       createdAt: _service?.createdAt,
       localUpdatedAt: now,
       syncStatus: SyncStatus.pending,
@@ -159,7 +166,8 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     try {
       await state.submitServiceEdit(
         service,
-        newImagePath: _newImagePath,
+        newImagePaths: _newImagePaths,
+        existingImageUrls: _existingImageUrls,
       );
       if (!mounted) return;
       state.popScreen();
@@ -405,29 +413,29 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
 
   Widget _buildImagePicker(ColorScheme cs) {
     // Show new local image if picked, otherwise existing remote image, else add button.
-    if (_newImagePath != null) {
+    if (_newImagePaths.isNotEmpty) {
       return SizedBox(
         height: 120,
         child: Row(
           children: [
             _LocalImageTile(
-              path: _newImagePath!,
+              path: _newImagePaths.first,
               cs: cs,
-              onRemove: () => setState(() => _newImagePath = null),
+              onRemove: () => setState(() => _newImagePaths = []),
             ),
           ],
         ),
       );
     }
-    if (_existingImageUrl.isNotEmpty) {
+    if (_existingImageUrls.isNotEmpty) {
       return SizedBox(
         height: 120,
         child: Row(
           children: [
             _RemoteImageTile(
-              url: _existingImageUrl,
+              url: _existingImageUrls.first,
               cs: cs,
-              onRemove: () => setState(() => _existingImageUrl = ''),
+              onRemove: () => setState(() => _existingImageUrls = []),
             ),
             const SizedBox(width: 8),
             _AddTile(cs: cs, onTap: _pickImage),

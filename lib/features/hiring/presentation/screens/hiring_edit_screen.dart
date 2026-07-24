@@ -135,7 +135,9 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     try {
       await state.submitHiringPostEdit(
         post,
-        newImagePath: _newImagePath,
+        newImagePaths: _newImagePath != null ? [_newImagePath!] : [],
+        existingImageUrls:
+            _existingImageUrl.isNotEmpty ? [_existingImageUrl] : [],
       );
       if (!mounted) return;
       state.popScreen();

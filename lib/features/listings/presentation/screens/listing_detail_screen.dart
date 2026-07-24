@@ -143,6 +143,7 @@ class _HeroImage extends StatefulWidget {
 
 class _HeroImageState extends State<_HeroImage> {
   int _currentPage = 0;
+  late final PageController _pageController = PageController();
 
   /// Builds the full ordered image list: primary first, extras after,
   /// deduped and with empty strings filtered out.
@@ -154,6 +155,20 @@ class _HeroImageState extends State<_HeroImage> {
     // Deduplicate while preserving order.
     final seen = <String>{};
     return all.where(seen.add).toList();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _goTo(int page) {
+    _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -198,6 +213,7 @@ class _HeroImageState extends State<_HeroImage> {
           else
             // Multiple images — swipeable carousel
             PageView.builder(
+              controller: _pageController,
               itemCount: images.length,
               onPageChanged: (i) => setState(() => _currentPage = i),
               itemBuilder: (_, i) => CachedNetworkImage(
@@ -303,6 +319,54 @@ class _HeroImageState extends State<_HeroImage> {
                     ),
                   );
                 }),
+              ),
+            ),
+
+          // ── Left / right arrow buttons – only when multi-image ─────────
+          if (multi && _currentPage > 0)
+            Positioned(
+              left: 12,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _OverlayCircleButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onPressed: () => _goTo(_currentPage - 1),
+                ),
+              ),
+            ),
+          if (multi && _currentPage < images.length - 1)
+            Positioned(
+              right: 12,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _OverlayCircleButton(
+                  icon: Icons.arrow_forward_ios_rounded,
+                  onPressed: () => _goTo(_currentPage + 1),
+                ),
+              ),
+            ),
+
+          // ── Counter badge – top-right, below the back/share/save row ───
+          if (multi)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 56,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_currentPage + 1} / ${images.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
         ],

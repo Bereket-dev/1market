@@ -193,8 +193,11 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Hero image (if present) ────────────────────────────────
-            if (post.imageUrl.isNotEmpty) ...[
-              _HiringHeroCarousel(imageUrl: post.imageUrl),
+            if (post.imageUrl.isNotEmpty || post.imageUrls.isNotEmpty) ...[
+              _HiringHeroCarousel(
+                imageUrl: post.imageUrl,
+                imageUrls: post.imageUrls,
+              ),
               const SizedBox(height: 20),
             ],
             // ── Title + status ─────────────────────────────────────────
@@ -376,7 +379,14 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
 
 class _HiringHeroCarousel extends StatefulWidget {
   final String imageUrl;
-  const _HiringHeroCarousel({required this.imageUrl});
+
+  /// All image URLs (multi-image support).
+  final List<String> imageUrls;
+
+  const _HiringHeroCarousel({
+    required this.imageUrl,
+    required this.imageUrls,
+  });
 
   @override
   State<_HiringHeroCarousel> createState() => _HiringHeroCarouselState();
@@ -384,10 +394,24 @@ class _HiringHeroCarousel extends StatefulWidget {
 
 class _HiringHeroCarouselState extends State<_HiringHeroCarousel> {
   int _currentPage = 0;
+  late final PageController _pageController = PageController();
 
-  List<String> get _images => [
-    if (widget.imageUrl.isNotEmpty) widget.imageUrl,
-  ];
+  /// Builds the full ordered image list: primary first, extras after,
+  /// deduped and with empty strings filtered out.
+  List<String> get _images {
+    final all = <String>[
+      if (widget.imageUrl.isNotEmpty) widget.imageUrl,
+      ...widget.imageUrls.where((u) => u.isNotEmpty),
+    ];
+    final seen = <String>{};
+    return all.where(seen.add).toList();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -423,6 +447,7 @@ class _HiringHeroCarouselState extends State<_HiringHeroCarousel> {
               )
             else
               PageView.builder(
+                controller: _pageController,
                 itemCount: images.length,
                 onPageChanged: (i) => setState(() => _currentPage = i),
                 itemBuilder: (_, i) => CachedNetworkImage(
@@ -466,7 +491,88 @@ class _HiringHeroCarouselState extends State<_HiringHeroCarousel> {
                   }),
                 ),
               ),
+
+            // ── Left / right arrow buttons – only when multi ──────────
+            if (multi && _currentPage > 0)
+              Positioned(
+                left: 12,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: _ArrowButton(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    onPressed: () => _pageController.animateToPage(
+                      _currentPage - 1,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                    ),
+                  ),
+                ),
+              ),
+            if (multi && _currentPage < images.length - 1)
+              Positioned(
+                right: 12,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: _ArrowButton(
+                    icon: Icons.arrow_forward_ios_rounded,
+                    onPressed: () => _pageController.animateToPage(
+                      _currentPage + 1,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                    ),
+                  ),
+                ),
+              ),
+
+            // ── Counter badge ─────────────────────────────────────────
+            if (multi)
+              Positioned(
+                top: 10,
+                right: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_currentPage + 1} / ${images.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Arrow button for hiring carousel ─────────────────────────────────────────
+
+class _ArrowButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  const _ArrowButton({required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.35),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(9),
+          child: Icon(icon, size: 20, color: Colors.white),
         ),
       ),
     );
