@@ -7,6 +7,8 @@ import '../../../../shared/services/recommendation_engine.dart'
     show kGoalToCategoryCode;
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
+part 'widgets/edit_profile_widgets.dart';
+part 'widgets/edit_profile_form.dart';
 
 // Valid preferred-category values — must match the CHECK constraint in Supabase.
 const _kCategories = ['CARS', 'HOUSES', 'LAND', 'SKILLS', 'OTHERS'];

@@ -1,0 +1,295 @@
+part of '../profile_screen.dart';
+
+// ── About tab (no escrow) ─────────────────────────────────────────────────────
+
+class _AboutTab extends StatelessWidget {
+  final String? bio;
+  const _AboutTab({this.bio});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(s.profileProfSummary,
+          style: TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 16, color: cs.onSurface)),
+      const SizedBox(height: 8),
+      Text(
+        bio != null && bio!.isNotEmpty
+            ? bio!
+            : 'No bio added yet. Tap "Edit Profile" to add one.',
+        style:
+            TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.5),
+      ),
+      const SizedBox(height: 20),
+      Text(s.profileSpecialties,
+          style: TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 16, color: cs.onSurface)),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          'Jigjiga',
+          'Verified',
+        ].map((tag) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Text(tag,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: cs.primary,
+                    fontSize: 11)),
+          );
+        }).toList(),
+      ),
+    ]);
+  }
+}
+
+// ── Reviews tab (real data) ───────────────────────────────────────────────────
+
+class _ReviewsTab extends StatefulWidget {
+  final KoolanAppState state;
+  const _ReviewsTab({required this.state});
+
+  @override
+  State<_ReviewsTab> createState() => _ReviewsTabState();
+}
+
+class _ReviewsTabState extends State<_ReviewsTab> {
+  bool _loading = false;
+  List<ServiceReview> _reviews = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    setState(() => _loading = true);
+    final services = widget.state.getMyServices();
+    final all = <ServiceReview>[];
+    for (final svc in services) {
+      final r = await widget.state.loadReviewsForService(svc.id);
+      all.addAll(r);
+    }
+    // Also surface cached reviews
+    if (all.isEmpty) {
+      for (final svc in services) {
+        all.addAll(widget.state.getReviewsForService(svc.id));
+      }
+    }
+    // Sort newest first
+    all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (mounted) setState(() { _reviews = all; _loading = false; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = widget.state.s;
+
+    if (_loading) {
+      return const Center(
+          child: Padding(
+              padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
+    }
+
+    if (_reviews.isEmpty) {
+      return Column(children: [
+        const SizedBox(height: 24),
+        Icon(Icons.rate_review_outlined,
+            size: 48, color: cs.primary.withValues(alpha: 0.4)),
+        const SizedBox(height: 12),
+        Text(s.reviewsEmpty,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: cs.onSurfaceVariant),
+            textAlign: TextAlign.center),
+        const SizedBox(height: 24),
+      ]);
+    }
+
+    return Column(
+      children: _reviews.map((review) {
+        final name = review.reviewerName ?? s.reviewsFallbackUserName;
+        final timeAgo = _formatTime(review.createdAt, s);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _ReviewCard(
+            name: name,
+            date: timeAgo,
+            comment: review.comment,
+            rating: review.rating.toDouble(),
+            avatarUrl: review.reviewerAvatarUrl,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _formatTime(DateTime dt, s) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays >= 365) return s.reviewsTimeAgoYears(diff.inDays ~/ 365);
+    if (diff.inDays >= 30) return s.reviewsTimeAgoMonths(diff.inDays ~/ 30);
+    if (diff.inDays >= 1) return s.reviewsTimeAgoDays(diff.inDays);
+    if (diff.inHours >= 1) return s.reviewsTimeAgoHours(diff.inHours);
+    return s.reviewsTimeAgoJustNow;
+  }
+}
+
+class _ReviewCard extends StatelessWidget {
+  final String name;
+  final String date;
+  final String comment;
+  final double rating;
+  final String? avatarUrl;
+
+  const _ReviewCard({
+    required this.name,
+    required this.date,
+    required this.comment,
+    required this.rating,
+    this.avatarUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      color: cs.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: cs.primaryContainer.withValues(alpha: 0.35),
+                  backgroundImage: avatarUrl != null
+                      ? NetworkImage(avatarUrl!)
+                      : null,
+                  child: avatarUrl == null
+                      ? Text(name[0].toUpperCase(),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: cs.primary))
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: cs.onSurface)),
+                  Text(date,
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
+                ]),
+              ]),
+              Row(children: [
+                const Icon(Icons.star, color: Colors.amber, size: 16),
+                const SizedBox(width: 4),
+                Text(rating.toStringAsFixed(1),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: cs.onSurface)),
+              ]),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(comment,
+              style: TextStyle(
+                  fontSize: 13, color: cs.onSurfaceVariant, height: 1.4)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Profile action row ────────────────────────────────────────────────────────
+
+class _ProfileActionRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? badge;
+  final VoidCallback onTap;
+
+  const _ProfileActionRow({
+    required this.icon,
+    required this.label,
+    this.badge,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: cs.primary, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: cs.onSurface)),
+            ),
+            if (badge != null) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(badge!,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: cs.primary)),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Icon(Icons.arrow_forward_ios,
+                size: 14,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

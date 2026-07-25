@@ -1,25 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/services/app_state.dart';
+part 'widgets/goal_selection_widgets.dart';
 
 /// Each goal option — icon, color, localised label, and stable category key.
-class _GoalOption {
-  final IconData icon;
-  final Color color;
-  final String Function(dynamic s) label;
-  final String Function(dynamic s) description;
-  /// Stable key passed to [KoolanAppState.completeGoalSelection].
-  /// Must be one of: 'CARS', 'HOUSES', 'LAND', 'SKILLS', 'OTHERS',
-  /// or a non-category sentinel like 'POST_LISTING', 'HIRE', 'FIND_JOB'.
-  final String key;
-
-  const _GoalOption({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.description,
-    required this.key,
-  });
-}
 
 class GoalSelectionScreen extends StatefulWidget {
   const GoalSelectionScreen({super.key});

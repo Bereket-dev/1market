@@ -4,6 +4,7 @@ import '../../../../core/router/routes.dart';
 import '../../../../shared/models/application.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
+part 'widgets/hiring_applicant_list_widgets.dart';
 
 /// Shows all applicants for a specific hiring post (poster's view).
 ///
@@ -219,108 +220,3 @@ class _HiringApplicantListScreenState
 }
 
 // ── Applicant row ─────────────────────────────────────────────────────────────
-
-class _ApplicantRow extends StatelessWidget {
-  final Application application;
-  final VoidCallback onTap;
-
-  const _ApplicantRow({
-    required this.application,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
-    final s = state.s;
-    final cs = Theme.of(context).colorScheme;
-    final displayName =
-        application.applicantName ?? s.reviewsFallbackUserName;
-    final serviceName =
-        application.serviceName ?? s.profileMyServices;
-
-    final statusColor = switch (application.status) {
-      ApplicationStatus.submitted => cs.primary,
-      ApplicationStatus.reviewed => cs.tertiary,
-      ApplicationStatus.accepted => Colors.green,
-      ApplicationStatus.rejected => cs.error,
-    };
-
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 22,
-                backgroundColor:
-                    cs.primaryContainer.withValues(alpha: 0.4),
-                child: Text(
-                  displayName.isNotEmpty
-                      ? displayName[0].toUpperCase()
-                      : 'U',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: cs.primary,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Name + service
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                    Text(
-                      serviceName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Status badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  s.applicationStatusLabel(application.status.name),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              SyncStatusBadge(status: application.syncStatus),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

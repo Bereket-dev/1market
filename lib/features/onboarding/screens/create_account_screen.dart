@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
 import '../../../shared/services/app_state.dart';
+part 'widgets/create_account_form.dart';
+part 'widgets/create_account_body.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CreateAccountScreen
