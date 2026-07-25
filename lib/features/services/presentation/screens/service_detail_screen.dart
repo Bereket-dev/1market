@@ -594,9 +594,16 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    await KoolanAppStateScope.of(context)
-        .loadReviewsForService(widget.serviceId);
+    final state = KoolanAppStateScope.of(context);
+    // If we already have cached reviews, show them immediately — no spinner.
+    final cached = state.getReviewsForService(widget.serviceId);
+    if (cached.isEmpty) {
+      setState(() => _loading = true);
+    } else {
+      // Data is already visible; refresh silently in the background.
+      _loading = false;
+    }
+    await state.loadReviewsForService(widget.serviceId);
     if (mounted) setState(() => _loading = false);
   }
 
