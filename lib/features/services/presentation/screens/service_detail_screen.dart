@@ -5,6 +5,7 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/rating_stars.dart';
 import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/services/share_service.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/similar_section.dart';
 
@@ -221,7 +222,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
             ),
           ),
 
-          // ── Overlay: back button + edit button ─────────────────────────
+          // ── Overlay: back button + share + edit button ──────────────────
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             left: 16,
@@ -233,13 +234,34 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                   icon: Icons.arrow_back,
                   onPressed: () => state.popScreen(),
                 ),
-                // Edit button — owner only
-                if (service.ownerId == state.profile?.id)
-                  _OverlayCircleButton(
-                    icon: Icons.edit_outlined,
-                    onPressed: () =>
-                        state.pushScreen(ServiceEditScreenRoute(service.id)),
-                  ),
+                Row(
+                  children: [
+                    // Share button — visible to all
+                    _OverlayCircleButton(
+                      icon: Icons.share_outlined,
+                      onPressed: () {
+                        final box =
+                            context.findRenderObject() as RenderBox?;
+                        ShareService.shareService(
+                          service,
+                          state.s,
+                          sharePositionOrigin: box != null
+                              ? box.localToGlobal(Offset.zero) & box.size
+                              : null,
+                        );
+                      },
+                    ),
+                    // Edit button — owner only
+                    if (service.ownerId == state.profile?.id) ...[
+                      const SizedBox(width: 8),
+                      _OverlayCircleButton(
+                        icon: Icons.edit_outlined,
+                        onPressed: () =>
+                            state.pushScreen(ServiceEditScreenRoute(service.id)),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),

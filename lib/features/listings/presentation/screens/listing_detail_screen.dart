@@ -7,6 +7,7 @@ import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/models/profile.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/services/share_service.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/similar_section.dart';
@@ -276,8 +277,12 @@ class _HeroImageState extends State<_HeroImage> {
                     _OverlayCircleButton(
                       icon: Icons.share_outlined,
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(state.s.detailLinkShared)),
+                        final box = context.findRenderObject() as RenderBox?;
+                        ShareService.shareListing(
+                          listing,
+                          state.s,
+                          sharePositionOrigin:
+                              box != null ? box.localToGlobal(Offset.zero) & box.size : null,
                         );
                       },
                     ),

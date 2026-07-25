@@ -1137,6 +1137,29 @@ class AppStrings {
 
   // ── Listing Detail Screen ────────────────────────────────────────────────────
   String get detailLinkShared => _t('Link shared!', 'ሊንክ ተጋርቷል!', 'Xiriirka la wadaagay!');
+
+  // ── Sharing ──────────────────────────────────────────────────────────────────
+  String get shareListingSubject => _t('Check out this listing on Koolan', 'ይህን ዝርዝር በ Koolan ይመልከቱ', 'Fiiri xayaysiiskan Koolan');
+  String shareListingBody(String title, String price, String location, String url) =>
+      _t(
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDownload Koolan – Jigjiga\'s marketplace',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የጂግጂጋ ገበያ',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Jigjiga',
+      );
+  String get shareServiceSubject => _t('Check out this service on Koolan', 'ይህን አገልግሎት በ Koolan ይመልከቱ', 'Fiiri adeeggan Koolan');
+  String shareServiceBody(String title, String category, String priceRange, String url) =>
+      _t(
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDownload Koolan – Jigjiga\'s marketplace',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nKoolan ይጠቀሙ – የጂግጂጋ ገበያ',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDegsado Koolan – Suuqa Jigjiga',
+      );
+  String get shareHiringSubject => _t('Check out this job on Koolan', 'ይህን ስራ በ Koolan ይመልከቱ', 'Fiiri shaqadan Koolan');
+  String shareHiringBody(String title, String category, String location, String url) =>
+      _t(
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDownload Koolan – Jigjiga\'s marketplace',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የጂግጂጋ ገበያ',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Jigjiga',
+      );
   String get detailLocationLabel => _t('Location', 'ቦታ', 'Goobta');
   String get detailOpenMaps => _t('Open in Maps', 'በካርታ ክፈት', 'Ku fur khariidadda');
   String get detailOpeningMaps => _t('Opening Google Maps...', 'Google Maps እየከፈቱ...', 'Waa la furaya Google Maps...');

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/services/share_service.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/similar_section.dart';
 
@@ -186,6 +187,22 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: s.shareHiringSubject,
+            onPressed: () {
+              final box = context.findRenderObject() as RenderBox?;
+              ShareService.shareHiringPost(
+                post,
+                state.s,
+                sharePositionOrigin: box != null
+                    ? box.localToGlobal(Offset.zero) & box.size
+                    : null,
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
