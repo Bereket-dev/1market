@@ -16,14 +16,22 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
   bool _showForm = false;
   String? _submitError;
   String? _successMessage;
+  bool _initialized = false;
 
   int _rating = 5;
   final _commentCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    final state = KoolanAppStateScope.of(context);
+    // Serve cached reviews instantly — no spinner if we already have data.
+    if (state.getReviewsForService(widget.serviceId).isNotEmpty) {
+      _loading = false;
+    }
     _load();
   }
 
@@ -35,14 +43,6 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
 
   Future<void> _load() async {
     final state = KoolanAppStateScope.of(context);
-    // If we already have cached reviews, show them immediately — no spinner.
-    final cached = state.getReviewsForService(widget.serviceId);
-    if (cached.isEmpty) {
-      setState(() => _loading = true);
-    } else {
-      // Data is already visible; refresh silently in the background.
-      _loading = false;
-    }
     await state.loadReviewsForService(widget.serviceId);
     if (mounted) setState(() => _loading = false);
   }

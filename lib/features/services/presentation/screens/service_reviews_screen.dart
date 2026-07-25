@@ -29,6 +29,7 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
   bool _submitting = false;
   String? _submitError;
   String? _successMessage;
+  bool _initialized = false;
 
   // Submit form state
   int _rating = 5;
@@ -36,13 +37,19 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
   final _formKey = GlobalKey<FormState>();
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    final state = KoolanAppStateScope.of(context);
+    // Serve from cache immediately — no spinner if we already have data.
+    if (state.getReviewsForService(widget.serviceId).isNotEmpty) {
+      _loading = false;
+    }
     _load();
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     final state = KoolanAppStateScope.of(context);
     await state.loadReviewsForService(widget.serviceId);
     if (mounted) setState(() => _loading = false);

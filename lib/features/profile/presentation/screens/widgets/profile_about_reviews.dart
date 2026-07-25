@@ -76,18 +76,15 @@ class _ReviewsTabState extends State<_ReviewsTab> {
   Future<void> _loadReviews() async {
     setState(() => _loading = true);
     final services = widget.state.getMyServices();
-    final all = <ServiceReview>[];
-    for (final svc in services) {
-      final r = await widget.state.loadReviewsForService(svc.id);
-      all.addAll(r);
+    if (services.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
     }
-    // Also surface cached reviews
-    if (all.isEmpty) {
-      for (final svc in services) {
-        all.addAll(widget.state.getReviewsForService(svc.id));
-      }
-    }
-    // Sort newest first
+    // Fetch all services' reviews in parallel — one await for all.
+    final results = await Future.wait(
+      services.map((svc) => widget.state.loadReviewsForService(svc.id)),
+    );
+    final all = results.expand((r) => r).toList();
     all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     if (mounted) setState(() { _reviews = all; _loading = false; });
   }

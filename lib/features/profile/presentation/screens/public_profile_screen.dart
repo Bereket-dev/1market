@@ -27,11 +27,24 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
   late TabController _tabController;
   bool _loading = true;
   String? _error;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    final state = KoolanAppStateScope.of(context);
+    // If already cached, show instantly with no spinner.
+    if (state.getCachedPublicProfile(widget.userId) != null) {
+      _loading = false;
+    }
     _load();
   }
 
@@ -43,14 +56,8 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
 
   Future<void> _load() async {
     final state = KoolanAppStateScope.of(context);
-    // Show cached data instantly — only block with a spinner on true first load.
-    final hasCached = state.getCachedPublicProfile(widget.userId) != null;
-    if (!hasCached) {
-      setState(() { _loading = true; _error = null; });
-    } else {
-      _loading = false;
-    }
     try {
+      // Run both fetches in parallel — single await for both.
       await Future.wait([
         state.loadPublicProfile(widget.userId),
         state.loadReviewsForUser(widget.userId),
