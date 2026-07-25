@@ -1,0 +1,302 @@
+// ignore_for_file: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+part of '../app_state.dart';
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+extension AppStateProfile on KoolanAppState {
+  /// Writes a profile update directly to Supabase and updates local state.
+  Future<void> submitProfileUpdate({
+    required String displayName,
+    required String bio,
+    required String phone,
+    required String city,
+    String? preferredCategory,
+  }) async {
+    final current = profile;
+    if (current == null) return;
+
+    // Optimistic local update immediately.
+    profile = current.copyWith(
+      displayName: displayName,
+      bio: bio,
+      phone: phone,
+      city: city,
+      preferredCategory: preferredCategory ?? current.preferredCategory,
+      syncStatus: SyncStatus.pending,
+      localUpdatedAt: DateTime.now().toUtc(),
+    );
+    notifyListeners();
+
+    final fields = <String, dynamic>{
+      'display_name': displayName,
+      'bio': bio,
+      'phone': phone,
+      'city': city,
+    };
+    if (preferredCategory != null) {
+      fields['preferred_category'] = preferredCategory;
+      // Persist to device so it survives logout.
+      await app_local.LocalStorage.savePreferredCategory(preferredCategory);
+    }
+
+    try {
+      await _repo?.updateProfile(fields);
+      profile = profile?.copyWith(syncStatus: SyncStatus.synced);
+      notifyListeners();
+    } catch (e) {
+      profile = profile?.copyWith(syncStatus: SyncStatus.failed);
+      dataError = e.toString();
+      notifyListeners();
+      rethrow; // Let callers (EditProfileScreen._save) show the error to the user.
+    }
+  }
+
+  // ── Profile image uploads ─────────────────────────────────────────────────
+
+  /// Maximum profile/banner image size: 5 MB.
+  static const _photoMaxBytes = 5 * 1024 * 1024;
+
+  /// Lets the user pick an image from their gallery and uploads it as their
+  /// profile avatar. Updates [profile.avatarUrl] optimistically on success.
+  Future<String?> uploadAvatarImage() async {
+    return _pickAndUploadProfileImage(
+      imageType: CloudinaryImageType.avatar,
+      onSuccess: (url) async {
+        profile = profile?.copyWith(avatarUrl: url);
+        await _syncProfileField('avatar_url', url);
+      },
+    );
+  }
+
+  /// Lets the user pick an image from their gallery and uploads it as their
+  /// profile banner. Updates [profile.bannerUrl] optimistically on success.
+  Future<String?> uploadBannerImage() async {
+    return _pickAndUploadProfileImage(
+      imageType: CloudinaryImageType.banner,
+      onSuccess: (url) async {
+        profile = profile?.copyWith(bannerUrl: url);
+        await _syncProfileField('banner_url', url);
+      },
+    );
+  }
+
+  Future<String?> _pickAndUploadProfileImage({
+    required CloudinaryImageType imageType,
+    required Future<void> Function(String secureUrl) onSuccess,
+  }) async {
+    final current = profile;
+    if (current == null) return 'Not signed in';
+
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: false,
+        withReadStream: false,
+      );
+    } catch (e) {
+      debugPrint('[PhotoUpload] picker error: $e');
+      return e.toString();
+    }
+
+    if (result == null || result.files.isEmpty) return null;
+
+    final localPath = result.files.first.path;
+    if (localPath == null) return 'Could not read file path from picker';
+
+    final file = File(localPath);
+    int fileSize;
+    try {
+      fileSize = await file.length();
+    } catch (e) {
+      fileSize = result.files.first.size;
+    }
+    if (fileSize > _photoMaxBytes) {
+      final mb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
+      return 'Photo is too large ($mb MB) — maximum allowed is 5 MB';
+    }
+
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id ?? current.id;
+
+    if (client.auth.currentSession != null) {
+      final uploadResult = await CloudinaryUploadService.instance.upload(
+        imageFile: file,
+        type: imageType,
+        userId: userId,
+      );
+
+      switch (uploadResult) {
+        case CloudinaryUploadSuccess(:final secureUrl):
+          await onSuccess(secureUrl);
+          notifyListeners();
+          return null;
+
+        case CloudinaryUploadFailure(:final message):
+          if (message.startsWith('network:')) {
+            debugPrint('[PhotoUpload] network error, queueing: $message');
+            break;
+          }
+          debugPrint('[PhotoUpload] cloudinary error: $message');
+          return 'Upload failed: $message';
+      }
+    }
+
+    await _queuePhotoUpload(
+      userId: userId,
+      imageType: imageType,
+      localPath: localPath,
+    );
+    return null;
+  }
+
+  Future<void> _queuePhotoUpload({
+    required String userId,
+    required CloudinaryImageType imageType,
+    required String localPath,
+  }) async {
+    final store = HiveSyncStore.instance;
+    await store.initialize();
+    final typeStr =
+        imageType == CloudinaryImageType.avatar ? 'avatar' : 'banner';
+    final key = '$userId:$typeStr';
+    final payload = jsonEncode({
+      'userId': userId,
+      'imageType': typeStr,
+      'localPath': localPath,
+    });
+    await store.savePendingPhotoUpload(key, payload);
+    debugPrint('[PhotoUpload] queued for later: $key');
+  }
+
+  /// Called by SyncService to flush any queued photo uploads when back online.
+  Future<void> flushPendingPhotoUploads() async {
+    final store = HiveSyncStore.instance;
+    await store.initialize();
+    final client = Supabase.instance.client;
+    if (client.auth.currentSession == null) return;
+
+    final keys = await store.getPendingPhotoUploadKeys();
+    for (final key in keys) {
+      final raw = store.readPendingPhotoUpload(key);
+      if (raw == null) continue;
+      try {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        final userId = data['userId'] as String;
+        final localPath = data['localPath'] as String;
+
+        final CloudinaryImageType imageType;
+        if (data.containsKey('imageType')) {
+          imageType = data['imageType'] == 'avatar'
+              ? CloudinaryImageType.avatar
+              : CloudinaryImageType.banner;
+        } else {
+          final bucket = data['bucket'] as String? ?? '';
+          imageType = bucket.contains('avatar')
+              ? CloudinaryImageType.avatar
+              : CloudinaryImageType.banner;
+        }
+
+        final file = File(localPath);
+        if (!await file.exists()) {
+          await store.deletePendingPhotoUpload(key);
+          continue;
+        }
+
+        final uploadResult = await CloudinaryUploadService.instance.upload(
+          imageFile: file,
+          type: imageType,
+          userId: userId,
+        );
+
+        switch (uploadResult) {
+          case CloudinaryUploadSuccess(:final secureUrl):
+            if (imageType == CloudinaryImageType.avatar) {
+              profile = profile?.copyWith(avatarUrl: secureUrl);
+              await _syncProfileField('avatar_url', secureUrl);
+            } else {
+              profile = profile?.copyWith(bannerUrl: secureUrl);
+              await _syncProfileField('banner_url', secureUrl);
+            }
+            notifyListeners();
+            await store.deletePendingPhotoUpload(key);
+            debugPrint('[PhotoUpload] flushed: $key → $secureUrl');
+
+          case CloudinaryUploadFailure(:final message):
+            debugPrint('[PhotoUpload] flush failed for $key: $message');
+        }
+      } catch (e) {
+        debugPrint('[PhotoUpload] flush error for $key: $e');
+      }
+    }
+  }
+
+  Future<void> _syncProfileField(String column, String value) async {
+    if (profile == null) return;
+    try {
+      await _repo?.updateProfile({column: value});
+      debugPrint('[ProfileSync] $column updated in Supabase ✅');
+    } catch (e) {
+      debugPrint('[ProfileSync] direct update failed ($column): $e');
+      dataError = e.toString();
+      notifyListeners();
+    }
+  }
+
+  // ── Locale ────────────────────────────────────────────────────────────────────
+
+  Future<void> setLocale(String newLocale) async {
+    locale = newLocale;
+    await app_local.LocalStorage.saveLanguage(newLocale);
+    profile = profile?.copyWith(language: newLocale, syncStatus: SyncStatus.pending);
+    notifyListeners();
+    if (isSignedIn && _repo != null) {
+      try {
+        await _repo!.updateLanguage(newLocale);
+        profile = profile?.copyWith(syncStatus: SyncStatus.synced);
+      } catch (e) {
+        profile = profile?.copyWith(syncStatus: SyncStatus.failed);
+        dataError = e.toString();
+      }
+      notifyListeners();
+    }
+  }
+
+  /// Cycles EN → Amharic → Somali (used by the home language pill).
+  Future<void> toggleLocale() async {
+    final next = switch (locale) {
+      'en' => 'am',
+      'am' => 'so',
+      _ => 'en',
+    };
+    await setLocale(next);
+  }
+
+  // ── Theme ─────────────────────────────────────────────────────────────────────
+
+  void toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    app_local.LocalStorage.saveDarkMode(isDarkMode);
+    notifyListeners();
+  }
+
+  // ── Notification preferences ──────────────────────────────────────────────────
+
+  void toggleNotifPush(bool value) {
+    notifPushEnabled = value;
+    app_local.LocalStorage.saveNotifPushEnabled(value);
+    notifyListeners();
+  }
+
+  void toggleNotifMessages(bool value) {
+    notifMessagesEnabled = value;
+    app_local.LocalStorage.saveNotifMessagesEnabled(value);
+    notifyListeners();
+  }
+
+  void toggleNotifPriceAlerts(bool value) {
+    notifPriceAlerts = value;
+    app_local.LocalStorage.saveNotifPriceAlerts(value);
+    notifyListeners();
+  }
+}
