@@ -31,6 +31,7 @@ enum OnboardingPhase {
   initializing,
   auth,
   language,
+  profileSetup, // OAuth users missing name/phone — shown after language
   location,
   goal,
   verification,
@@ -39,7 +40,15 @@ enum OnboardingPhase {
 
 /// Central application state. Shared via [KoolanAppStateScope].
 class KoolanAppState extends ChangeNotifier {
-  KoolanAppState() {
+  KoolanAppState({
+    bool initialDarkMode = false,
+    String initialLocale = 'en',
+  }) {
+    // Apply pre-loaded prefs immediately so the very first frame renders
+    // with the correct theme and language — no flash of wrong defaults.
+    isDarkMode = initialDarkMode;
+    locale = initialLocale;
+
     syncService = SyncService(this);
     // When the SyncService discards a stale queue entry (LWW conflict), surface
     // it through dataError so the SnackBar listener in _ShellScaffold picks it
@@ -756,6 +765,7 @@ class KoolanAppState extends ChangeNotifier {
     return switch (phase) {
       'auth' => OnboardingPhase.auth,
       'language' => OnboardingPhase.language,
+      'profileSetup' => OnboardingPhase.profileSetup,
       'location' => OnboardingPhase.location,
       'goal' => OnboardingPhase.goal,
       'verification' => OnboardingPhase.verification,
@@ -820,6 +830,35 @@ class KoolanAppState extends ChangeNotifier {
     }
     profile = profile?.copyWith(language: language);
     await app_local.LocalStorage.markSessionRestored();
+    await app_local.LocalStorage.saveOnboardingPhase('location');
+    onboardingPhase = OnboardingPhase.location;
+    notifyListeners();
+  }
+
+  /// Called from [ProfileSetupScreen] for OAuth users who signed in without
+  /// a display name or phone number on file.
+  /// Saves name + phone to the profile then advances to the location step.
+  Future<void> completeProfileSetup({
+    required String displayName,
+    required String phone,
+  }) async {
+    try {
+      if (_repo != null) {
+        await _repo!.updateProfile({
+          'display_name': displayName,
+          if (phone.isNotEmpty) 'phone': phone,
+        });
+      }
+      profile = profile?.copyWith(
+        displayName: displayName,
+        phone: phone.isNotEmpty ? phone : profile?.phone,
+      );
+      if (profile != null) {
+        await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+      }
+    } catch (e) {
+      debugPrint('[ProfileSetup] profile update failed (non-fatal): $e');
+    }
     await app_local.LocalStorage.saveOnboardingPhase('location');
     onboardingPhase = OnboardingPhase.location;
     notifyListeners();
@@ -1469,7 +1508,7 @@ class KoolanAppState extends ChangeNotifier {
     }
   }
 
-  Future<void> submitServiceEdit(
+  Future<String> submitServiceEdit(
     Service service, {
     /// New local file paths to upload (multi-image).
     List<String> newImagePaths = const [],
@@ -1478,7 +1517,7 @@ class KoolanAppState extends ChangeNotifier {
     // Legacy single-image path — kept for backward compat, treated as first new image.
     String? newImagePath,
   }) async {
-    if (currentUser == null) return;
+    if (currentUser == null) return service.id;
 
     final now = DateTime.now();
     final isNew = service.id.startsWith('local_');
@@ -1540,6 +1579,9 @@ class KoolanAppState extends ChangeNotifier {
       'created_at': updated.createdAt.toIso8601String(),
     };
 
+    // Track the resolved ID so we can return it to the caller.
+    String resolvedId = updated.id;
+
     try {
       if (isNew) {
         final realId = await _repo!.insertService(fields);
@@ -1548,6 +1590,7 @@ class KoolanAppState extends ChangeNotifier {
         if (idx != -1) {
           allServices[idx] = allServices[idx].copyWith(id: realId, syncStatus: SyncStatus.synced);
         }
+        resolvedId = realId;
       } else {
         await _repo!.updateService(updated.id, fields);
         final idx = allServices.indexWhere((s) => s.id == updated.id);
@@ -1563,6 +1606,7 @@ class KoolanAppState extends ChangeNotifier {
       dataError = e.toString();
     }
     notifyListeners();
+    return resolvedId;
   }
 
   /// Called by SyncService after a successful push for an existing item.
@@ -1677,12 +1721,12 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submitHiringPostEdit(
+  Future<String> submitHiringPostEdit(
     HiringPost post, {
     List<String> newImagePaths = const [],
     List<String> existingImageUrls = const [],
   }) async {
-    if (currentUser == null) return;
+    if (currentUser == null) return post.id;
 
     final now = DateTime.now();
     final isNew = post.id.startsWith('local_');
@@ -1736,6 +1780,9 @@ class KoolanAppState extends ChangeNotifier {
       'created_at': updated.createdAt.toIso8601String(),
     };
 
+    // Track the resolved ID so we can return it to the caller.
+    String resolvedId = updated.id;
+
     try {
       if (isNew) {
         final realId = await _repo!.insertHiringPost(fields);
@@ -1743,6 +1790,7 @@ class KoolanAppState extends ChangeNotifier {
         if (idx != -1) {
           allHiringPosts[idx] = allHiringPosts[idx].copyWith(id: realId, syncStatus: SyncStatus.synced);
         }
+        resolvedId = realId;
       } else {
         await _repo!.updateHiringPost(updated.id, fields);
         final idx = allHiringPosts.indexWhere((p) => p.id == updated.id);
@@ -1758,6 +1806,7 @@ class KoolanAppState extends ChangeNotifier {
       dataError = e.toString();
     }
     notifyListeners();
+    return resolvedId;
   }
 
   Future<void> deleteHiringPost(String id) async {
@@ -2414,7 +2463,7 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submitPost() async {
+  Future<String> submitPost() async {
     final titleStr = postTitle.trim().isEmpty
         ? 'Untitled $postCategory Listing'
         : postTitle.trim();
@@ -2435,7 +2484,7 @@ class KoolanAppState extends ChangeNotifier {
       if (_repo == null) {
         dataError = 'Supabase unavailable';
         notifyListeners();
-        return;
+        return '';
       }
 
       // ── 1. Upload picked images to Cloudinary ──────────────────────────
@@ -2513,11 +2562,6 @@ class KoolanAppState extends ChangeNotifier {
 
       allListings.insert(0, newListing);
       resetWizard();
-      selectedCategory = postCategory;
-      navigationStack
-        ..clear()
-        ..add(HomeScreenRoute())
-        ..add(CategoryListScreenRoute(postCategory));
       notifyListeners();
 
       // ── 3. Fire-and-forget translation ────────────────────────────────
@@ -2527,6 +2571,7 @@ class KoolanAppState extends ChangeNotifier {
         description: descStr,
         originalLanguage: locale,
       );
+      return newListing.id;
     } catch (e) {
       isUploadingListingImages = false;
       dataError = e.toString();

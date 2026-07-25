@@ -82,6 +82,31 @@ class AppStrings {
   String get wizardPhonePromptSkip =>
       _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
 
+  // ── Profile setup (OAuth users missing name/phone) ────────────────────────
+  String get profileSetupTitle =>
+      _t('Complete your profile', 'መገለጫዎን ያጠናቅቁ', 'Dhamaystir xogtaada');
+  String get profileSetupSubtitle => _t(
+    'Add your name and phone number so buyers can reach you.',
+    'ስምዎን እና ስልክ ቁጥርዎን ያክሉ እናም ገዢዎች ሊያገኙዎ ይችላሉ።',
+    'Ku dar magacaaga iyo lambarka telefoonkaaga si iibsadayaashu kula xiriiri karaan.',
+  );
+  String get profileSetupNameLabel =>
+      _t('Display name', 'ማሳያ ስም', 'Magaca la muujinayo');
+  String get profileSetupNameHint =>
+      _t('Your full name', 'ሙሉ ስምዎ', 'Magacaaga buuxa');
+  String get profileSetupNameRequired =>
+      _t('Name is required', 'ስም ያስፈልጋል', 'Magaca waa lagama maarmaan');
+  String get profileSetupPhoneLabel =>
+      _t('Phone number', 'ስልክ ቁጥር', 'Lambarka telefoonka');
+  String get profileSetupPhoneHint =>
+      _t('+251 9X XXX XXXX', '+251 9X XXX XXXX', '+251 9X XXX XXXX');
+  String get profileSetupPhoneRequired =>
+      _t('Phone number is required', 'ስልክ ቁጥር ያስፈልጋል', 'Lambarka telefoonka waa lagama maarmaan');
+  String get profileSetupPhoneInvalid =>
+      _t('Enter a valid phone number', 'ትክክለኛ ስልክ ቁጥር ያስገቡ', 'Geli lambarka telefoon sax ah');
+  String get profileSetupContinue =>
+      _t('Continue', 'ቀጥል', 'Sii wad');
+
   // ── Language onboarding ───────────────────────────────────────────────────────
   String get languageTitle =>
       _t('Choose your language', 'ቋንቋዎን ይምረጡ', 'Dooro luqaddaada');

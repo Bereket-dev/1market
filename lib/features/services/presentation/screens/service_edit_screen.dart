@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
@@ -172,13 +173,20 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
       syncStatus: SyncStatus.pending,
     );
     try {
-      await state.submitServiceEdit(
+      final resolvedId = await state.submitServiceEdit(
         service,
         newImagePaths: _newImagePaths,
         existingImageUrls: _existingImageUrls,
       );
       if (!mounted) return;
-      state.popScreen();
+      if (widget.serviceId == null) {
+        // New service — pop the edit screen then open the detail screen.
+        state.popScreen();
+        state.pushScreen(ServiceDetailScreenRoute(resolvedId));
+      } else {
+        // Edit — just go back.
+        state.popScreen();
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

@@ -17,6 +17,7 @@ import 'features/onboarding/screens/auth_screen.dart';
 import 'features/onboarding/screens/goal_selection_screen.dart';
 import 'features/onboarding/screens/language_screen.dart';
 import 'features/onboarding/screens/location_permission_screen.dart';
+import 'features/onboarding/screens/profile_setup_screen.dart';
 import 'features/onboarding/screens/verification_prompt_screen.dart';
 import 'features/post/presentation/screens/post_wizard_screen.dart';
 import 'features/profile/presentation/screens/edit_profile_screen.dart';
@@ -41,7 +42,14 @@ import 'shared/services/app_state.dart';
 import 'shared/widgets/toast_banner.dart';
 
 class KoolanApp extends StatefulWidget {
-  const KoolanApp({super.key});
+  final bool initialDarkMode;
+  final String initialLocale;
+
+  const KoolanApp({
+    super.key,
+    this.initialDarkMode = false,
+    this.initialLocale = 'en',
+  });
 
   @override
   State<KoolanApp> createState() => _KoolanAppState();
@@ -53,7 +61,10 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _appState = KoolanAppState();
+    _appState = KoolanAppState(
+      initialDarkMode: widget.initialDarkMode,
+      initialLocale: widget.initialLocale,
+    );
     WidgetsBinding.instance.addObserver(this);
     // Handle the case where the app is cold-started from a deep link
     // (e.g. Facebook OAuth redirect while the app was not running).
@@ -161,6 +172,8 @@ class _RootGate extends StatelessWidget {
         return const AuthScreen(fromOnboarding: true);
       case OnboardingPhase.language:
         return const LanguageScreen();
+      case OnboardingPhase.profileSetup:
+        return const ProfileSetupScreen();
       case OnboardingPhase.location:
         return const LocationPermissionScreen();
       case OnboardingPhase.goal:

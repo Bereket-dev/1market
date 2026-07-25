@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -66,6 +67,21 @@ Future<void> main() async {
   }
 
   debugPrint('before runApp');
-  runApp(const KoolanApp());
+  // Read persisted theme and locale synchronously before the first frame so
+  // the app never flashes the wrong theme or language on startup.
+  bool initialDarkMode = false;
+  String initialLocale = 'en';
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    initialDarkMode = prefs.getBool('koolan_dark_mode') ?? false;
+    initialLocale = prefs.getString('koolan_language') ?? 'en';
+  } catch (_) {
+    // SharedPreferences unavailable (e.g. web test env) — use defaults.
+  }
+
+  runApp(KoolanApp(
+    initialDarkMode: initialDarkMode,
+    initialLocale: initialLocale,
+  ));
   debugPrint('after runApp');
 }

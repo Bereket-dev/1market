@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/router/routes.dart';
 import '../../../../shared/models/hiring_post.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
@@ -141,14 +142,21 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
       syncStatus: SyncStatus.pending,
     );
     try {
-      await state.submitHiringPostEdit(
+      final resolvedId = await state.submitHiringPostEdit(
         post,
         newImagePaths: _newImagePath != null ? [_newImagePath!] : [],
         existingImageUrls:
             _existingImageUrl.isNotEmpty ? [_existingImageUrl] : [],
       );
       if (!mounted) return;
-      state.popScreen();
+      if (widget.postId == null) {
+        // New post — pop the edit screen then open the detail screen.
+        state.popScreen();
+        state.pushScreen(HiringDetailScreenRoute(resolvedId));
+      } else {
+        // Edit — just go back.
+        state.popScreen();
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

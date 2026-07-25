@@ -48,7 +48,11 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
     final proceed = await showPhonePromptIfNeeded(context, state);
     if (!proceed) return;
 
-    await state.submitPost();
+    final listingId = await state.submitPost();
+    if (!mounted) return;
+    // Pop the wizard and open the newly created listing's detail screen.
+    state.popScreen();
+    state.pushScreen(ListingDetailScreenRoute(listingId));
   }
 
   @override
