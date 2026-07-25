@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/services/recommendation_engine.dart'
+    show kGoalToCategoryCode;
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
 
@@ -63,7 +65,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _bioController.text = profile?.bio ?? '';
       _phoneController.text = profile?.phone ?? '';
       _cityController.text = profile?.city ?? '';
-      _selectedCategory = profile?.preferredCategory;
+
+      // Sanitize preferredCategory: legacy profiles may have stored a
+      // translated goal label (e.g. "Find a car") instead of the category code
+      // (e.g. "CARS"). Map it through kGoalToCategoryCode first, then accept
+      // only values that exist in _kCategories. Anything unrecognised → null.
+      final raw = profile?.preferredCategory;
+      if (raw == null) {
+        _selectedCategory = null;
+      } else {
+        // Direct code (CARS, HOUSES, …) passes straight through; legacy labels
+        // are converted via the goal→code map.
+        final resolved = kGoalToCategoryCode[raw] ?? raw;
+        _selectedCategory =
+            _kCategories.contains(resolved) ? resolved : null;
+      }
+
       _controllersInitialized = true;
     }
   }

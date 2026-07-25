@@ -20,6 +20,9 @@ class LocalStorage {
   static const _notifMessagesEnabledKey = 'koolan_notif_messages_enabled';
   static const _notifPriceAlertsKey    = 'koolan_notif_price_alerts';
 
+  // Location CTA — stores the Unix-ms timestamp until which the CTA is snoozed.
+  static const _locationCtaSnoozedUntilKey = 'koolan_location_cta_snoozed_until';
+
   static final Map<String, Object?> _memoryStore = {};
 
   static Future<SharedPreferences?> _prefsOrNull() async {
@@ -320,5 +323,29 @@ class LocalStorage {
       return prefs.getBool(_notifPriceAlertsKey) ?? false;
     }
     return _memoryStore[_notifPriceAlertsKey] as bool? ?? false;
+  }
+
+  // ── Location CTA snooze ──────────────────────────────────────────────────────
+  // Stores the UTC Unix-ms timestamp until which the location CTA is snoozed.
+  // 0 (or absent) means "show immediately".
+
+  /// Saves the UTC timestamp (ms since epoch) until which the CTA is hidden.
+  static Future<void> saveLocationCtaSnoozedUntil(int timestampMs) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setInt(_locationCtaSnoozedUntilKey, timestampMs);
+    } else {
+      _memoryStore[_locationCtaSnoozedUntilKey] = timestampMs;
+    }
+  }
+
+  /// Returns the UTC timestamp (ms since epoch) until which the CTA is snoozed,
+  /// or 0 if never snoozed.
+  static Future<int> getLocationCtaSnoozedUntil() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      return prefs.getInt(_locationCtaSnoozedUntilKey) ?? 0;
+    }
+    return _memoryStore[_locationCtaSnoozedUntilKey] as int? ?? 0;
   }
 }

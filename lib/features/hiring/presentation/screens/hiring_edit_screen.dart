@@ -7,6 +7,7 @@ import '../../../../shared/models/hiring_post.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
+import '../../../../shared/widgets/phone_prompt.dart';
 
 /// Create or edit a hiring post.
 /// Same UX pattern as [ServiceEditScreen].
@@ -114,6 +115,13 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     final state = KoolanAppStateScope.of(context);
     final userId = state.currentUser?.id;
     if (userId == null) return;
+
+    // Prompt for phone when creating a new hiring post and profile has none yet.
+    // Skip the prompt when editing — the phone was already collected earlier.
+    if (widget.postId == null) {
+      final proceed = await showPhonePromptIfNeeded(context, state);
+      if (!proceed) return;
+    }
 
     setState(() => _isSaving = true);
     final now = DateTime.now().toUtc();

@@ -95,6 +95,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
+          // ── Contact & location ─────────────────────────────────────────────
+          _SectionLabel(s.settingsContactSection),
+          const SizedBox(height: 10),
+
+          _ContactInfoRow(
+            icon: Icons.phone_outlined,
+            title: s.settingsPhoneRow,
+            subtitle: s.settingsPhoneRowSub,
+            value: profile?.phone,
+            emptyLabel: s.settingsAddPhone,
+            onTap: () => appState.pushScreen(EditProfileScreenRoute()),
+          ),
+          const SizedBox(height: 8),
+
+          _ContactInfoRow(
+            icon: Icons.location_on_outlined,
+            title: s.settingsLocationRow,
+            subtitle: s.settingsLocationRowSub,
+            value: profile?.city,
+            emptyLabel: s.settingsAddLocation,
+            onTap: () => appState.pushScreen(EditProfileScreenRoute()),
+          ),
+          const SizedBox(height: 24),
+
           // ── Notifications ─────────────────────────────────────────────────
           _SectionLabel(s.settingsNotifications),
           const SizedBox(height: 10),
@@ -112,14 +136,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: s.settingsNewMessages,
             value: appState.notifMessagesEnabled,
             onChanged: appState.toggleNotifMessages,
-          ),
-          const SizedBox(height: 8),
-
-          _SettingsToggleRow(
-            icon: Icons.price_change_outlined,
-            title: s.settingsPriceAlerts,
-            value: appState.notifPriceAlerts,
-            onChanged: appState.toggleNotifPriceAlerts,
           ),
           const SizedBox(height: 32),
 
@@ -542,6 +558,135 @@ class _SettingsToggleRow extends StatelessWidget {
             ),
             Switch(value: value, onChanged: onChanged),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Contact info row ──────────────────────────────────────────────────────────
+//
+// Shows the user's phone/city with a filled chip when set, or an "Add …"
+// prompt with dashed styling when empty. Tapping always navigates to
+// EditProfileScreen where the value can be added or changed.
+
+class _ContactInfoRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? value;      // current value from profile (phone or city)
+  final String emptyLabel;  // e.g. "Add phone number"
+  final VoidCallback onTap;
+
+  const _ContactInfoRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.emptyLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hasValue = value != null && value!.trim().isNotEmpty;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: hasValue
+            ? BorderSide.none
+            : BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.6),
+                width: 1,
+                style: BorderStyle.solid,
+              ),
+      ),
+      elevation: 0,
+      color: hasValue ? null : cs.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: hasValue
+                    ? cs.primary.withValues(alpha: 0.1)
+                    : cs.outlineVariant.withValues(alpha: 0.25),
+                child: Icon(
+                  icon,
+                  color: hasValue ? cs.primary : cs.onSurfaceVariant,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: hasValue ? cs.onSurface : cs.onSurfaceVariant,
+                      ),
+                    ),
+                    if (hasValue)
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      )
+                    else
+                      Text(
+                        emptyLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (hasValue) ...[
+                // Value chip
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 130),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    value!.trim(),
+                    style: TextStyle(
+                      color: cs.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.edit_outlined,
+                    size: 16,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+              ] else
+                Icon(Icons.add_circle_outline,
+                    color: cs.primary.withValues(alpha: 0.7), size: 20),
+            ],
+          ),
         ),
       ),
     );

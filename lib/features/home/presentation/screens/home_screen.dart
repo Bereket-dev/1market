@@ -14,6 +14,7 @@ import '../../../../shared/widgets/cached_image_widget.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/recent_listing_card.dart';
+import '../../../../shared/widgets/location_cta_banner.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -37,6 +38,9 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Location permission CTA (re-prompt after onboarding skip) ─
+                  const LocationCtaBanner(),
+
                   // Greeting + 2×2 category grid
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),

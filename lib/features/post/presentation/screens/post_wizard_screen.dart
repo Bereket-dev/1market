@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/phone_prompt.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
 import '../../../../shared/models/syncable_entity.dart';
 
@@ -42,94 +43,12 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
     setState(() => _submitAttempted = true);
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // If the user has no phone number on file, prompt them to add one
-    // before posting — buyers need it to contact them.
-    final phone = state.profile?.phone ?? '';
-    if (phone.trim().isEmpty) {
-      final confirmed = await _showPhonePrompt(state);
-      // User skipped — proceed anyway (phone stays empty)
-      // confirmed == false means they cancelled entirely (shouldn't happen)
-      if (confirmed == null) return; // dialog dismissed without action
-    }
+    // Prompt for phone if profile doesn't have one yet.
+    // Returns false only on barrier dismiss — abort in that case.
+    final proceed = await showPhonePromptIfNeeded(context, state);
+    if (!proceed) return;
 
     await state.submitPost();
-  }
-
-  /// Shows a dialog asking for a phone number.
-  /// Returns `true` (saved), `false` (skipped), or `null` (dismissed).
-  Future<bool?> _showPhonePrompt(KoolanAppState state) async {
-    final s = state.s;
-    final ctrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(s.wizardPhonePromptTitle,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(s.wizardPhonePromptBody,
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                      height: 1.45)),
-              const SizedBox(height: 16),
-              Form(
-                key: formKey,
-                child: TextFormField(
-                  controller: ctrl,
-                  keyboardType: TextInputType.phone,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: s.wizardPhonePromptHint,
-                    prefixIcon: const Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? s.wizardPhonePromptRequired
-                      : null,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(s.wizardPhonePromptSkip),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.of(ctx).pop(true);
-                }
-              },
-              child: Text(s.wizardPhonePromptSave),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (result == true && ctrl.text.trim().isNotEmpty) {
-      // Persist phone to the user's profile immediately, preserving all other fields.
-      await state.submitProfileUpdate(
-        displayName: state.profile?.displayName ?? '',
-        bio: state.profile?.bio ?? '',
-        phone: ctrl.text.trim(),
-        city: state.profile?.city ?? '',
-        preferredCategory: state.profile?.preferredCategory,
-      );
-    }
-    ctrl.dispose();
-    return result;
   }
 
   @override

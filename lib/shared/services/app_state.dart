@@ -839,6 +839,57 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Location CTA (post-onboarding re-prompt) ─────────────────────────────────
+
+  /// True when the user has not yet granted location and the CTA snooze has
+  /// expired (or was never set). The CTA snooze is set to 3 days whenever the
+  /// user dismisses the banner.
+  bool _locationCtaReady = false;
+
+  /// Called once from [_HomeScreen] (or wherever) after the first frame so
+  /// we can read SharedPreferences without blocking build.
+  Future<void> checkLocationCtaVisibility() async {
+    if (locationPermissionGranted) {
+      _locationCtaReady = false;
+      notifyListeners();
+      return;
+    }
+    final snoozedUntil =
+        await app_local.LocalStorage.getLocationCtaSnoozedUntil();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    _locationCtaReady = now >= snoozedUntil;
+    notifyListeners();
+  }
+
+  /// Whether the location CTA banner should be shown right now.
+  bool get showLocationCta =>
+      !locationPermissionGranted && _locationCtaReady;
+
+  /// Called when the user taps "Allow" on the CTA banner.
+  /// Requests the OS permission, stores coordinates on success, then hides
+  /// the CTA regardless of outcome.
+  Future<void> grantLocationFromCta() async {
+    final position =
+        await PermissionService.requestLocationPermissionAndGetPosition();
+    if (position != null) {
+      locationPermissionGranted = true;
+      deviceLat = position.latitude;
+      deviceLng = position.longitude;
+    }
+    // Hide the CTA — if denied again, snooze for 3 days so we don't spam.
+    await snoozeLocationCta();
+  }
+
+  /// Snoozes the location CTA for [days] days (default 3) and hides it.
+  Future<void> snoozeLocationCta({int days = 3}) async {
+    final until = DateTime.now()
+        .add(Duration(days: days))
+        .millisecondsSinceEpoch;
+    await app_local.LocalStorage.saveLocationCtaSnoozedUntil(until);
+    _locationCtaReady = false;
+    notifyListeners();
+  }
+
   Future<void> completeGoalSelection(String goal) async {
     onboardingGoal = goal;
     // Persist to local storage first (works offline).

@@ -10,6 +10,7 @@ import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/cv_upload_service.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/cv_upload_button.dart';
+import '../../../../shared/widgets/phone_prompt.dart';
 
 class ServiceEditScreen extends StatefulWidget {
   final String? serviceId;
@@ -140,6 +141,13 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     final state = KoolanAppStateScope.of(context);
     final currentUser = state.currentUser;
     if (currentUser == null) return;
+
+    // Prompt for phone when creating a new service and profile has none yet.
+    // Skip the prompt when editing — the phone was already collected earlier.
+    if (widget.serviceId == null) {
+      final proceed = await showPhonePromptIfNeeded(context, state);
+      if (!proceed) return;
+    }
 
     setState(() => _isSaving = true);
     final now = DateTime.now().toUtc();

@@ -560,6 +560,20 @@ class AppStrings {
   String get locationContinue => _t('Continue', 'ቀጥል', 'Sii wad');
   String get locationSkip => _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
 
+  // ── Location CTA banner (post-onboarding re-prompt) ──────────────────────────
+  String get locationCtaTitle => _t(
+    'Enable location for better results',
+    'ለተሻሉ ውጤቶች አካባቢ ያብሩ',
+    'Fur goobta si aad natiijooyinka fiican u hesho',
+  );
+  String get locationCtaBody => _t(
+    'See listings and services near you first.',
+    'አቅራቢያዎ ያሉ ማስታወቂያዎች እና አገልግሎቶችን ቀደም ብለው ያዩ።',
+    'Fiiri xayaysiisyada iyo adeegyada ku dhow adiga marka hore.',
+  );
+  String get locationCtaAllow => _t('Allow location', 'አካባቢ ፍቀድ', 'Fasax goobta');
+  String get locationCtaDismiss => _t('Not now', 'አሁን አይደለም', 'Hadda kuma ahan');
+
   // ── Goal Selection Screen ────────────────────────────────────────────────────
   String get goalTitle => _t('What are you here to do?', 'ለምን መጡ?', 'Maxaad halkan u timid?');
   String get goalSubtitle => _t(
@@ -1020,6 +1034,20 @@ class AppStrings {
   String get settingsPrefCategory => _t('Preferred Category', 'ተመራጭ ምድብ', 'Qaybta la doortay');
   String get settingsSystemSection => _t('System preferences', 'የስርዓት ቅንብሮች', 'Doorashada nidaamka');
   String get settingsLogOut => _t('Log Out Account', 'ከሂሳብ ውጣ', 'Ka bax xisaabta');
+
+  // Contact & location rows in settings
+  String get settingsContactSection =>
+      _t('Contact & location', 'ግንኙነት እና አካባቢ', 'Xiriirka & goobta');
+  String get settingsPhoneRow => _t('Phone number', 'ስልክ ቁጥር', 'Lambarka telefoonka');
+  String get settingsPhoneRowSub =>
+      _t('Used for listings and your profile', 'ለዝርዝሮች እና ፕሮፋይልዎ ይጠቅማል', 'Loo isticmaalaa xayaysiisyada iyo xogtaada');
+  String get settingsAddPhone =>
+      _t('Add phone number', 'ስልክ ቁጥር ያክሉ', 'Ku dar lambarka telefoonka');
+  String get settingsLocationRow => _t('Location (city)', 'አካባቢ (ከተማ)', 'Goob (magaalo)');
+  String get settingsLocationRowSub =>
+      _t('Used for listings, services & hiring posts', 'ለዝርዝሮች፣ አገልግሎቶች እና ቅጥር ለጥፎች ይጠቅማል', 'Loo isticmaalaa xayaysiisyada, adeegyada & shaqo-doonka');
+  String get settingsAddLocation =>
+      _t('Add location', 'አካባቢ ያክሉ', 'Ku dar goobta');
 
   // ── Saved Screen ─────────────────────────────────────────────────────────────
   String get savedEmptySubAlt => _t(
