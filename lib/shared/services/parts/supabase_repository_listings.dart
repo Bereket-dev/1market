@@ -129,7 +129,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
         .from('listings')
         .delete()
         .eq('id', listingId)
-        .eq('owner_id', userId);
+        .eq('seller_id', userId);
   }
 
   Future<void> toggleFavorite(String listingId, bool currentlySaved) async {
