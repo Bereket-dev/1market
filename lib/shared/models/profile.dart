@@ -12,7 +12,6 @@ class UserProfile with SyncableEntity {
   final String? language;
   final String? preferredCategory;
   final bool onboardingComplete;
-  final bool faydaVerified;
   final double rating;
   final int reviewsCount;
   @override
@@ -35,7 +34,6 @@ class UserProfile with SyncableEntity {
     this.language,
     this.preferredCategory,
     this.onboardingComplete = false,
-    this.faydaVerified = false,
     this.rating = 5.0,
     this.reviewsCount = 0,
     DateTime? localUpdatedAt,
@@ -56,7 +54,6 @@ class UserProfile with SyncableEntity {
       language: json['language'] as String?,
       preferredCategory: json['preferred_category'] as String?,
       onboardingComplete: json['onboarding_complete'] as bool? ?? false,
-      faydaVerified: json['fayda_verified'] as bool? ?? false,
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewsCount: json['reviews_count'] as int? ?? 0,
       localUpdatedAt: updatedAt ?? DateTime.now(),
@@ -76,7 +73,6 @@ class UserProfile with SyncableEntity {
     'language': language,
     'preferred_category': preferredCategory,
     'onboarding_complete': onboardingComplete,
-    'fayda_verified': faydaVerified,
     'rating': rating,
     'reviews_count': reviewsCount,
   };
@@ -91,7 +87,6 @@ class UserProfile with SyncableEntity {
     String? language,
     String? preferredCategory,
     bool? onboardingComplete,
-    bool? faydaVerified,
     double? rating,
     int? reviewsCount,
     SyncStatus? syncStatus,
@@ -108,7 +103,6 @@ class UserProfile with SyncableEntity {
       language: language ?? this.language,
       preferredCategory: preferredCategory ?? this.preferredCategory,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
-      faydaVerified: faydaVerified ?? this.faydaVerified,
       rating: rating ?? this.rating,
       reviewsCount: reviewsCount ?? this.reviewsCount,
       syncStatus: syncStatus ?? this.syncStatus,

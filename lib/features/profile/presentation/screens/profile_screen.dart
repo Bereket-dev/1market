@@ -60,7 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatarUrl = profile?.avatarUrl;
     final bannerUrl = profile?.bannerUrl;
     final city = profile?.city ?? 'Jigjiga';
-    final isVerified = profile?.faydaVerified ?? false;
 
     // Fallback banner when user hasn't set one yet.
     const fallbackBanner =
@@ -208,10 +207,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        if (isVerified) ...[
-                          const SizedBox(width: 6),
-                          Icon(Icons.verified, color: cs.tertiary, size: 20),
-                        ],
                         // Pencil button — navigates to the full edit profile screen
                         const SizedBox(width: 4),
                         Tooltip(

@@ -614,16 +614,6 @@ class AppStrings {
   String get goalBuyLand => _t('Buy land', 'መሬት ግዛ', 'Dhul iibso');
   String get goalContinue => _t('Continue', 'ቀጥል', 'Sii wad');
 
-  // ── Verification Prompt Screen ───────────────────────────────────────────────
-  String get verifyTitle =>
-      _t('Verify your account with Fayda', 'መለያዎን በፋይዳ ያረጋግጡ', 'Xaqiiji xisaabtaada Fayda');
-  String get verifyBody => _t(
-    'Verified accounts build trust. You can verify now, or skip and continue using the app immediately.',
-    'የተረጋገጡ መለያዎች እምነት ይፈጥራሉ። አሁን ማረጋገጥ ወይም ዝለው ወዲያውኑ መጠቀም ይችላሉ።',
-    'Xisaabaha la xaqiijiyey waxay dhisaan kalsoonida. Waxaad xaqiijin kartaa hadda, ama ka bood oo isla markiiba isticmaal.',
-  );
-  String get verifyNow => _t('Verify now', 'አሁን ያረጋግጡ', 'Hadda xaqiiji');
-  String get verifySkip => _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
 
   // ── App init / loading screen ────────────────────────────────────────────────
   String get initLoading => _t('Loading…', 'በመጫን ላይ…', 'Waa la soo rarayaa…');
@@ -1320,92 +1310,4 @@ class AppStrings {
   String get publicProfileRatingLabel =>
       _t('Rating', 'ደረጃ', 'Derejayn');
 
-  // ── Fayda ID Verification Screen ─────────────────────────────────────────────
-  String get faydaTitle =>
-      _t('Verify with Fayda ID', 'በፋይዳ መታወቂያ ያረጋግጡ', 'Xaqiiji Fayda ID');
-  String get faydaSubtitle => _t(
-    'Fayda is Ethiopia\'s national digital ID. Verified accounts get a trust badge and higher ranking in Koolan.',
-    'ፋይዳ የኢትዮጵያ ሀገራዊ ዲጂታል መታወቂያ ነው። የተረጋገጡ መለያዎች የእምነት ምልክት እና ከፍተኛ ደረጃ ያገኛሉ።',
-    'Fayda waa aqoonsiga dhijitaalka qaranka Itoobiya. Xisaabaha la xaqiijiyey waxay helaan calaamadda kalsoonida iyo darajada sare.',
-  );
-  String get faydaIdLabel =>
-      _t('Fayda ID Number', 'የፋይዳ መታወቂያ ቁጥር', 'Lambarka Fayda ID');
-  String get faydaIdHint =>
-      _t('Enter your 14-digit Fayda ID', 'የ14-ቁጥር ፋይዳ መታወቂያ ያስገቡ', 'Geli Fayda ID-kaaga 14-lambar');
-  String get faydaIdRequired =>
-      _t('Fayda ID is required', 'የፋይዳ መታወቂያ ያስፈልጋል', 'Fayda ID waa lagama maarmaan');
-  String get faydaIdInvalid => _t(
-    'Enter a valid 14-digit Fayda ID',
-    'ትክክለኛ 14-ቁጥር ፋይዳ መታወቂያ ያስገቡ',
-    'Geli Fayda ID 14-lambar oo sax ah',
-  );
-  String get faydaOtpTitle =>
-      _t('Enter verification code', 'የማረጋገጫ ኮድ ያስገቡ', 'Geli koodhka xaqiijinta');
-  String get faydaOtpSubtitle => _t(
-    'A 6-digit code was sent to your registered phone number.',
-    'ለተመዘገበ ስልክዎ 6-ቁጥር ኮድ ተልኳል።',
-    'Koodh 6-lambar ah ayaa loo diray lambarka telefoonka diiwaan gashan.',
-  );
-  String get faydaOtpLabel =>
-      _t('Verification Code', 'የማረጋገጫ ኮድ', 'Koodhka Xaqiijinta');
-  String get faydaOtpHint =>
-      _t('Enter 6-digit code', '6-ቁጥር ኮድ ያስገቡ', 'Geli koodh 6-lambar');
-  String get faydaOtpRequired =>
-      _t('Verification code is required', 'የማረጋገጫ ኮድ ያስፈልጋል', 'Koodhka xaqiijinta waa lagama maarmaan');
-  String get faydaOtpInvalid =>
-      _t('Enter the 6-digit code', '6-ቁጥር ኮድ ያስገቡ', 'Geli koodh 6-lambar');
-  String get faydaResendCode =>
-      _t('Resend code', 'ኮድ እንደገና ላክ', 'Dib u dir koodhka');
-  String get faydaVerifyButton =>
-      _t('Verify Identity', 'ማንነት ያረጋግጡ', 'Xaqiiji Aqoonsiga');
-  String get faydaSubmitButton =>
-      _t('Confirm Code', 'ኮድ አረጋግጥ', 'Xaqiiji Koodhka');
-  String get faydaVerifying =>
-      _t('Verifying…', 'በማረጋገጥ ላይ…', 'Waa la xaqiijinayaa…');
-  String get faydaSuccess => _t(
-    'Identity verified successfully!',
-    'ማንነቱ በተሳካ ሁኔታ ተረጋግጧል!',
-    'Aqoonsiga si guul leh ayaa loo xaqiijiyey!',
-  );
-  String get faydaSuccessSubtitle => _t(
-    'Your account now has a Fayda Verified badge. Buyers and sellers will see you as a trusted member.',
-    'መለያዎ አሁን የፋይዳ ማረጋገጫ ምልክት አለው። ገዢዎች እና ሻጮች እርስዎን እንደ ታማኝ አባል ያዩዎታል።',
-    'Xisaabtaada hadda waxay leedahay calaamadda Fayda Xaqiijiyey. Iibiyayaasha iyo iibsadeyaashu waxay kugu arki doonaan xubin la믿aha ah.',
-  );
-  String get faydaContinue =>
-      _t('Continue to Koolan', 'ወደ ኩላን ቀጥል', 'U gudub Koolan');
-  String get faydaSkip =>
-      _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
-  String get faydaTrustBadge =>
-      _t('Fayda Verified', 'ፋይዳ ተረጋግጧል', 'Fayda Xaqiijiyey');
-  String get faydaBenefitsTitle =>
-      _t('Benefits of verification', 'የማረጋገጫ ጥቅሞች', 'Faa\'iidooyinka xaqiijinta');
-  String get faydaBenefit1 =>
-      _t('Trusted badge on your profile', 'የሚተማመን ምልክት', 'Calaamadda kalsoonida');
-  String get faydaBenefit2 =>
-      _t('Higher search ranking', 'ከፍተኛ የፍለጋ ደረጃ', 'Darajada raadinta ee sare');
-  String get faydaBenefit3 =>
-      _t('Access to escrow payments', 'ወደ escrow ክፍያዎች ይድረሱ', 'Gelitaanka lacag-bixinta escrow');
-  String get faydaErrorGeneric => _t(
-    'Verification failed. Please try again.',
-    'ማረጋገጥ አልተሳካም። እባክዎ እንደገና ይሞክሩ።',
-    'Xaqiijintu fashilantay. Fadlan isku day mar kale.',
-  );
-  String get faydaErrorNetwork => _t(
-    'Network error. Check your connection and retry.',
-    'የአውታረ መረብ ስህተት። ግንኙነትዎን ያረጋግጡ እና እንደገና ይሞክሩ።',
-    'Khalad shabakadeed. Hubi xiriirkaaga oo isku day mar kale.',
-  );
-  String get faydaStep1of2 => _t('Step 1 of 2', 'ደረጃ 1 ከ 2', 'Tallaabo 1 oo ah 2');
-  String get faydaStep2of2 => _t('Step 2 of 2', 'ደረጃ 2 ከ 2', 'Tallaabo 2 oo ah 2');
-  String get faydaWhatIsFayda => _t(
-    'What is Fayda ID?',
-    'ፋይዳ መታወቂያ ምንድን ነው?',
-    'Maxaa ah Fayda ID?',
-  );
-  String get faydaWhatIsFaydaBody => _t(
-    'Fayda is the Ethiopian National ID system. Your 14-digit ID number is printed on your national ID card.',
-    'ፋይዳ የኢትዮጵያ ሀገራዊ መታወቂያ ስርዓት ነው። 14-ቁጥር መታወቂያ ቁጥርዎ በሀገራዊ መታወቂያ ካርድዎ ላይ ይታያል።',
-    'Fayda waa nidaamka aqoonsiga qaranka Itoobiya. Lambarka aqoonsigaaga 14-lambar ah waxaa lagu daabacay kaadhkaaga aqoonsiga qaranka.',
-  );
 }

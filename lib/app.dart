@@ -18,7 +18,6 @@ import 'features/onboarding/screens/goal_selection_screen.dart';
 import 'features/onboarding/screens/language_screen.dart';
 import 'features/onboarding/screens/location_permission_screen.dart';
 import 'features/onboarding/screens/profile_setup_screen.dart';
-import 'features/onboarding/screens/verification_prompt_screen.dart';
 import 'features/post/presentation/screens/post_wizard_screen.dart';
 import 'features/profile/presentation/screens/edit_profile_screen.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
@@ -178,8 +177,6 @@ class _RootGate extends StatelessWidget {
         return const LocationPermissionScreen();
       case OnboardingPhase.goal:
         return const GoalSelectionScreen();
-      case OnboardingPhase.verification:
-        return const VerificationPromptScreen();
       case OnboardingPhase.ready:
         return const _AppShell();
     }

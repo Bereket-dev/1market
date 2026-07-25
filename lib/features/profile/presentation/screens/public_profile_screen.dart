@@ -295,33 +295,6 @@ class _ProfileSliverHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Verified badge (if applicable)
-                  if (profile != null && profile!.faydaVerified)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: cs.tertiary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: cs.tertiary.withValues(alpha: 0.35)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified, color: cs.tertiary, size: 13),
-                          const SizedBox(width: 4),
-                          Text(
-                            s.detailVerified,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: cs.tertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ),

@@ -34,7 +34,6 @@ enum OnboardingPhase {
   profileSetup, // OAuth users missing name/phone — shown after language
   location,
   goal,
-  verification,
   ready,
 }
 
@@ -768,7 +767,6 @@ class KoolanAppState extends ChangeNotifier {
       'profileSetup' => OnboardingPhase.profileSetup,
       'location' => OnboardingPhase.location,
       'goal' => OnboardingPhase.goal,
-      'verification' => OnboardingPhase.verification,
       'ready' => OnboardingPhase.ready,
       _ => null,
     };
@@ -801,7 +799,7 @@ class KoolanAppState extends ChangeNotifier {
     // ── Returning user: skip the entire onboarding flow ───────────────────────
     // If the device has the onboarding-complete flag OR the profile's
     // onboarding_complete field is true, the user already went through the
-    // language / location / goal / verification steps on a previous session.
+    // language / location / goal steps on a previous session.
     // Drop them straight into the app — no need to ask again.
     final locallyDone = await app_local.LocalStorage.isOnboardingComplete();
     final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
@@ -954,40 +952,11 @@ class KoolanAppState extends ChangeNotifier {
     } else {
       profile = profile?.copyWith(preferredCategory: goal);
     }
-    await app_local.LocalStorage.saveOnboardingPhase('verification');
-    onboardingPhase = OnboardingPhase.verification;
+    await app_local.LocalStorage.clearOnboardingPhase();
+    onboardingPhase = OnboardingPhase.ready;
     notifyListeners();
   }
 
-  Future<void> completeVerificationOnboarding(bool verified) async {
-    if (_repo != null) {
-      try {
-        await _repo!.updateProfile({
-          'onboarding_complete': true,
-          if (onboardingGoal != null) 'preferred_category': onboardingGoal,
-          'language': locale,
-          if (verified) 'fayda_verified': true,
-        });
-      } catch (e) {
-        // Profile update failed (network, RLS, etc.) — not fatal for onboarding.
-        // The sync queue will retry when connectivity returns.
-        debugPrint('updateProfile during verification failed: $e');
-      }
-    }
-    profile = profile?.copyWith(
-      onboardingComplete: true,
-      preferredCategory: onboardingGoal,
-      language: locale,
-      faydaVerified: verified ? true : profile?.faydaVerified,
-    );
-    // Persist locally so we never re-show onboarding even when offline.
-    await app_local.LocalStorage.markOnboardingComplete();
-    if (profile != null) {
-      await app_local.LocalStorage.saveProfileCache(profile!.toJson());
-    }
-    await app_local.LocalStorage.clearOnboardingPhase();
-    await _enterApp();
-  }
 
   Future<void> _enterApp() async {
     onboardingPhase = OnboardingPhase.ready;
