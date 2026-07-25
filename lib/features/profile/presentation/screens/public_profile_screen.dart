@@ -40,11 +40,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
     final state = KoolanAppStateScope.of(context);
+    // Show cached data instantly — only block with a spinner on true first load.
+    final hasCached = state.getCachedPublicProfile(widget.userId) != null;
+    if (!hasCached) {
+      setState(() { _loading = true; _error = null; });
+    } else {
+      _loading = false;
+    }
     try {
       await Future.wait([
         state.loadPublicProfile(widget.userId),

@@ -234,9 +234,17 @@ class SupabaseRepository {
     final userId = currentUserId;
     if (userId == null) return [];
 
+    // Single query: threads + listing title + all messages + both partner profiles.
+    // Previously this was N+1 (fetchProfile + chat_messages per thread in a loop).
     final threads = await _client
         .from('chat_threads')
-        .select('*, listings(title)')
+        .select(
+          '*, '
+          'listings(title), '
+          'buyer:profiles!buyer_id(display_name, avatar_url), '
+          'seller:profiles!seller_id(display_name, avatar_url), '
+          'chat_messages(id, sender_id, text, created_at)',
+        )
         .or('buyer_id.eq.$userId,seller_id.eq.$userId')
         .order('created_at', ascending: false);
 
@@ -246,31 +254,34 @@ class SupabaseRepository {
       final threadId = t['id'] as String;
       final buyerId = t['buyer_id'] as String;
       final sellerId = t['seller_id'] as String;
-      final partnerId = buyerId == userId ? sellerId : buyerId;
+      final isUserBuyer = buyerId == userId;
 
-      final partner = await fetchProfile(partnerId);
+      // Partner profile already embedded — no extra round-trip.
+      final partnerData = isUserBuyer
+          ? t['seller'] as Map<String, dynamic>?
+          : t['buyer'] as Map<String, dynamic>?;
+      final partnerName = partnerData?['display_name'] as String? ?? 'User';
+      final partnerAvatar = partnerData?['avatar_url'] as String? ?? '';
+
       final listingData = t['listings'] as Map<String, dynamic>?;
       final listingTitle = listingData?['title'] as String? ?? '';
 
-      final messages = await _client
-          .from('chat_messages')
-          .select()
-          .eq('thread_id', threadId)
-          .order('created_at', ascending: true);
+      // Messages also embedded — no extra round-trip.
+      final rawMessages = (t['chat_messages'] as List?) ?? [];
+      final chatMessages = rawMessages.map((m) {
+        return ChatMessage.fromJson(
+          m as Map<String, dynamic>,
+          currentUserId: userId,
+        );
+      }).toList()
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-      final chatMessages = (messages as List).map((m) {
-        final msg = m as Map<String, dynamic>;
-        return ChatMessage.fromJson(msg, currentUserId: userId);
-      }).toList();
-
-      final unreadCount = chatMessages
-          .where((m) => !m.isMe)
-          .length; // simplified unread count
+      final unreadCount = chatMessages.where((m) => !m.isMe).length;
 
       sessions.add(ChatSession(
         id: threadId,
-        partnerName: partner?.displayName ?? 'User',
-        partnerAvatar: partner?.avatarUrl ?? '',
+        partnerName: partnerName,
+        partnerAvatar: partnerAvatar,
         listingTitle: listingTitle,
         listingId: t['listing_id'] as String?,
         messages: chatMessages,
@@ -687,11 +698,23 @@ class SupabaseRepository {
   /// Fetches all service reviews received by [userId] (i.e. reviews on any
   /// service owned by [userId]), enriched with reviewer name/avatar.
   Future<List<ServiceReview>> fetchReviewsForUser(String userId) async {
-    // Join service_reviews → services to filter by owner_id.
+    // Step 1: get the service IDs owned by this user.
+    final serviceRows = await _client
+        .from('services')
+        .select('id')
+        .eq('owner_id', userId);
+
+    final serviceIds = (serviceRows as List)
+        .map((r) => r['id'] as String)
+        .toList();
+
+    if (serviceIds.isEmpty) return [];
+
+    // Step 2: fetch all reviews for those services in a single query.
     final rows = await _client
         .from('service_reviews')
-        .select('*, profiles(display_name, avatar_url), services!inner(owner_id)')
-        .eq('services.owner_id', userId)
+        .select('*, profiles(display_name, avatar_url)')
+        .inFilter('service_id', serviceIds)
         .order('created_at', ascending: false);
 
     return (rows as List).map((row) {
