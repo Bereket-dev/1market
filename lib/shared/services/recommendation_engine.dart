@@ -79,6 +79,12 @@ class UserContext {
   /// Used for soft location matching when GPS lat/lng is unavailable.
   final String? userLocation;
 
+  /// Real GPS latitude of the device (from geolocator), when available.
+  final double? userLat;
+
+  /// Real GPS longitude of the device (from geolocator), when available.
+  final double? userLng;
+
   /// Whether the user granted location permission.
   /// When false, the location factor is skipped entirely.
   final bool hasLocation;
@@ -95,6 +101,8 @@ class UserContext {
   const UserContext({
     this.preferredCategory,
     this.userLocation,
+    this.userLat,
+    this.userLng,
     this.hasLocation = false,
     this.savedIds = const {},
     this.appliedPostIds = const {},

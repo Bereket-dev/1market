@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -21,6 +22,7 @@ import '../models/syncable_entity.dart';
 import 'local_storage.dart' as app_local;
 import 'offline/hive_sync_store.dart' hide SyncStatus;
 import 'offline/sync_service.dart';
+import 'permission_service.dart';
 import 'recommendation_engine.dart';
 import 'supabase_repository.dart';
 import 'translation_service.dart';
@@ -154,6 +156,12 @@ class KoolanAppState extends ChangeNotifier {
   OnboardingPhase onboardingPhase = OnboardingPhase.initializing;
   String? onboardingGoal;
   bool locationPermissionGranted = false;
+
+  /// Real GPS coordinates of the device — populated after the user grants
+  /// location permission. Used by [buildUserContext] for proximity scoring.
+  double? deviceLat;
+  double? deviceLng;
+
   UserProfile? profile;
   String? initError;
   bool isLoadingData = false;
@@ -817,8 +825,15 @@ class KoolanAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> completeLocationOnboarding() async {
-    locationPermissionGranted = true;
+  Future<void> completeLocationOnboarding({
+    double? lat,
+    double? lng,
+  }) async {
+    locationPermissionGranted = lat != null && lng != null;
+    if (lat != null && lng != null) {
+      deviceLat = lat;
+      deviceLng = lng;
+    }
     await app_local.LocalStorage.saveOnboardingPhase('goal');
     onboardingPhase = OnboardingPhase.goal;
     notifyListeners();
@@ -900,6 +915,47 @@ class KoolanAppState extends ChangeNotifier {
     await loadAllData();
     // Process any pending translation retry jobs from previous sessions.
     unawaited(TranslationService.instance.processRetryQueue());
+    // Init push notifications after the app is ready — non-blocking.
+    unawaited(_initPushNotifications());
+  }
+
+  /// Requests notification permission, gets the FCM token, and registers it
+  /// in the user's Supabase profile row (so the backend can send targeted
+  /// pushes). Also wires up the foreground message listener.
+  Future<void> _initPushNotifications() async {
+    try {
+      final token = await PermissionService
+          .requestNotificationPermissionAndGetToken();
+      if (token == null) return;
+
+      // Persist token to Supabase profile so backend can send targeted pushes.
+      if (_repo != null) {
+        await _repo!.updateProfile({'fcm_token': token});
+        debugPrint('[FCM] Token saved to Supabase profile');
+      }
+
+      // Handle token refresh.
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+        debugPrint('[FCM] Token refreshed: $newToken');
+        if (_repo != null) {
+          await _repo!.updateProfile({'fcm_token': newToken});
+        }
+      });
+
+      // Show foreground messages as local notifications.
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('[FCM] Foreground message: ${message.messageId}');
+        PermissionService.showForegroundNotification(message);
+      });
+
+      // Handle notification open when app was in background.
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint('[FCM] Notification opened app: ${message.messageId}');
+        // Navigate based on payload if needed.
+      });
+    } catch (e) {
+      debugPrint('[FCM] _initPushNotifications error: $e');
+    }
   }
 
   Future<void> loadAllData() async {
@@ -1302,7 +1358,9 @@ class KoolanAppState extends ChangeNotifier {
   /// Combines all available signals:
   /// - Preferred category from onboarding goal (via [UserContext.categoryFromGoal])
   ///   or profile.preferredCategory as a fallback.
-  /// - Location city from profile; hasLocation from [locationPermissionGranted].
+  /// - Real GPS coordinates from [deviceLat]/[deviceLng] when available,
+  ///   falling back to city string from profile.
+  /// - hasLocation is true whenever we have either GPS coords or a city string.
   /// - Saved listing IDs.
   /// - Applied hiring post IDs.
   /// - In-memory recently viewed IDs.
@@ -1322,10 +1380,16 @@ class KoolanAppState extends ChangeNotifier {
         .map((a) => a.hiringPostId)
         .toSet();
 
+    // Prefer real GPS; fall back to profile city string.
+    final hasGps = deviceLat != null && deviceLng != null;
+    final hasCity = profile?.city?.isNotEmpty ?? false;
+
     return UserContext(
       preferredCategory: category,
       userLocation: profile?.city,
-      hasLocation: locationPermissionGranted && (profile?.city?.isNotEmpty ?? false),
+      userLat: deviceLat,
+      userLng: deviceLng,
+      hasLocation: hasGps || (locationPermissionGranted && hasCity),
       savedIds: savedIds,
       appliedPostIds: appliedIds,
       recentlyViewedIds: Set.unmodifiable(recentlyViewedIds),
