@@ -79,11 +79,18 @@ async function sendPush(
   body: string,
   data: Record<string, string>,
   accessToken: string,
+  imageUrl?: string,
 ): Promise<void> {
   const payload = {
     message: {
       token,
-      notification: { title, body },
+      notification: {
+        title,
+        body,
+        // Attach image when provided — shown as a large picture in the
+        // notification shade on Android and as a thumbnail on iOS.
+        ...(imageUrl ? { image: imageUrl } : {}),
+      },
       data,
       android: {
         priority: 'high',
@@ -91,6 +98,8 @@ async function sendPush(
           channel_id: 'koolan_channel',
           sound: 'default',
           default_vibrate_timings: true,
+          // Android also needs the image here for the expanded notification.
+          ...(imageUrl ? { image: imageUrl } : {}),
         },
       },
       apns: {
@@ -100,6 +109,10 @@ async function sendPush(
             badge: 1,
           },
         },
+        // iOS rich notification image via FCM HTTP v1.
+        ...(imageUrl
+          ? { fcm_options: { image: imageUrl } }
+          : {}),
       },
     },
   };
@@ -166,6 +179,9 @@ serve(async (req) => {
     }
     data['notification_id'] = record.id;
 
+    // Extract image URL from payload for rich push display.
+    const imageUrl = (record.payload?.imageUrl as string | undefined) || undefined;
+
     const accessToken = await getAccessToken();
     await sendPush(
       profile.fcm_token,
@@ -173,6 +189,7 @@ serve(async (req) => {
       record.body,
       data,
       accessToken,
+      imageUrl,
     );
 
     return new Response('ok', { status: 200 });

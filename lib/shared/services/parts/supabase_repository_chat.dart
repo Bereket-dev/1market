@@ -16,8 +16,8 @@ extension SupabaseRepositoryChat on SupabaseRepository {
         .select(
           '*, '
           'listings(title), '
-          'buyer:profiles!buyer_id(display_name, avatar_url), '
-          'seller:profiles!seller_id(display_name, avatar_url), '
+          'buyer:profiles!buyer_id(display_name, avatar_url, phone, id), '
+          'seller:profiles!seller_id(display_name, avatar_url, phone, id), '
           'chat_messages(id, sender_id, text, created_at)',
         )
         .or('buyer_id.eq.$userId,seller_id.eq.$userId')
@@ -28,7 +28,7 @@ extension SupabaseRepositoryChat on SupabaseRepository {
       final t = thread as Map<String, dynamic>;
       final threadId = t['id'] as String;
       final buyerId = t['buyer_id'] as String;
-      final sellerId = t['seller_id'] as String;
+      // sellerId not used directly; partner is found via isUserBuyer below.
       final isUserBuyer = buyerId == userId;
 
       // Partner profile already embedded — no extra round-trip.
@@ -61,8 +61,18 @@ extension SupabaseRepositoryChat on SupabaseRepository {
         listingId: t['listing_id'] as String?,
         messages: chatMessages,
         unreadCount: unreadCount > 0 ? 1 : 0,
+        partnerPhone: partnerData?['phone'] as String?,
+        partnerUserId: partnerData?['id'] as String?,
       ));
     }
+
+    // Sort sessions by last message time, newest first.
+    sessions.sort((a, b) {
+      final aTime = a.messages.lastOrNull?.localUpdatedAt ?? DateTime(0);
+      final bTime = b.messages.lastOrNull?.localUpdatedAt ?? DateTime(0);
+      return bTime.compareTo(aTime);
+    });
+
     return sessions;
   }
 

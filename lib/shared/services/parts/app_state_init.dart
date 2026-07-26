@@ -343,15 +343,25 @@ extension AppStateInit on KoolanAppState {
         }
       });
 
-      // Show foreground messages as local heads-up notifications.
+      // Show foreground messages as local heads-up notifications and refresh
+      // the in-app notification list.
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('[FCM] Foreground message: ${message.messageId}');
         PermissionService.showForegroundNotification(message);
+        if (_repo != null) {
+          _repo!.fetchNotifications().then((list) {
+            notifications = list;
+            notifyListeners();
+          }).catchError((e) {
+            debugPrint('[FCM] fetchNotifications on foreground message failed: $e');
+          });
+        }
       });
 
-      // Refresh in-app notification list when user taps a push and opens the app.
+      // Deep-link when user taps a push while the app is in background.
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         debugPrint('[FCM] Notification opened app: ${message.messageId}');
+        _navigateFromPushPayload(message.data);
         if (_repo != null) {
           _repo!.fetchNotifications().then((list) {
             notifications = list;
@@ -367,6 +377,7 @@ extension AppStateInit on KoolanAppState {
       final initial = await FirebaseMessaging.instance.getInitialMessage();
       if (initial != null) {
         debugPrint('[FCM] App launched from notification: ${initial.messageId}');
+        _navigateFromPushPayload(initial.data);
         if (_repo != null) {
           try {
             notifications = await _repo!.fetchNotifications();
@@ -378,6 +389,72 @@ extension AppStateInit on KoolanAppState {
       }
     } catch (e) {
       debugPrint('[FCM] _initPushNotifications error: $e');
+    }
+  }
+
+  /// Navigates to the appropriate screen based on the FCM data payload.
+  void _navigateFromPushPayload(Map<String, dynamic> data) {
+    final screen = data['screen'] as String?;
+    if (screen == null) return;
+
+    switch (screen) {
+      case 'listing_detail':
+        final listingId = data['listingId'] as String?;
+        if (listingId != null && listingId.isNotEmpty) {
+          pushScreen(ListingDetailScreenRoute(listingId));
+        }
+
+      case 'chat':
+        final threadId = data['threadId'] as String?;
+        if (threadId != null && threadId.isNotEmpty) {
+          final index =
+              chatSessions.indexWhere((s) => s.id == threadId);
+          if (index != -1) {
+            pushScreen(ActiveChatScreenRoute(index));
+          } else {
+            // Session not loaded yet — refresh then navigate.
+            if (_repo != null) {
+              _repo!.fetchChatSessions().then((sessions) {
+                chatSessions = sessions;
+                notifyListeners();
+                final newIndex =
+                    chatSessions.indexWhere((s) => s.id == threadId);
+                if (newIndex != -1) {
+                  pushScreen(ActiveChatScreenRoute(newIndex));
+                }
+              }).catchError((e) {
+                debugPrint('[FCM] fetchChatSessions for deep-link failed: $e');
+              });
+            }
+          }
+        }
+
+      case 'applicantList':
+        final postId = data['hiringPostId'] as String?;
+        if (postId != null && postId.isNotEmpty) {
+          pushScreen(HiringApplicantListScreenRoute(postId));
+        }
+
+      case 'myApplications':
+        pushScreen(MyApplicationsScreenRoute());
+
+      case 'hiring_detail':
+        final postId = data['postId'] as String?;
+        if (postId != null && postId.isNotEmpty) {
+          pushScreen(HiringDetailScreenRoute(postId));
+        }
+
+      case 'service_detail':
+        final serviceId = data['serviceId'] as String?;
+        if (serviceId != null && serviceId.isNotEmpty) {
+          pushScreen(ServiceDetailScreenRoute(serviceId));
+        }
+
+      case 'notifications':
+        pushScreen(NotificationsScreenRoute());
+
+      default:
+        debugPrint('[FCM] Unknown screen in payload: $screen');
     }
   }
 }

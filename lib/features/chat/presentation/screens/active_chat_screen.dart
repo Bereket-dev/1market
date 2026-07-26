@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/router/routes.dart';
 import '../../../../shared/models/chat.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
@@ -33,42 +35,56 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
           icon: Icon(Icons.arrow_back, color: cs.primary),
           onPressed: () => state.popScreen(),
         ),
-        title: Row(children: [
-          CachedNetworkImage(
-            imageUrl: session.partnerAvatar.isEmpty
-                ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
-                : session.partnerAvatar,
-            cacheManager: KoolanImageCacheManager.instance,
-            imageBuilder: (_, provider) => CircleAvatar(
-              radius: 18,
-              backgroundImage: provider,
+        title: GestureDetector(
+          onTap: session.partnerUserId != null
+              ? () => state.pushScreen(
+                    PublicProfileScreenRoute(session.partnerUserId!),
+                  )
+              : null,
+          child: Row(children: [
+            CachedNetworkImage(
+              imageUrl: session.partnerAvatar.isEmpty
+                  ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
+                  : session.partnerAvatar,
+              cacheManager: KoolanImageCacheManager.instance,
+              imageBuilder: (_, provider) => CircleAvatar(
+                radius: 18,
+                backgroundImage: provider,
+              ),
+              placeholder: (_, __) =>
+                  const CircleAvatar(radius: 18, backgroundColor: Colors.grey),
+              errorWidget: (_, __, ___) =>
+                  const CircleAvatar(radius: 18, child: Icon(Icons.person)),
             ),
-            placeholder: (_, __) =>
-                const CircleAvatar(radius: 18, backgroundColor: Colors.grey),
-            errorWidget: (_, __, ___) =>
-                const CircleAvatar(radius: 18, child: Icon(Icons.person)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(session.partnerName,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: cs.onSurface)),
-              Text(session.listingTitle,
-                  style: TextStyle(fontSize: 10, color: cs.primary),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-            ]),
-          ),
-        ]),
-        // ── Share phone number action ──────────────────────────────────────
-        // Visible when contact has not yet been revealed. Tapping it triggers
-        // the explicit-reveal path and persists across both parties' views of
-        // the thread via revealContactForThread.
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(session.partnerName,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: cs.onSurface)),
+                Text(session.listingTitle,
+                    style: TextStyle(fontSize: 10, color: cs.primary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ]),
+            ),
+          ]),
+        ),
+        // ── Share phone number / Call action ──────────────────────────────────
         actions: [
-          if (!session.contactRevealed)
+          if (session.contactRevealed && session.partnerPhone != null)
+            Tooltip(
+              message: state.s.chatSharePhone,
+              child: IconButton(
+                icon: Icon(Icons.call, color: cs.primary),
+                onPressed: () {
+                  launchUrl(Uri.parse('tel:${session.partnerPhone}'));
+                },
+              ),
+            )
+          else if (!session.contactRevealed)
             Tooltip(
               message: state.s.chatSharePhone,
               child: IconButton(

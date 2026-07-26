@@ -82,6 +82,12 @@ class ChatSession {
   /// Count of real (sent) messages in this thread. Used to auto-reveal at 3.
   final int totalMessages;
 
+  /// The partner's phone number, populated once contact has been revealed.
+  final String? partnerPhone;
+
+  /// The partner's user ID, used for navigating to their public profile.
+  final String? partnerUserId;
+
   const ChatSession({
     required this.id,
     required this.partnerName,
@@ -92,6 +98,8 @@ class ChatSession {
     this.unreadCount = 0,
     this.contactRevealed = false,
     this.totalMessages = 0,
+    this.partnerPhone,
+    this.partnerUserId,
   });
 
   ChatSession copyWith({
@@ -104,6 +112,8 @@ class ChatSession {
     int? unreadCount,
     bool? contactRevealed,
     int? totalMessages,
+    String? partnerPhone,
+    String? partnerUserId,
   }) {
     return ChatSession(
       id: id ?? this.id,
@@ -115,6 +125,8 @@ class ChatSession {
       unreadCount: unreadCount ?? this.unreadCount,
       contactRevealed: contactRevealed ?? this.contactRevealed,
       totalMessages: totalMessages ?? this.totalMessages,
+      partnerPhone: partnerPhone ?? this.partnerPhone,
+      partnerUserId: partnerUserId ?? this.partnerUserId,
     );
   }
 }

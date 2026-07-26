@@ -89,10 +89,23 @@ class _NotificationTile extends StatelessWidget {
     final payload =
         (notification['payload'] as Map<String, dynamic>?) ?? {};
 
-    final isNewApp = type == 'new_application';
-    final icon =
-        isNewApp ? Icons.person_add_outlined : Icons.update_outlined;
-    final iconColor = isNewApp ? cs.primary : cs.tertiary;
+    // Icon and colour per notification type.
+    final IconData icon;
+    final Color iconColor;
+    switch (type) {
+      case 'new_application':
+        icon = Icons.person_add_outlined;
+        iconColor = cs.primary;
+      case 'new_listing_nearby':
+        icon = Icons.location_on_outlined;
+        iconColor = cs.secondary;
+      case 'new_message':
+        icon = Icons.chat_bubble_outline;
+        iconColor = cs.tertiary;
+      default: // status_changed and any future types
+        icon = Icons.update_outlined;
+        iconColor = cs.tertiary;
+    }
 
     return InkWell(
       onTap: () {
@@ -102,13 +115,37 @@ class _NotificationTile extends StatelessWidget {
         }
         // Deep-link based on payload.
         final screen = payload['screen'] as String?;
-        if (screen == 'applicantList') {
+        if (screen == 'listing_detail') {
+          final listingId = payload['listingId'] as String?;
+          if (listingId != null && listingId.isNotEmpty) {
+            state.pushScreen(ListingDetailScreenRoute(listingId));
+          }
+        } else if (screen == 'chat') {
+          final threadId = payload['threadId'] as String?;
+          if (threadId != null && threadId.isNotEmpty) {
+            final index =
+                state.chatSessions.indexWhere((s) => s.id == threadId);
+            if (index != -1) {
+              state.pushScreen(ActiveChatScreenRoute(index));
+            }
+          }
+        } else if (screen == 'applicantList') {
           final postId = payload['hiringPostId'] as String?;
           if (postId != null && postId.isNotEmpty) {
             state.pushScreen(HiringApplicantListScreenRoute(postId));
           }
         } else if (screen == 'myApplications') {
           state.pushScreen(MyApplicationsScreenRoute());
+        } else if (screen == 'hiring_detail') {
+          final postId = payload['postId'] as String?;
+          if (postId != null && postId.isNotEmpty) {
+            state.pushScreen(HiringDetailScreenRoute(postId));
+          }
+        } else if (screen == 'service_detail') {
+          final serviceId = payload['serviceId'] as String?;
+          if (serviceId != null && serviceId.isNotEmpty) {
+            state.pushScreen(ServiceDetailScreenRoute(serviceId));
+          }
         }
       },
       child: Container(
