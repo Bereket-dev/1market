@@ -27,7 +27,7 @@ class PermissionService {
 
   /// Call once from main() after Firebase.initializeApp().
   static Future<void> initLocalNotifications() async {
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('@drawable/ic_notification');
     const darwinInit = DarwinInitializationSettings(
       requestAlertPermission: false, // we request via FCM instead
       requestBadgePermission: false,
@@ -105,10 +105,19 @@ class PermissionService {
 
   /// Shows an FCM message as a local notification while the app is foregrounded.
   /// Call this from a FirebaseMessaging.onMessage listener.
+  ///
+  /// Falls back to [message.data] fields when the FCM message has no
+  /// [notification] payload (data-only messages sent from the Edge Function).
   static Future<void> showForegroundNotification(RemoteMessage message) async {
-    final notification = message.notification;
-    if (notification == null) return;
+    // Prefer the notification payload; fall back to data fields.
+    final title = message.notification?.title ?? message.data['title'] as String?;
+    final body  = message.notification?.body  ?? message.data['body']  as String?;
 
+    // Nothing to show if we have no title and no body.
+    if (title == null && body == null) return;
+
+    // Use the monochrome drawable icon — @mipmap/ic_launcher is a full-colour
+    // adaptive icon and Android 5+ renders it as a grey square in the status bar.
     const androidDetails = AndroidNotificationDetails(
       _kChannelId,
       _kChannelName,
@@ -117,7 +126,7 @@ class PermissionService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
     );
 
     const notificationDetails = NotificationDetails(
@@ -129,10 +138,16 @@ class PermissionService {
       ),
     );
 
+    // Use a stable int ID derived from the message so rapid inserts don't
+    // clobber each other.
+    final id = (message.messageId ?? message.data['notification_id'] ?? title ?? '')
+        .hashCode
+        .abs();
+
     await localNotifications.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
+      id,
+      title,
+      body,
       notificationDetails,
       payload: message.data['screen'] as String?,
     );

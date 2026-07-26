@@ -329,11 +329,13 @@ extension AppStateInit on KoolanAppState {
           .requestNotificationPermissionAndGetToken();
       if (token == null) return;
 
+      // Persist token to Supabase profile so the Edge Function can target this device.
       if (_repo != null) {
         await _repo!.updateProfile({'fcm_token': token});
         debugPrint('[FCM] Token saved to Supabase profile');
       }
 
+      // Keep token fresh — save new token whenever Firebase rotates it.
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
         debugPrint('[FCM] Token refreshed: $newToken');
         if (_repo != null) {
@@ -341,14 +343,39 @@ extension AppStateInit on KoolanAppState {
         }
       });
 
+      // Show foreground messages as local heads-up notifications.
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('[FCM] Foreground message: ${message.messageId}');
         PermissionService.showForegroundNotification(message);
       });
 
+      // Refresh in-app notification list when user taps a push and opens the app.
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         debugPrint('[FCM] Notification opened app: ${message.messageId}');
+        if (_repo != null) {
+          _repo!.fetchNotifications().then((list) {
+            notifications = list;
+            notifyListeners();
+          }).catchError((e) {
+            debugPrint('[FCM] fetchNotifications after tap failed: $e');
+          });
+        }
       });
+
+      // Also handle the case where the app was fully terminated and launched
+      // via a notification tap.
+      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      if (initial != null) {
+        debugPrint('[FCM] App launched from notification: ${initial.messageId}');
+        if (_repo != null) {
+          try {
+            notifications = await _repo!.fetchNotifications();
+            notifyListeners();
+          } catch (e) {
+            debugPrint('[FCM] fetchNotifications on launch failed: $e');
+          }
+        }
+      }
     } catch (e) {
       debugPrint('[FCM] _initPushNotifications error: $e');
     }

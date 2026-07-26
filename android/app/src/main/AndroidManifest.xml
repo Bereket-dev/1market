@@ -92,10 +92,13 @@
             </intent-filter>
         </service>
 
-        <!-- Default notification channel icon + colour for FCM display messages -->
+        <!-- Default notification channel icon + colour for FCM display messages.
+             Must reference a drawable (monochrome white-on-transparent) — NOT
+             a mipmap launcher icon. Android 5+ requires a flat monochrome icon
+             or the notification silently renders as a grey square. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher" />
+            android:resource="@drawable/ic_notification" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_color" />

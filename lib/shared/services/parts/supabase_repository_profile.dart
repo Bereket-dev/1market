@@ -65,4 +65,14 @@ extension SupabaseRepositoryProfile on SupabaseRepository {
     }).eq('id', userId);
   }
 
+  /// Clears a stale FCM token (e.g. after the user reinstalls the app).
+  Future<void> clearFcmToken() async {
+    final userId = currentUserId;
+    if (userId == null) return;
+    await _client
+        .from('profiles')
+        .update({'fcm_token': null})
+        .eq('id', userId);
+  }
+
 }
