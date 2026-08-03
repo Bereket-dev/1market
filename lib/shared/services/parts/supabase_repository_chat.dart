@@ -49,9 +49,7 @@ extension SupabaseRepositoryChat on SupabaseRepository {
           currentUserId: userId,
         );
       }).toList()
-        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-      final unreadCount = chatMessages.where((m) => !m.isMe).length;
+        ..sort((a, b) => a.localUpdatedAt.compareTo(b.localUpdatedAt));
 
       sessions.add(ChatSession(
         id: threadId,
@@ -60,7 +58,8 @@ extension SupabaseRepositoryChat on SupabaseRepository {
         listingTitle: listingTitle,
         listingId: t['listing_id'] as String?,
         messages: chatMessages,
-        unreadCount: unreadCount > 0 ? 1 : 0,
+        // unreadCount / isArchived applied in AppState from local device state.
+        unreadCount: 0,
         partnerPhone: partnerData?['phone'] as String?,
         partnerUserId: partnerData?['id'] as String?,
       ));

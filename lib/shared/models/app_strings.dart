@@ -735,8 +735,22 @@ class AppStrings {
   String get messagesNoMessages => _t('No messages yet', 'ምንም መልዕክት የለም', 'Wali farriin ma jirto');
 
   // ── Active Chat Screen ───────────────────────────────────────────────────────
-  String get chatSharePhone => _t('Share phone number', 'ስልክ ቁጥር ያጋሩ', 'La wadaag lambarka telefoonka');
-  String get chatPhoneShared => _t('Phone number shared with this contact.', 'ስልክ ቁጥር ከዚህ እውቂያ ጋር ተጋርቷል።', 'Lambarka telefoonku wuxuu la wadaagay xiriirkan.');
+  String get chatCall => _t('Call', 'ደውል', 'Wac');
+  String get chatNoPhone => _t('No phone number on file', 'ስልክ ቁጥር አልተመዘገበም', 'Lambarka telefoonka lama diiwaangelin');
+  String get messagesArchive => _t('Archive', 'አስቀምጥ', 'Kaydi');
+  String get messagesUnarchive => _t('Unarchive', 'መልስ', 'Ka saar kaydka');
+  String get messagesArchivedSnack => _t('Conversation archived', 'ውይይቱ ተቀምጧል', 'Wadahadalka waa la kaydiyey');
+  String get messagesUnarchivedSnack => _t('Conversation restored', 'ውይይቱ ተመልሷል', 'Wadahadalka waa la soo celiyey');
+  String get messagesArchivedEmpty => _t(
+    'Archived chats appear here.\nSwipe a chat left to archive it.',
+    'የተቀመጡ ውይይቶች እዚህ ይታያሉ።\nለማስቀመጥ ውይይትን ወደ ግራ ይጥረጉ።',
+    'Sheekadihii la kaydiyey halkan ayay ka muuqdaan.\nJiid bidix si aad u kaydiso.',
+  );
+  String get messagesArchiveHint => _t(
+    'Archive hides chats from All without deleting them.',
+    'ማስቀመጥ ውይይቶችን ከሁሉም ዝርዝር ይደብቃል ሳያጠፋቸው።',
+    'Kaydintu waxay ka qarinaysaa sheekadaha All iyada oo aan tirtirin.',
+  );
 
   // ── Profile Screen ───────────────────────────────────────────────────────────
   String get profileReviews => _t('Reviews', 'ግምገማዎች', 'Dib-u-eegisyada');

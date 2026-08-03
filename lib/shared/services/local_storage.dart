@@ -348,4 +348,63 @@ class LocalStorage {
     }
     return _memoryStore[_locationCtaSnoozedUntilKey] as int? ?? 0;
   }
+
+  // ── Chat local state (per-device read + archive) ─────────────────────────────
+
+  static const _chatLastReadKey = 'koolan_chat_last_read';
+  static const _chatArchivedKey = 'koolan_chat_archived';
+
+  /// Map of threadId → last-read UTC ms.
+  static Future<Map<String, int>> getChatLastReadMap() async {
+    final raw = await _getString(_chatLastReadKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map((k, v) => MapEntry(k, (v as num).toInt()));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> setChatLastRead(String threadId, int timestampMs) async {
+    final map = await getChatLastReadMap();
+    map[threadId] = timestampMs;
+    await _setString(_chatLastReadKey, jsonEncode(map));
+  }
+
+  /// Set of archived thread IDs.
+  static Future<Set<String>> getArchivedChatIds() async {
+    final raw = await _getString(_chatArchivedKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      return Set<String>.from(jsonDecode(raw) as List);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> setChatArchived(String threadId, bool archived) async {
+    final ids = await getArchivedChatIds();
+    if (archived) {
+      ids.add(threadId);
+    } else {
+      ids.remove(threadId);
+    }
+    await _setString(_chatArchivedKey, jsonEncode(ids.toList()));
+  }
+
+  static Future<String?> _getString(String key) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) return prefs.getString(key);
+    return _memoryStore[key] as String?;
+  }
+
+  static Future<void> _setString(String key, String value) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setString(key, value);
+    } else {
+      _memoryStore[key] = value;
+    }
+  }
 }

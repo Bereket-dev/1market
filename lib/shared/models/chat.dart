@@ -74,15 +74,10 @@ class ChatSession {
   final List<ChatMessage> messages;
   final int unreadCount;
 
-  /// True once contact details have been revealed for this thread — either
-  /// by an explicit "Share phone number" tap or by the 3-message auto-reveal.
-  /// Stays true once set; never resets for this thread.
-  final bool contactRevealed;
+  /// True when this thread is archived on this device (hidden from All/Unread).
+  final bool isArchived;
 
-  /// Count of real (sent) messages in this thread. Used to auto-reveal at 3.
-  final int totalMessages;
-
-  /// The partner's phone number, populated once contact has been revealed.
+  /// The partner's phone number from their profile, if set.
   final String? partnerPhone;
 
   /// The partner's user ID, used for navigating to their public profile.
@@ -96,8 +91,7 @@ class ChatSession {
     this.listingId,
     required this.messages,
     this.unreadCount = 0,
-    this.contactRevealed = false,
-    this.totalMessages = 0,
+    this.isArchived = false,
     this.partnerPhone,
     this.partnerUserId,
   });
@@ -110,8 +104,7 @@ class ChatSession {
     String? listingId,
     List<ChatMessage>? messages,
     int? unreadCount,
-    bool? contactRevealed,
-    int? totalMessages,
+    bool? isArchived,
     String? partnerPhone,
     String? partnerUserId,
   }) {
@@ -123,8 +116,7 @@ class ChatSession {
       listingId: listingId ?? this.listingId,
       messages: messages ?? this.messages,
       unreadCount: unreadCount ?? this.unreadCount,
-      contactRevealed: contactRevealed ?? this.contactRevealed,
-      totalMessages: totalMessages ?? this.totalMessages,
+      isArchived: isArchived ?? this.isArchived,
       partnerPhone: partnerPhone ?? this.partnerPhone,
       partnerUserId: partnerUserId ?? this.partnerUserId,
     );

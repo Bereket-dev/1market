@@ -16,6 +16,7 @@ class ActiveChatScreen extends StatefulWidget {
 
 class _ActiveChatScreenState extends State<ActiveChatScreen> {
   final TextEditingController _ctrl = TextEditingController();
+  bool _markedRead = false;
 
   @override
   void dispose() {
@@ -24,9 +25,37 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_markedRead) return;
+    _markedRead = true;
+    final state = KoolanAppStateScope.of(context);
+    if (widget.sessionIndex >= 0 &&
+        widget.sessionIndex < state.chatSessions.length) {
+      final id = state.chatSessions[widget.sessionIndex].id;
+      // Defer so we don't notifyListeners during build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        state.markChatThreadRead(id);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
+    if (widget.sessionIndex < 0 ||
+        widget.sessionIndex >= state.chatSessions.length) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: cs.primary),
+            onPressed: () => state.popScreen(),
+          ),
+        ),
+        body: Center(child: Text(state.s.messagesNoMessages)),
+      );
+    }
     final session = state.chatSessions[widget.sessionIndex];
 
     return Scaffold(
@@ -72,31 +101,16 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
             ),
           ]),
         ),
-        // ── Share phone number / Call action ──────────────────────────────────
+        // ── Call partner directly when their phone is on file ─────────────────
         actions: [
-          if (session.contactRevealed && session.partnerPhone != null)
+          if (session.partnerPhone != null &&
+              session.partnerPhone!.trim().isNotEmpty)
             Tooltip(
-              message: state.s.chatSharePhone,
+              message: state.s.chatCall,
               child: IconButton(
                 icon: Icon(Icons.call, color: cs.primary),
                 onPressed: () {
                   launchUrl(Uri.parse('tel:${session.partnerPhone}'));
-                },
-              ),
-            )
-          else if (!session.contactRevealed)
-            Tooltip(
-              message: state.s.chatSharePhone,
-              child: IconButton(
-                icon: Icon(Icons.phone_forwarded_outlined, color: cs.primary),
-                onPressed: () {
-                  state.revealContactForThread(session.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.s.chatPhoneShared),
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
                 },
               ),
             ),

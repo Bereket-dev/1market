@@ -21,6 +21,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
   _Filter _activeFilter = _Filter.all;
 
   @override
+  void initState() {
+    super.initState();
+    // Ensure unread/archived flags are applied after hot reload / cold start.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = KoolanAppStateScope.of(context);
+      state.refreshChatSessions();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -29,18 +39,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<ChatSession> _filtered(List<ChatSession> sessions) {
     var result = sessions;
 
-    // Apply filter chip
     switch (_activeFilter) {
       case _Filter.unread:
-        result = result.where((s) => s.unreadCount > 0).toList();
+        result = result
+            .where((s) => !s.isArchived && s.unreadCount > 0)
+            .toList();
       case _Filter.archived:
-        // No archive flag on ChatSession yet — show empty with a hint.
-        result = [];
+        result = result.where((s) => s.isArchived).toList();
       case _Filter.all:
-        break;
+        result = result.where((s) => !s.isArchived).toList();
     }
 
-    // Apply search query
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       result = result.where((s) {
@@ -54,11 +63,22 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return result;
   }
 
+  Future<void> _refresh(KoolanAppState state) async {
+    await state.refreshChatSessions();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(state.s.messagesRefreshed)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = KoolanAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     final filtered = _filtered(state.chatSessions);
+    final unreadTotal = state.chatSessions
+        .where((s) => !s.isArchived && s.unreadCount > 0)
+        .fold<int>(0, (sum, s) => sum + s.unreadCount);
 
     return Scaffold(
       body: Column(
@@ -81,9 +101,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
                 IconButton(
                   icon: Icon(Icons.refresh, color: cs.primary),
-                  onPressed: () => ScaffoldMessenger.of(context)
-                      .showSnackBar(
-                          SnackBar(content: Text(state.s.messagesRefreshed))),
+                  onPressed: () => _refresh(state),
                 ),
               ],
             ),
@@ -142,7 +160,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
                 const SizedBox(width: 10),
                 _FilterChip(
-                  label: state.s.messagesFilterUnread,
+                  label: unreadTotal > 0
+                      ? '${state.s.messagesFilterUnread} ($unreadTotal)'
+                      : state.s.messagesFilterUnread,
                   isSelected: _activeFilter == _Filter.unread,
                   onTap: () =>
                       setState(() => _activeFilter = _Filter.unread),
@@ -157,6 +177,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
               ],
             ),
           ),
+          if (_activeFilter == _Filter.archived) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                state.s.messagesArchiveHint,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.75),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // ── Chat list ──────────────────────────────────────────────────
@@ -167,16 +200,21 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.chat_bubble_outline,
+                          _activeFilter == _Filter.archived
+                              ? Icons.archive_outlined
+                              : Icons.chat_bubble_outline,
                           size: 56,
                           color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          _searchQuery.isNotEmpty ||
-                                  _activeFilter != _Filter.all
-                              ? state.s.messagesNoResults
-                              : state.s.messagesEmpty,
+                          _activeFilter == _Filter.archived &&
+                                  _searchQuery.isEmpty
+                              ? state.s.messagesArchivedEmpty
+                              : _searchQuery.isNotEmpty ||
+                                      _activeFilter != _Filter.all
+                                  ? state.s.messagesNoResults
+                                  : state.s.messagesEmpty,
                           style:
                               TextStyle(color: cs.onSurfaceVariant),
                           textAlign: TextAlign.center,
@@ -192,17 +230,43 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final session = filtered[index];
-                      // Find the real index in the full session list for
-                      // navigation (ActiveChatScreen uses an index).
                       final realIndex = state.chatSessions
                           .indexWhere((s) => s.id == session.id);
                       return _SessionCard(
                         session: session,
-                        onTap: () => state.pushScreen(
-                          ActiveChatScreenRoute(
-                            realIndex != -1 ? realIndex : index,
-                          ),
-                        ),
+                        onTap: () {
+                          state.markChatThreadRead(session.id);
+                          state.pushScreen(
+                            ActiveChatScreenRoute(
+                              realIndex != -1 ? realIndex : index,
+                            ),
+                          );
+                        },
+                        onArchiveToggle: () {
+                          final archived = session.isArchived;
+                          final future = archived
+                              ? state.unarchiveChatThread(session.id)
+                              : state.archiveChatThread(session.id);
+                          future.then((_) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  archived
+                                      ? state.s.messagesUnarchivedSnack
+                                      : state.s.messagesArchivedSnack,
+                                ),
+                                action: archived
+                                    ? null
+                                    : SnackBarAction(
+                                        label: state.s.messagesUnarchive,
+                                        onPressed: () => state
+                                            .unarchiveChatThread(session.id),
+                                      ),
+                              ),
+                            );
+                          });
+                        },
                       );
                     },
                   ),
@@ -212,5 +276,3 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 }
-
-// ── Session card ──────────────────────────────────────────────────────────────

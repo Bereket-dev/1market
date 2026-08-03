@@ -4,6 +4,88 @@ part of '../app_state.dart';
 // ── Chat & reports ────────────────────────────────────────────────────────────
 
 extension AppStateChat on KoolanAppState {
+  /// Applies per-device last-read + archived flags to freshly fetched sessions.
+  Future<List<ChatSession>> _enrichChatSessions(
+    List<ChatSession> sessions,
+  ) async {
+    final lastRead = await app_local.LocalStorage.getChatLastReadMap();
+    final archived = await app_local.LocalStorage.getArchivedChatIds();
+    final seeds = <String, int>{};
+
+    final enriched = sessions.map((session) {
+      final isArchived = archived.contains(session.id);
+
+      if (!lastRead.containsKey(session.id)) {
+        // First time on this device — treat existing history as read so we
+        // don't flood the Unread tab. Seed last-read to the newest message.
+        final seedMs = session.messages.isEmpty
+            ? DateTime.now().millisecondsSinceEpoch
+            : session.messages.last.localUpdatedAt.millisecondsSinceEpoch;
+        seeds[session.id] = seedMs;
+        return session.copyWith(unreadCount: 0, isArchived: isArchived);
+      }
+
+      final readAt =
+          DateTime.fromMillisecondsSinceEpoch(lastRead[session.id]!);
+      final unread = session.messages
+          .where((m) => !m.isMe && m.localUpdatedAt.isAfter(readAt))
+          .length;
+      return session.copyWith(
+        unreadCount: unread,
+        isArchived: isArchived,
+      );
+    }).toList();
+
+    for (final entry in seeds.entries) {
+      await app_local.LocalStorage.setChatLastRead(entry.key, entry.value);
+    }
+
+    return enriched;
+  }
+
+  Future<void> refreshChatSessions() async {
+    if (_repo == null) return;
+    try {
+      final raw = await _repo!.fetchChatSessions();
+      chatSessions = await _enrichChatSessions(raw);
+      notifyListeners();
+    } catch (e) {
+      dataError = e.toString();
+      notifyListeners();
+    }
+  }
+
+  /// Marks a thread as read up to now (clears unread badge).
+  Future<void> markChatThreadRead(String sessionId) async {
+    final index = chatSessions.indexWhere((s) => s.id == sessionId);
+    if (index == -1) return;
+    final session = chatSessions[index];
+    if (session.unreadCount == 0) return;
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await app_local.LocalStorage.setChatLastRead(sessionId, nowMs);
+    chatSessions[index] = session.copyWith(unreadCount: 0);
+    notifyListeners();
+  }
+
+  /// Archives a thread so it leaves All/Unread and appears under Archived.
+  Future<void> archiveChatThread(String sessionId) async {
+    final index = chatSessions.indexWhere((s) => s.id == sessionId);
+    if (index == -1) return;
+    await app_local.LocalStorage.setChatArchived(sessionId, true);
+    chatSessions[index] = chatSessions[index].copyWith(isArchived: true);
+    notifyListeners();
+  }
+
+  /// Restores an archived thread back into All/Unread.
+  Future<void> unarchiveChatThread(String sessionId) async {
+    final index = chatSessions.indexWhere((s) => s.id == sessionId);
+    if (index == -1) return;
+    await app_local.LocalStorage.setChatArchived(sessionId, false);
+    chatSessions[index] = chatSessions[index].copyWith(isArchived: false);
+    notifyListeners();
+  }
+
   Future<void> sendChatMessage(String sessionId, String text) async {
     if (text.trim().isEmpty) return;
     final index = chatSessions.indexWhere((s) => s.id == sessionId);
@@ -17,13 +99,14 @@ extension AppStateChat on KoolanAppState {
       }
       final msg = await _repo!.sendMessage(threadId: sessionId, text: text);
       final session = chatSessions[index];
-      final newTotal = session.totalMessages + 1;
-      final shouldReveal = !session.contactRevealed && newTotal >= 3;
+      // Own messages don't create unread; bump last-read so the thread stays read.
+      await app_local.LocalStorage.setChatLastRead(
+        sessionId,
+        DateTime.now().millisecondsSinceEpoch,
+      );
       chatSessions[index] = session.copyWith(
         messages: [...session.messages, msg],
         unreadCount: 0,
-        totalMessages: newTotal,
-        contactRevealed: shouldReveal ? true : session.contactRevealed,
       );
       notifyListeners();
     } catch (e) {
@@ -31,16 +114,6 @@ extension AppStateChat on KoolanAppState {
       notifyListeners();
       rethrow;
     }
-  }
-
-  /// Explicitly reveals contact details for [sessionId].
-  void revealContactForThread(String sessionId) {
-    final index = chatSessions.indexWhere((s) => s.id == sessionId);
-    if (index == -1) return;
-    final session = chatSessions[index];
-    if (session.contactRevealed) return;
-    chatSessions[index] = session.copyWith(contactRevealed: true);
-    notifyListeners();
   }
 
   ChatSession? getSessionForListing(String listingId) {
@@ -64,7 +137,8 @@ extension AppStateChat on KoolanAppState {
         listingId: listingId,
         sellerId: listing.sellerId!,
       );
-      chatSessions = await _repo!.fetchChatSessions();
+      final raw = await _repo!.fetchChatSessions();
+      chatSessions = await _enrichChatSessions(raw);
       notifyListeners();
       return threadId;
     } catch (e) {
@@ -120,7 +194,8 @@ extension AppStateChat on KoolanAppState {
         applicantId: applicantId,
         posterId: posterId,
       );
-      chatSessions = await _repo!.fetchChatSessions();
+      final raw = await _repo!.fetchChatSessions();
+      chatSessions = await _enrichChatSessions(raw);
       notifyListeners();
       return threadId;
     } catch (e) {

@@ -74,7 +74,8 @@ extension AppStateData on KoolanAppState {
         services.map((s) => s.toJson()).toList(),
       );
       try {
-        chatSessions = await _repo!.fetchChatSessions();
+        final raw = await _repo!.fetchChatSessions();
+        chatSessions = await _enrichChatSessions(raw);
       } catch (e) {
         debugPrint('fetchChatSessions failed: $e');
       }

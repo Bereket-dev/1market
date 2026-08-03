@@ -414,8 +414,8 @@ extension AppStateInit on KoolanAppState {
           } else {
             // Session not loaded yet — refresh then navigate.
             if (_repo != null) {
-              _repo!.fetchChatSessions().then((sessions) {
-                chatSessions = sessions;
+              _repo!.fetchChatSessions().then((sessions) async {
+                chatSessions = await _enrichChatSessions(sessions);
                 notifyListeners();
                 final newIndex =
                     chatSessions.indexWhere((s) => s.id == threadId);
