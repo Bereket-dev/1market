@@ -40,5 +40,8 @@ Pods/
 .env.*
 !.env.example
 
+# Local planning docs (not for remote)
+docs/release_prep_plan.md
+
 # Android secrets (contains Facebook App ID and Client Token)
 android/app/src/main/res/values/strings.xml

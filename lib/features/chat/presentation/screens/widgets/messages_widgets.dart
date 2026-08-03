@@ -53,24 +53,27 @@ class _SessionCard extends StatelessWidget {
                       : null,
                   child: Stack(
                     children: [
-                      CachedNetworkImage(
-                        imageUrl: session.partnerAvatar.isEmpty
-                            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
-                            : session.partnerAvatar,
-                        cacheManager: KoolanImageCacheManager.instance,
-                        imageBuilder: (ctx, provider) => CircleAvatar(
-                          radius: 27,
-                          backgroundImage: provider,
+                      session.partnerAvatar.isEmpty
+                        ? const CircleAvatar(
+                            radius: 27,
+                            child: Icon(Icons.person),
+                          )
+                        : CachedNetworkImage(
+                          imageUrl: session.partnerAvatar,
+                          cacheManager: KoolanImageCacheManager.instance,
+                          imageBuilder: (ctx, provider) => CircleAvatar(
+                            radius: 27,
+                            backgroundImage: provider,
+                          ),
+                          placeholder: (ctx, url) => const CircleAvatar(
+                            radius: 27,
+                            backgroundColor: Colors.grey,
+                          ),
+                          errorWidget: (ctx, url, err) => const CircleAvatar(
+                            radius: 27,
+                            child: Icon(Icons.person),
+                          ),
                         ),
-                        placeholder: (ctx, url) => const CircleAvatar(
-                          radius: 27,
-                          backgroundColor: Colors.grey,
-                        ),
-                        errorWidget: (ctx, url, err) => const CircleAvatar(
-                          radius: 27,
-                          child: Icon(Icons.person),
-                        ),
-                      ),
                       if (hasUnread)
                         Positioned(
                           right: 0,

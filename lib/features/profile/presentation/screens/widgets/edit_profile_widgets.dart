@@ -11,10 +11,6 @@ class _BannerPickerSection extends StatelessWidget {
   final VoidCallback onTap;
   final String changeBannerLabel;
 
-  static const _fallback =
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe'
-      '?auto=format&fit=crop&w=800&q=80';
-
   const _BannerPickerSection({
     required this.bannerUrl,
     required this.uploading,
@@ -24,6 +20,7 @@ class _BannerPickerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = bannerUrl != null && bannerUrl!.isNotEmpty;
     return GestureDetector(
       onTap: uploading ? null : onTap,
       child: Stack(
@@ -32,12 +29,23 @@ class _BannerPickerSection extends StatelessWidget {
           SizedBox(
             height: 140,
             width: double.infinity,
-            child: CachedImageWidget(
-              imageUrl: bannerUrl ?? _fallback,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: 140,
-            ),
+            child: hasImage
+                ? CachedImageWidget(
+                    imageUrl: bannerUrl!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: 140,
+                  )
+                : Container(
+                    height: 140,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF00288E), Color(0xFF1E40AF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                  ),
           ),
           Container(
             height: 140,

@@ -66,9 +66,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bannerUrl = profile?.bannerUrl;
     final city = profile?.city ?? 'Jigjiga';
 
-    // Fallback banner when user hasn't set one yet.
-    const fallbackBanner =
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80';
+    // Fallback banner when user hasn't set one yet — null uses a gradient.
+    final String? effectiveBanner = bannerUrl?.isNotEmpty == true ? bannerUrl : null;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -81,13 +80,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Banner image (user's own or fallback)
-                  CachedImageWidget(
-                    imageUrl: bannerUrl ?? fallbackBanner,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 180,
-                  ),
+                  // Banner image (user's own) or brand gradient fallback
+                  effectiveBanner != null
+                      ? CachedImageWidget(
+                          imageUrl: effectiveBanner,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 180,
+                        )
+                      : Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF00288E), Color(0xFF1E40AF)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                        ),
                   Container(color: Colors.black.withValues(alpha: 0.38)),
 
                   // Settings button — top-right

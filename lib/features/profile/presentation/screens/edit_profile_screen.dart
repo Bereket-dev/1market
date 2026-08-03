@@ -186,9 +186,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final cs = Theme.of(context).colorScheme;
     final s = appState.s;
 
-    const fallbackBanner =
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe'
-        '?auto=format&fit=crop&w=800&q=80';
+    const String? fallbackBanner = null; // No stock image fallback in release
 
     return Scaffold(
       appBar: AppBar(
@@ -217,16 +215,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Banner image
+                    // Banner image or brand gradient when none set
                     SizedBox(
                       height: 140,
                       width: double.infinity,
-                      child: CachedImageWidget(
-                        imageUrl: profile?.bannerUrl ?? fallbackBanner,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 140,
-                      ),
+                      child: (profile?.bannerUrl?.isNotEmpty == true)
+                          ? CachedImageWidget(
+                              imageUrl: profile!.bannerUrl!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: 140,
+                            )
+                          : Container(
+                              height: 140,
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color(0xFF00288E),
+                                    Color(0xFF1E40AF)
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                            ),
                     ),
                     // Dark overlay
                     Container(

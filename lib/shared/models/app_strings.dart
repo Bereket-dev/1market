@@ -834,10 +834,9 @@ class AppStrings {
   String get reviewsSubmitting => _t('Submitting…', 'በማስገባ ላይ…', 'Waa la gudbinayaa…');
   String get reviewsThankYou => _t('Review submitted!', 'ግምገማ ቀረበ!', 'Dib-u-eegiska waa la gudbiyey!');
   String get reviewsGatingNote => _t(
-    'TODO (Phase C Part 2): Reviews should be gated on a completed engagement. '
-    'For now, any authenticated user can leave a review.',
-    'TODO (Phase C Part 2): ግምገማዎች ሙሉ ሥርዓት ያለውን ስምምነት ማረጋገጥ ያስፈልጋቸዋል.',
-    'TODO (Phase C Part 2): Dib-u-eegisyada waa in lagu xidaa hawl dhamaatay.',
+    'Reviews are linked to completed job engagements.',
+    'ግምገማዎች ከጠናቀቀ ስምምነት ጋር ይያያዛሉ።',
+    'Dib-u-eegisyadu waxay la xidnaanayaan hawlaha dhamaatay.',
   );
   String get reviewsAnonymousHint => _t(
     'Reviews are linked to completed job engagements in Part 2.',
@@ -1323,5 +1322,39 @@ class AppStrings {
       _t('Profile not found', 'መገለጫ አልተገኘም', 'Xogta lama helin');
   String get publicProfileRatingLabel =>
       _t('Rating', 'ደረጃ', 'Derejayn');
+
+  // ── Promo Carousel ───────────────────────────────────────────────────────────
+
+  String get promo1Headline =>
+      _t("Jigjiga's #1\nMarketplace", 'ጂጂጋ ቁጥር 1\nገበያ', "Suuqa #1\nJigjiga");
+  String get promo1Sub => _t(
+    'Buy, sell, and hire in your city — all in one place.',
+    'በከተማዎ ይሸምቱ፣ ይሸጡ፣ ቅጥርም ያድርጉ — ሁሉ በአንድ ቦታ።',
+    'Jigjiga gad-iibso oo kiri — meel ku jira dhammaan.',
+  );
+
+  String get promo2Headline =>
+      _t('Trusted &\nVerified Sellers', 'የታመኑ\nሻጮች', 'Iibiyayaal\nLa Amini Karo');
+  String get promo2Sub => _t(
+    'Browse real listings from people in your community.',
+    'ከማህበረሰብዎ ሰዎች ዝርዝሮችን ያስሱ።',
+    'Eeg xayaysiisyada dadka xaafaddaada ah.',
+  );
+
+  String get promo3Headline =>
+      _t('Post a Listing\nin 60 Seconds', 'ዝርዝር ለጥፍ\nበ60 ሰኮንድ', 'Ku Daji Xayaysiis\n60 Sekon');
+  String get promo3Sub => _t(
+    'Cars, houses, land or skills — post for free today.',
+    'መኪናዎች፣ ቤቶች፣ መሬት ወይም ችሎታ — ዛሬ ነጻ ለጥፉ።',
+    'Gawaarida, guryaha, dhulka ama xirfadaha — maanta bilaash ku daji.',
+  );
+
+  String get promo4Headline =>
+      _t('Find Top\nLocal Services', 'ምርጥ አካባቢያዊ\nአገልግሎቶች', 'Adeegyada\nU Fiican ee Deegaanka');
+  String get promo4Sub => _t(
+    'Hire skilled workers near you — updated daily.',
+    'ቅርብዎ ያሉ ብቃት ያላቸው ሰራተኞችን ቅጥሩ — በየቀኑ ይዘምናሉ።',
+    'Kiri shaqaalaha xirfadlaha ah ee agagaarkaaga — maalin kasta waa la cusboonaysiiyaa.',
+  );
 
 }

@@ -12,10 +12,6 @@ class _ProfileBanner extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onSettings;
 
-  static const _fallback =
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe'
-      '?auto=format&fit=crop&w=800&q=80';
-
   const _ProfileBanner({
     required this.bannerUrl,
     required this.uploading,
@@ -26,18 +22,29 @@ class _ProfileBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = KoolanAppStateScope.of(context).s;
+    final hasImage = bannerUrl != null && bannerUrl!.isNotEmpty;
     return SizedBox(
       height: 180,
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CachedImageWidget(
-            imageUrl: bannerUrl ?? _fallback,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: 180,
-          ),
+          hasImage
+              ? CachedImageWidget(
+                  imageUrl: bannerUrl!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 180,
+                )
+              : Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF00288E), Color(0xFF1E40AF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
           Container(color: Colors.black.withValues(alpha: 0.38)),
           // Settings — top-right
           Positioned(

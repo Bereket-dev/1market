@@ -83,19 +83,10 @@ extension AppStateAuth on KoolanAppState {
 
   // ── Private helpers ───────────────────────────────────────────────────────────
 
+  /// Returns an empty string when no photo was uploaded.
+  /// Listing cards must handle an empty imageUrl gracefully (show placeholder).
   String _defaultImageForCategory(String cat) {
-    switch (cat) {
-      case 'CARS':
-        return 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=500&q=80';
-      case 'HOUSES':
-        return 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=500&q=80';
-      case 'LAND':
-        return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=500&q=80';
-      case 'OTHERS':
-        return 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=500&q=80';
-      default:
-        return 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=80';
-    }
+    return ''; // No stock-photo fallback in production.
   }
 
   String _specLabel1(String cat) => cat == 'CARS'

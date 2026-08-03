@@ -9,7 +9,7 @@ class _RootGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('router created');
+    if (kDebugMode) debugPrint('[RootGate] build — phase: ${appState.onboardingPhase}');
     switch (appState.onboardingPhase) {
       case OnboardingPhase.initializing:
         return _InitializingScreen(
@@ -40,7 +40,7 @@ class _InitializingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('Splash build');
+    if (kDebugMode) debugPrint('[InitializingScreen] build');
     final cs = Theme.of(context).colorScheme;
     // Use getInheritedWidgetOfExactType (non-registering) here because
     // _InitializingScreen only reads .s strings and never needs to rebuild

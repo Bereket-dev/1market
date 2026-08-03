@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -118,7 +119,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    print('MyApp build');
+    if (kDebugMode) debugPrint('[KoolanApp] build');
     return KoolanAppStateScope(
       notifier: _appState,
       child: ListenableBuilder(

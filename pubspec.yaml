@@ -1,5 +1,5 @@
 name: koolan
-description: "A new Flutter project."
+description: "Koolan – Jigjiga's marketplace for buying, selling, hiring and finding services."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -76,6 +76,14 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Launcher icon generator — run: flutter pub run flutter_launcher_icons
+  # Place brand artwork at assets/brand/logo.png (1024×1024) before running.
+  flutter_launcher_icons: ^0.14.3
+
+  # Native splash screen generator — run: flutter pub run flutter_native_splash:create
+  # Regenerates android/app/src/main/res/drawable/launch_background.xml and styles.
+  flutter_native_splash: ^2.4.5
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -89,7 +97,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - .env
+    - assets/brand/
+    - assets/promo/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -116,3 +125,43 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ── Launcher icon config (flutter_launcher_icons) ─────────────────────────────
+# Run: flutter pub get && flutter pub run flutter_launcher_icons
+# Place brand artwork at assets/brand/logo.png (1024×1024, transparent or solid
+# brand background) before running. For adaptive icons also provide:
+#   assets/brand/logo_foreground.png  — safe-zone foreground layer
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/brand/logo.png"
+  # Adaptive icon (Android 8+)
+  adaptive_icon_background: "#00288E"        # Koolan brand blue
+  adaptive_icon_foreground: "assets/brand/logo_foreground.png"
+  # Keep the notification icon as-is (monochrome drawable/ic_notification.xml)
+  remove_alpha_ios: false
+  min_sdk_android: 21
+
+# ── Native splash config (flutter_native_splash) ──────────────────────────────
+# Run: flutter pub get && flutter pub run flutter_native_splash:create
+# To revert: flutter pub run flutter_native_splash:remove
+flutter_native_splash:
+  # Background colour matches the brand blue used on the launcher icon.
+  color: "#00288E"
+  # Centred logo shown on the splash — place artwork here before generating.
+  # The image should be ~288×288 px (1x) for a comfortable safe zone.
+  image: assets/brand/splash_logo.png
+  # Dark-mode variant (same logo, darker bg)
+  color_dark: "#001A5C"
+  image_dark: assets/brand/splash_logo.png
+  # Android 12+ (SplashScreen API)
+  android_12:
+    color: "#00288E"
+    image: assets/brand/splash_logo.png
+    color_dark: "#001A5C"
+    image_dark: assets/brand/splash_logo.png
+    icon_background_color: "#00288E"
+    icon_background_color_dark: "#001A5C"
+  # Keep splash visible until Flutter calls FlutterNativeSplash.remove()
+  # — not used in this project; the splash hides when the first frame renders.
+  fullscreen: false

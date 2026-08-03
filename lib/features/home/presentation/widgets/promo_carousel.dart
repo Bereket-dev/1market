@@ -1,65 +1,66 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/cached_image_widget.dart';
+
+import '../../../../shared/models/app_strings.dart';
+import '../../../../shared/services/app_state.dart';
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
-class _PromoSlide {
-  final String headline;
-  final String sub;
+class _PromoSlideData {
+  final String Function(AppStrings) headline;
+  final String Function(AppStrings) sub;
   final Color accent;
   final Color accentLight;
   final IconData icon;
-  final String imageUrl;
 
-  const _PromoSlide({
+  const _PromoSlideData({
     required this.headline,
     required this.sub,
     required this.accent,
     required this.accentLight,
     required this.icon,
-    required this.imageUrl,
   });
 }
 
 const _slides = [
-  _PromoSlide(
-    headline: "Jigjiga's #1\nMarketplace",
-    sub: 'Buy, sell, and hire in your city — all in one place.',
+  _PromoSlideData(
+    headline: _promo1Headline,
+    sub: _promo1Sub,
     accent: Color(0xFF00288E),
     accentLight: Color(0xFF1E40AF),
     icon: Icons.storefront_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=600&q=80',
   ),
-  _PromoSlide(
-    headline: 'Trusted &\nVerified Sellers',
-    sub: 'Every listing is reviewed. Real IDs, real people.',
+  _PromoSlideData(
+    headline: _promo2Headline,
+    sub: _promo2Sub,
     accent: Color(0xFF0F766E),
     accentLight: Color(0xFF14B8A6),
     icon: Icons.verified_user_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80',
   ),
-  _PromoSlide(
-    headline: 'Post a Listing\nin 60 Seconds',
-    sub: 'Cars, houses, land or skills — post for free today.',
+  _PromoSlideData(
+    headline: _promo3Headline,
+    sub: _promo3Sub,
     accent: Color(0xFF6D28D9),
     accentLight: Color(0xFF8B5CF6),
     icon: Icons.add_circle_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80',
   ),
-  _PromoSlide(
-    headline: 'Hot Deals &\nExclusive Offers',
-    sub: 'Browse the best discounts on listings near you — updated daily.',
+  _PromoSlideData(
+    headline: _promo4Headline,
+    sub: _promo4Sub,
     accent: Color(0xFFB91C1C),
     accentLight: Color(0xFFEF4444),
-    icon: Icons.local_offer_rounded,
-    imageUrl:
-        'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?auto=format&fit=crop&w=600&q=80',
+    icon: Icons.handyman_rounded,
   ),
 ];
+
+// Top-level getters used as const function references.
+String _promo1Headline(AppStrings s) => s.promo1Headline;
+String _promo1Sub(AppStrings s) => s.promo1Sub;
+String _promo2Headline(AppStrings s) => s.promo2Headline;
+String _promo2Sub(AppStrings s) => s.promo2Sub;
+String _promo3Headline(AppStrings s) => s.promo3Headline;
+String _promo3Sub(AppStrings s) => s.promo3Sub;
+String _promo4Headline(AppStrings s) => s.promo4Headline;
+String _promo4Sub(AppStrings s) => s.promo4Sub;
 
 // ── Carousel ──────────────────────────────────────────────────────────────────
 
@@ -101,6 +102,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final s = KoolanAppStateScope.of(context)!.notifier!.s;
     return Column(
       children: [
         SizedBox(
@@ -116,7 +118,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
                 duration: const Duration(milliseconds: 300),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: _PromoSlideCard(slide: slide),
+                  child: _PromoSlideCard(slide: slide, s: s),
                 ),
               );
             },
@@ -146,122 +148,143 @@ class _PromoCarouselState extends State<PromoCarousel> {
   }
 }
 
-// ── Slide card ────────────────────────────────────────────────────────────────
+// ── Slide card (gradient + icon only; no network images) ─────────────────────
 
 class _PromoSlideCard extends StatelessWidget {
-  final _PromoSlide slide;
-  const _PromoSlideCard({required this.slide});
+  final _PromoSlideData slide;
+  final AppStrings s;
+
+  const _PromoSlideCard({required this.slide, required this.s});
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          CachedNetworkImage(
-            imageUrl: slide.imageUrl,
-            cacheManager: KoolanImageCacheManager.instance,
-            fit: BoxFit.cover,
-            placeholder: (_, __) => Container(color: slide.accent),
-            errorWidget: (_, __, ___) => Container(color: slide.accent),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [slide.accent, slide.accentLight],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  slide.accent.withValues(alpha: 0.92),
-                  slide.accent.withValues(alpha: 0.55),
-                  Colors.transparent,
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Subtle geometric overlay for depth
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 6,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.25)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(slide.icon, color: Colors.white, size: 13),
-                            const SizedBox(width: 5),
-                            const Text(
-                              'KOOLAN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        slide.headline,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          height: 1.2,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        slide.sub,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          fontSize: 11,
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+            Positioned(
+              right: 10,
+              bottom: -30,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.04),
                 ),
-                Expanded(
-                  flex: 3,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 2),
-                      ),
-                      child: Icon(slide.icon, color: Colors.white, size: 28),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Brand badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(slide.icon, color: Colors.white, size: 13),
+                              const SizedBox(width: 5),
+                              const Text(
+                                'KOOLAN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        // Headline
+                        Text(
+                          slide.headline(s),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            height: 1.2,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Sub-headline
+                        Text(
+                          slide.sub(s),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.82),
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  // Right-side icon circle
+                  Expanded(
+                    flex: 3,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2),
+                        ),
+                        child: Icon(slide.icon, color: Colors.white, size: 28),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

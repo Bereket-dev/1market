@@ -71,20 +71,20 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
                   )
               : null,
           child: Row(children: [
-            CachedNetworkImage(
-              imageUrl: session.partnerAvatar.isEmpty
-                  ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
-                  : session.partnerAvatar,
-              cacheManager: KoolanImageCacheManager.instance,
-              imageBuilder: (_, provider) => CircleAvatar(
-                radius: 18,
-                backgroundImage: provider,
-              ),
-              placeholder: (_, __) =>
-                  const CircleAvatar(radius: 18, backgroundColor: Colors.grey),
-              errorWidget: (_, __, ___) =>
-                  const CircleAvatar(radius: 18, child: Icon(Icons.person)),
-            ),
+            session.partnerAvatar.isEmpty
+                ? const CircleAvatar(radius: 18, child: Icon(Icons.person))
+                : CachedNetworkImage(
+                    imageUrl: session.partnerAvatar,
+                    cacheManager: KoolanImageCacheManager.instance,
+                    imageBuilder: (_, provider) => CircleAvatar(
+                      radius: 18,
+                      backgroundImage: provider,
+                    ),
+                    placeholder: (_, __) =>
+                        const CircleAvatar(radius: 18, backgroundColor: Colors.grey),
+                    errorWidget: (_, __, ___) =>
+                        const CircleAvatar(radius: 18, child: Icon(Icons.person)),
+                  ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
