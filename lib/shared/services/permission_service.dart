@@ -4,6 +4,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 /// Handles all device-level permission requests and hardware data fetches:
 /// - FCM push notification permission + token retrieval
@@ -116,9 +118,37 @@ class PermissionService {
     // Nothing to show if we have no title and no body.
     if (title == null && body == null) return;
 
-    // Use the monochrome drawable icon — @mipmap/ic_launcher is a full-colour
-    // adaptive icon and Android 5+ renders it as a grey square in the status bar.
-    const androidDetails = AndroidNotificationDetails(
+    // Prefer FCM's native image URL, then the data payload used by the
+    // Edge Function (listing photo).
+    final imageUrl = message.notification?.android?.imageUrl ??
+        message.notification?.apple?.imageUrl ??
+        message.data['imageUrl'] as String?;
+
+    StyleInformation? styleInformation;
+    DarwinNotificationDetails? iosDetails;
+    String? largeIconPath;
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      final localPath = await _downloadImage(imageUrl);
+      if (localPath != null) {
+        largeIconPath = localPath;
+        styleInformation = BigPictureStyleInformation(
+          FilePathAndroidBitmap(localPath),
+          largeIcon: FilePathAndroidBitmap(localPath),
+          contentTitle: title,
+          summaryText: body,
+          hideExpandedLargeIcon: true,
+        );
+        iosDetails = DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          attachments: [DarwinNotificationAttachment(localPath)],
+        );
+      }
+    }
+
+    final androidDetails = AndroidNotificationDetails(
       _kChannelId,
       _kChannelName,
       channelDescription: _kChannelDesc,
@@ -127,15 +157,20 @@ class PermissionService {
       playSound: true,
       enableVibration: true,
       icon: '@drawable/ic_notification',
+      styleInformation: styleInformation,
+      largeIcon: largeIconPath != null
+          ? FilePathAndroidBitmap(largeIconPath)
+          : null,
     );
 
-    const notificationDetails = NotificationDetails(
+    final notificationDetails = NotificationDetails(
       android: androidDetails,
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
+      iOS: iosDetails ??
+          const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
     );
 
     // Use a stable int ID derived from the message so rapid inserts don't
@@ -151,6 +186,41 @@ class PermissionService {
       notificationDetails,
       payload: message.data['screen'] as String?,
     );
+  }
+
+  /// Downloads [url] to a temp file for use as a notification attachment.
+  /// Returns null on any failure so the notification still shows without an image.
+  static Future<String?> _downloadImage(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url)).timeout(
+            const Duration(seconds: 8),
+          );
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) return null;
+
+      final dir = await getTemporaryDirectory();
+      final ext = _imageExtension(url, response.headers['content-type']);
+      final file = File(
+        '${dir.path}/notif_${DateTime.now().millisecondsSinceEpoch}$ext',
+      );
+      await file.writeAsBytes(response.bodyBytes);
+      return file.path;
+    } catch (e) {
+      debugPrint('[PermissionService] notification image download failed: $e');
+      return null;
+    }
+  }
+
+  static String _imageExtension(String url, String? contentType) {
+    final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+    if (path.endsWith('.png')) return '.png';
+    if (path.endsWith('.webp')) return '.webp';
+    if (path.endsWith('.gif')) return '.gif';
+    if (contentType != null) {
+      if (contentType.contains('png')) return '.png';
+      if (contentType.contains('webp')) return '.webp';
+      if (contentType.contains('gif')) return '.gif';
+    }
+    return '.jpg';
   }
 
   // ── GPS location ───────────────────────────────────────────────────────────

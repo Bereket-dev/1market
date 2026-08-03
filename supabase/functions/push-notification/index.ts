@@ -107,6 +107,8 @@ async function sendPush(
           aps: {
             sound: 'default',
             badge: 1,
+            // Required so iOS downloads and attaches the rich image.
+            ...(imageUrl ? { 'mutable-content': 1 } : {}),
           },
         },
         // iOS rich notification image via FCM HTTP v1.
