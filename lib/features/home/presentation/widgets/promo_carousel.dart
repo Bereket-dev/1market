@@ -51,13 +51,13 @@ const _slides = [
         'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80',
   ),
   _PromoSlide(
-    headline: 'Safe Escrow\nPayments',
-    sub: 'Pay only when satisfied. Koolan protects your money.',
-    accent: Color(0xFF92400E),
-    accentLight: Color(0xFFF59E0B),
-    icon: Icons.lock_rounded,
+    headline: 'Hot Deals &\nExclusive Offers',
+    sub: 'Browse the best discounts on listings near you — updated daily.',
+    accent: Color(0xFFB91C1C),
+    accentLight: Color(0xFFEF4444),
+    icon: Icons.local_offer_rounded,
     imageUrl:
-        'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?auto=format&fit=crop&w=600&q=80',
   ),
 ];
 
