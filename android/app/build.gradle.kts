@@ -97,7 +97,7 @@ dependencies {
 
     // Facebook SDK — required for Supabase Facebook OAuth on Android.
     // Pinned to an explicit version (never use latest.release in production).
-    // Check https://search.maven.org/artifact/com.facebook.android/facebook-android-sdk
+    // Check https://central.sonatype.com/artifact/com.facebook.android/facebook-android-sdk/versions
     // and bump manually when upgrading.
-    implementation("com.facebook.android:facebook-android-sdk:17.0.3")
+    implementation("com.facebook.android:facebook-android-sdk:18.3.0")
 }

@@ -102,7 +102,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context)!.notifier!.s;
+    final s = KoolanAppStateScope.of(context).s;
     return Column(
       children: [
         SizedBox(

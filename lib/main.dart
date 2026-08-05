@@ -30,9 +30,7 @@ Future<void> main() async {
   // to be fully initialised yet — the handler itself calls initializeApp.
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // ── Read persisted theme and locale synchronously ────────────────────────
-  // These are fast SharedPreferences reads so the first frame never flashes
-  // the wrong theme/language.
+  // ── Read persisted theme and locale ──────────────────────────────────────
   bool initialDarkMode = false;
   String initialLocale = 'en';
   try {
@@ -43,24 +41,25 @@ Future<void> main() async {
     // SharedPreferences unavailable — use defaults.
   }
 
-  // ── runApp immediately ───────────────────────────────────────────────────
-  // The native splash is still visible at this point. The Flutter init screen
-  // (_InitializingScreen) will be shown while the heavy services load in the
-  // background below.
+  // ── Heavy init BEFORE runApp ──────────────────────────────────────────────
+  // KoolanAppState._initialize() waits on _sessionReadyCompleter, which is
+  // only signalled after Supabase fires its initialSession event.  If
+  // Supabase has not been initialised yet when that wait starts it will
+  // always time out (5 s) and auth/sync will silently fail.
+  // Running _initServices() here ensures Firebase, dotenv and Supabase are
+  // all ready before the first KoolanAppState is constructed.
+  await _initServices();
+
   runApp(KoolanApp(
     initialDarkMode: initialDarkMode,
     initialLocale: initialLocale,
   ));
-
-  // ── Deferred heavy initialisation (runs after first frame) ───────────────
-  // Everything below happens asynchronously. The app shell shows a loading
-  // indicator (controlled by OnboardingPhase.initializing in app_state) while
-  // these complete, so the user sees branded UI almost immediately.
-  _initServices();
 }
 
 /// Initialises Firebase, dotenv, Supabase and local notifications in order.
-/// Called after [runApp] so it never blocks first-frame rendering.
+/// Runs synchronously inside [main] — before [runApp] — so that Supabase is
+/// ready before [KoolanAppState] is constructed and starts waiting on its
+/// [_sessionReadyCompleter].
 Future<void> _initServices() async {
   // 1. Firebase — needed by Supabase FCM integration.
   try {
@@ -70,16 +69,14 @@ Future<void> _initServices() async {
     debugPrint('[init] Firebase.initializeApp failed: $e');
   }
 
-  // 2. Load .env for local debug runs (not bundled in release builds).
-  //    AppSupabaseConfig reads dart-define first; dotenv is only useful
-  //    during local `flutter run` without --dart-define flags.
-  if (kDebugMode) {
-    try {
-      await dotenv.load(fileName: '.env');
-      debugPrint('✅ .env loaded (debug)');
-    } catch (_) {
-      // .env is not required — ignore if missing.
-    }
+  // 2. Load .env (bundled as a Flutter asset).
+  //    AppSupabaseConfig reads dart-define first; dotenv fills the gaps
+  //    for values not passed via --dart-define (e.g. local debug runs).
+  try {
+    await dotenv.load(fileName: '.env');
+    if (kDebugMode) debugPrint('✅ .env loaded');
+  } catch (_) {
+    // .env is not required — release builds use --dart-define values.
   }
 
   AppSupabaseConfig.debugLogSource();
@@ -89,7 +86,7 @@ Future<void> _initServices() async {
     try {
       await Supabase.initialize(
         url: AppSupabaseConfig.url,
-        anonKey: AppSupabaseConfig.publishableKey,
+        publishableKey: AppSupabaseConfig.publishableKey,
         authOptions: const FlutterAuthClientOptions(
           authFlowType: AuthFlowType.pkce,
         ),
