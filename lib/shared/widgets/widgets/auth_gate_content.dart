@@ -113,13 +113,16 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
       // deep link via the intent filter. inAppWebView would intercept the
       // redirect inside the WebView, mangle it to http://, and fail with
       // ERR_CLEARTEXT_NOT_PERMITTED.
+      // Request email so Supabase can auto-link this Facebook identity to an
+      // existing account that already uses the same verified email.
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
+        scopes: 'email,public_profile',
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
-      // Session arrives via the deep-link / onAuthStateChange listener in
-      // app_state. Nothing more to do here.
+      // Session arrives via deep-link → onAuthStateChange → hydrateSessionProfile
+      // (guest/ready) or onFreshAuth (onboarding auth phase).
     } on AuthException catch (e) {
       if (mounted) {
         final isCancelled = e.message.toLowerCase().contains('access_denied') ||

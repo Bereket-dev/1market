@@ -90,17 +90,21 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _facebookOAuthInFlight) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+      // Give supabase_flutter a moment to process the OAuth deep link before
+      // treating a missing session as a cancelled / failed sign-in.
+      Future<void>.delayed(const Duration(milliseconds: 800), () {
+        if (!mounted || !_facebookOAuthInFlight) return;
+        final appState = KoolanAppStateScope.of(context);
         final client = AppSupabaseConfig.clientOrNull();
         final hasSession = client?.auth.currentSession != null;
-        if (!hasSession && _facebookOAuthInFlight) {
-          setState(() {
-            _facebookOAuthInFlight = false;
-            _isLoading = false;
-          });
-          KoolanAppStateScope.of(context).clearOAuthPending();
-        }
+        if (hasSession) return;
+        final pending = appState.consumeAuthError();
+        setState(() {
+          _facebookOAuthInFlight = false;
+          _isLoading = false;
+          _error = pending ?? appState.s.authFacebookFailed;
+        });
+        appState.clearOAuthPending();
       });
     }
   }
@@ -273,9 +277,12 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       KoolanAppStateScope.of(context).markOAuthPending();
       setState(() => _facebookOAuthInFlight = true);
+      // Request email so Supabase can auto-link this Facebook identity to an
+      // existing account that already uses the same verified email.
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
+        scopes: 'email,public_profile',
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
     } on AuthException catch (e) {
@@ -307,9 +314,25 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final appState = KoolanAppStateScope.of(context);
+    final s  = appState.s;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+
+    // Pick up OAuth redirect errors that arrived via the auth stream
+    // (e.g. Facebook denied email — cannot link to existing same-email profile).
+    final pendingAuthError = appState.authError;
+    if (pendingAuthError != null && pendingAuthError != _error) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        appState.clearAuthError();
+        setState(() {
+          _error = pendingAuthError;
+          _isLoading = false;
+          _facebookOAuthInFlight = false;
+        });
+      });
+    }
 
     return Scaffold(
       backgroundColor: cs.surface,

@@ -78,46 +78,61 @@ class KoolanAppState extends ChangeNotifier {
       }
 
       try {
-        client.auth.onAuthStateChange.listen((event) async {
-          debugPrint('Auth event: ${event.event}');
+        client.auth.onAuthStateChange.listen(
+          (event) async {
+            debugPrint('Auth event: ${event.event}');
 
-          if (event.event == AuthChangeEvent.initialSession) {
-            debugPrint(
-              '[AUTH] initialSession received at ${DateTime.now().millisecondsSinceEpoch}ms',
-            );
-            if (!_sessionReadyCompleter.isCompleted) {
-              _sessionReadyCompleter.complete(event.session);
+            if (event.event == AuthChangeEvent.initialSession) {
+              debugPrint(
+                '[AUTH] initialSession received at ${DateTime.now().millisecondsSinceEpoch}ms',
+              );
+              if (!_sessionReadyCompleter.isCompleted) {
+                _sessionReadyCompleter.complete(event.session);
+              }
+              return;
             }
-            return;
-          }
 
-          if (event.event == AuthChangeEvent.signedIn &&
-              event.session != null) {
-            _pendingOAuthCompletion = false;
-            if (onboardingPhase == OnboardingPhase.auth ||
-                onboardingPhase == OnboardingPhase.initializing) {
-              await onFreshAuth();
+            if (event.event == AuthChangeEvent.signedIn &&
+                event.session != null) {
+              _pendingOAuthCompletion = false;
+              _authError = null;
+              if (onboardingPhase == OnboardingPhase.auth ||
+                  onboardingPhase == OnboardingPhase.initializing) {
+                await onFreshAuth();
+              } else {
+                // Guest / in-app OAuth (Facebook auth-gate): posts/services
+                // resolve via currentUser.id, but profile was never loaded.
+                await hydrateSessionProfile();
+              }
+              return;
             }
-            return;
-          }
 
-          if (event.event == AuthChangeEvent.tokenRefreshed) {
-            debugPrint('[AUTH] Token silently refreshed — session extended');
-            return;
-          }
+            if (event.event == AuthChangeEvent.tokenRefreshed) {
+              debugPrint('[AUTH] Token silently refreshed — session extended');
+              return;
+            }
 
-          if (event.event == AuthChangeEvent.signedOut) {
-            debugPrint(
-              '[AUTH] signedOut event — entering guest mode. '
-              'User will be prompted to sign in again if they attempt an '
-              'auth-gated action.',
-            );
-            await _enterGuestMode(clearOnboardingData: false);
-            return;
-          }
+            if (event.event == AuthChangeEvent.signedOut) {
+              debugPrint(
+                '[AUTH] signedOut event — entering guest mode. '
+                'User will be prompted to sign in again if they attempt an '
+                'auth-gated action.',
+              );
+              await _enterGuestMode(clearOnboardingData: false);
+              return;
+            }
 
-          notifyListeners();
-        });
+            notifyListeners();
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            debugPrint('[AUTH] Auth stream error: $error');
+            debugPrint(stackTrace.toString());
+            final message = error is AuthException
+                ? error.message
+                : error.toString();
+            reportOAuthFailure(message);
+          },
+        );
       } catch (e, st) {
         debugPrint('Auth listener setup failed: $e');
         debugPrint(st.toString());
@@ -143,6 +158,8 @@ class KoolanAppState extends ChangeNotifier {
   final Completer<Session?> _sessionReadyCompleter = Completer<Session?>();
 
   bool _pendingOAuthCompletion = false;
+  /// Surfaced OAuth redirect failures (e.g. Facebook missing email).
+  String? _authError;
   late final SyncService syncService;
 
   // ── Auth & onboarding ─────────────────────────────────────────────────────────

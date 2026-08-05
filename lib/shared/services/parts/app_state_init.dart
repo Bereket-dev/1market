@@ -186,6 +186,37 @@ extension AppStateInit on KoolanAppState {
     notifyListeners();
   }
 
+  /// Loads [profile] after OAuth while the app is already in guest/ready mode.
+  ///
+  /// Without this, Facebook (and any other browser OAuth) from the auth gate
+  /// leaves `profile == null`: owned posts/services still appear because they
+  /// key off `currentUser.id`, but name/bio/phone/avatar stay empty.
+  Future<void> hydrateSessionProfile() async {
+    if (_repo == null) {
+      final client = AppSupabaseConfig.clientOrNull();
+      if (client == null) return;
+      _repo = SupabaseRepository(client);
+    }
+
+    try {
+      profile = await _repo!.ensureProfile();
+      if (profile != null) {
+        await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+        if (profile!.language != null) {
+          locale = profile!.language!;
+          await app_local.LocalStorage.saveLanguage(locale);
+        }
+      }
+      notifyListeners();
+      await loadAllData();
+      unawaited(_initPushNotifications());
+    } catch (e) {
+      debugPrint('[AUTH] hydrateSessionProfile failed: $e');
+      dataError = e.toString();
+      notifyListeners();
+    }
+  }
+
   Future<void> completeLanguageOnboarding(String language) async {
     await setLocale(language);
     if (_repo != null) {

@@ -1100,6 +1100,16 @@ class AppStrings {
       _t('Supabase is not available. Check configuration.', 'Supabase አልተገኘም። ቅንብሮቹን ያረጋግጡ።', 'Supabase ma heli karto. Hubi dejinta.');
   String get authGoogleCancelled =>
       _t('Google sign-in was cancelled.', 'የGoogle ግቤት ተሰርዟል።', 'Galitaanka Google waa la joojiyey.');
+  String get authFacebookFailed => _t(
+    'Facebook sign-in did not complete. Please try again.',
+    'የFacebook ግቤት አልተጠናቀቀም። እባክዎ እንደገና ይሞክሩ።',
+    'Galitaanka Facebook ma dhammaan. Fadlan isku day mar kale.',
+  );
+  String get authFacebookEmailRequired => _t(
+    'Facebook did not share your email. Allow email access so we can open your existing profile, then try again.',
+    'Facebook ኢሜይልዎን አላጋራም። ያለዎትን መገለጫ ለመክፈት ኢሜይል መዳረሻን ይፍቀዱ፣ ከዚያ እንደገና ይሞክሩ።',
+    'Facebook iimaylkaaga ma wadaagin. Oggolow iimaylka si aan u furno xogtaada jirta, ka dibna isku day mar kale.',
+  );
 
   // ── Change / Reset Password Screens ─────────────────────────────────────────
   String get changePasswordTitle => _t('Change password', 'የፓስወርድ ቀይር', 'Beddel erayga sirta');

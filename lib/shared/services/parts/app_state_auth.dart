@@ -77,9 +77,51 @@ extension AppStateAuth on KoolanAppState {
     // No notifyListeners needed — called from AuthScreen initState.
   }
 
-  void markOAuthPending() => _pendingOAuthCompletion = true;
+  void markOAuthPending() {
+    _pendingOAuthCompletion = true;
+    _authError = null;
+  }
 
   void clearOAuthPending() => _pendingOAuthCompletion = false;
+
+  /// Latest OAuth redirect failure, if any (e.g. Facebook missing email).
+  String? get authError => _authError;
+
+  void clearAuthError() {
+    if (_authError == null) return;
+    _authError = null;
+  }
+
+  /// Returns and clears any pending OAuth error so the auth UI can display it.
+  String? consumeAuthError() {
+    final error = _authError;
+    _authError = null;
+    return error;
+  }
+
+  /// Records an OAuth redirect failure so the auth screen / toast can show it.
+  ///
+  /// Facebook often fails with "Error getting user email from external
+  /// provider" when email permission is denied — without email, Supabase
+  /// cannot link the Facebook identity to an existing same-email profile.
+  void reportOAuthFailure(String message) {
+    if (!_pendingOAuthCompletion && onboardingPhase != OnboardingPhase.auth) {
+      return;
+    }
+    _pendingOAuthCompletion = false;
+    final lower = message.toLowerCase();
+    final isEmailIssue = lower.contains('email') ||
+        lower.contains('external provider') ||
+        lower.contains('user_email');
+    final friendly =
+        isEmailIssue ? s.authFacebookEmailRequired : message;
+    _authError = friendly;
+    // Guest-mode auth gate closes before OAuth returns — use the shell toast.
+    if (onboardingPhase == OnboardingPhase.ready) {
+      dataError = friendly;
+    }
+    notifyListeners();
+  }
 
   // ── Private helpers ───────────────────────────────────────────────────────────
 
