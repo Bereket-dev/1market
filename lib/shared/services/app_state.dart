@@ -14,6 +14,7 @@ import '../models/app_strings.dart';
 import '../models/application.dart';
 import '../models/chat.dart';
 import '../models/hiring_post.dart';
+import '../models/home_promo.dart';
 import '../models/listing.dart';
 import '../models/profile.dart';
 import '../models/service.dart';
@@ -224,6 +225,10 @@ class KoolanAppState extends ChangeNotifier {
   List<HiringPost> allHiringPosts = [];
   List<Application> myApplications = [];
   List<Map<String, dynamic>> notifications = [];
+
+  /// Active promo cards fetched from Supabase.
+  /// Empty until loaded; carousel uses hardcoded fallback when empty.
+  List<HomePromo> homePromos = [];
 
   // ── Pagination state ──────────────────────────────────────────────────────────
   bool hasMoreListings    = true;

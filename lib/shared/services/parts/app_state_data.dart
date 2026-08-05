@@ -52,6 +52,11 @@ extension AppStateData on KoolanAppState {
         } catch (e) {
           debugPrint('fetchHiringPosts (guest) failed: $e');
         }
+        try {
+          homePromos = await anonRepo.fetchHomePromos();
+        } catch (e) {
+          debugPrint('fetchHomePromos (guest) failed: $e');
+        }
         chatSessions = [];
         return;
       }
@@ -106,6 +111,11 @@ extension AppStateData on KoolanAppState {
         notifications = await _repo!.fetchNotifications();
       } catch (e) {
         debugPrint('fetchNotifications failed: $e');
+      }
+      try {
+        homePromos = await _repo!.fetchHomePromos();
+      } catch (e) {
+        debugPrint('fetchHomePromos failed: $e');
       }
     } on SocketException catch (e) {
       debugPrint('fetchListings offline (SocketException): $e');

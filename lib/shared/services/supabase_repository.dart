@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/application.dart';
 import '../models/chat.dart';
 import '../models/hiring_post.dart';
+import '../models/home_promo.dart';
 import '../models/listing.dart';
 import '../models/profile.dart';
 import '../models/service.dart';
@@ -17,6 +18,7 @@ part 'parts/supabase_repository_reviews.dart';
 part 'parts/supabase_repository_services.dart';
 part 'parts/supabase_repository_hiring.dart';
 part 'parts/supabase_repository_notifications.dart';
+part 'parts/supabase_repository_home_promos.dart';
 
 class SupabaseRepository {
   SupabaseRepository(this._client);

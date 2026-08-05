@@ -1,66 +1,77 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../shared/models/app_strings.dart';
+import '../../../../shared/models/home_promo.dart';
 import '../../../../shared/services/app_state.dart';
+import '../../../../shared/widgets/cached_image_widget.dart';
 
-// ── Data model ────────────────────────────────────────────────────────────────
+// ── Hardcoded fallback slides ─────────────────────────────────────────────────
+//
+// Mirrored exactly from the original implementation.  Used only when the DB
+// returns no rows (first launch / offline / all slots deactivated).
 
-class _PromoSlideData {
+class _FallbackSlide {
   final String Function(AppStrings) headline;
   final String Function(AppStrings) sub;
-  final Color accent;
-  final Color accentLight;
-  final IconData icon;
+  final PromoTheme theme;
 
-  const _PromoSlideData({
+  const _FallbackSlide({
     required this.headline,
     required this.sub,
-    required this.accent,
-    required this.accentLight,
-    required this.icon,
+    required this.theme,
   });
 }
 
-const _slides = [
-  _PromoSlideData(
-    headline: _promo1Headline,
-    sub: _promo1Sub,
-    accent: Color(0xFF00288E),
-    accentLight: Color(0xFF1E40AF),
-    icon: Icons.storefront_rounded,
+const _fallbackSlides = [
+  _FallbackSlide(
+    headline: _h1,
+    sub: _s1,
+    theme: PromoTheme.navy,
   ),
-  _PromoSlideData(
-    headline: _promo2Headline,
-    sub: _promo2Sub,
-    accent: Color(0xFF0F766E),
-    accentLight: Color(0xFF14B8A6),
-    icon: Icons.verified_user_rounded,
+  _FallbackSlide(
+    headline: _h2,
+    sub: _s2,
+    theme: PromoTheme.teal,
   ),
-  _PromoSlideData(
-    headline: _promo3Headline,
-    sub: _promo3Sub,
-    accent: Color(0xFF6D28D9),
-    accentLight: Color(0xFF8B5CF6),
-    icon: Icons.add_circle_rounded,
+  _FallbackSlide(
+    headline: _h3,
+    sub: _s3,
+    theme: PromoTheme.purple,
   ),
-  _PromoSlideData(
-    headline: _promo4Headline,
-    sub: _promo4Sub,
-    accent: Color(0xFFB91C1C),
-    accentLight: Color(0xFFEF4444),
-    icon: Icons.handyman_rounded,
+  _FallbackSlide(
+    headline: _h4,
+    sub: _s4,
+    theme: PromoTheme.red,
   ),
 ];
 
-// Top-level getters used as const function references.
-String _promo1Headline(AppStrings s) => s.promo1Headline;
-String _promo1Sub(AppStrings s) => s.promo1Sub;
-String _promo2Headline(AppStrings s) => s.promo2Headline;
-String _promo2Sub(AppStrings s) => s.promo2Sub;
-String _promo3Headline(AppStrings s) => s.promo3Headline;
-String _promo3Sub(AppStrings s) => s.promo3Sub;
-String _promo4Headline(AppStrings s) => s.promo4Headline;
-String _promo4Sub(AppStrings s) => s.promo4Sub;
+// Top-level const function references required for const list items.
+String _h1(AppStrings s) => s.promo1Headline;
+String _s1(AppStrings s) => s.promo1Sub;
+String _h2(AppStrings s) => s.promo2Headline;
+String _s2(AppStrings s) => s.promo2Sub;
+String _h3(AppStrings s) => s.promo3Headline;
+String _s3(AppStrings s) => s.promo3Sub;
+String _h4(AppStrings s) => s.promo4Headline;
+String _s4(AppStrings s) => s.promo4Sub;
+
+// ── Slide view-model ──────────────────────────────────────────────────────────
+
+/// Normalised view-model consumed by [_PromoSlideCard].
+class _SlideVM {
+  final String headline;
+  final String subtitle;
+  final String? imageUrl;
+  final PromoTheme theme;
+
+  const _SlideVM({
+    required this.headline,
+    required this.subtitle,
+    this.imageUrl,
+    required this.theme,
+  });
+}
 
 // ── Carousel ──────────────────────────────────────────────────────────────────
 
@@ -84,7 +95,8 @@ class _PromoCarouselState extends State<PromoCarousel> {
   void _startAutoScroll() {
     Future.delayed(const Duration(seconds: 4), () {
       if (!mounted) return;
-      final next = (_page + 1) % _slides.length;
+      final slides = _buildSlides(KoolanAppStateScope.of(context));
+      final next = (_page + 1) % slides.length;
       _ctrl.animateToPage(
         next,
         duration: const Duration(milliseconds: 600),
@@ -100,25 +112,50 @@ class _PromoCarouselState extends State<PromoCarousel> {
     super.dispose();
   }
 
+  /// Builds the view-model list.  Prefers DB promos; falls back to hardcoded.
+  List<_SlideVM> _buildSlides(KoolanAppState state) {
+    final dbPromos = state.homePromos;
+    if (dbPromos.isNotEmpty) {
+      return dbPromos
+          .map((p) => _SlideVM(
+                headline: p.headline,
+                subtitle: p.subtitle,
+                imageUrl: p.imageUrl,
+                theme: p.theme,
+              ))
+          .toList();
+    }
+    // Fallback: localised hardcoded strings.
+    final s = state.s;
+    return _fallbackSlides
+        .map((f) => _SlideVM(
+              headline: f.headline(s),
+              subtitle: f.sub(s),
+              theme: f.theme,
+            ))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final state = KoolanAppStateScope.of(context);
+    final slides = _buildSlides(state);
+
     return Column(
       children: [
         SizedBox(
           height: 170,
           child: PageView.builder(
             controller: _ctrl,
-            itemCount: _slides.length,
+            itemCount: slides.length,
             onPageChanged: (i) => setState(() => _page = i),
             itemBuilder: (context, index) {
-              final slide = _slides[index];
               return AnimatedScale(
                 scale: _page == index ? 1.0 : 0.95,
                 duration: const Duration(milliseconds: 300),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: _PromoSlideCard(slide: slide, s: s),
+                  child: _PromoSlideCard(vm: slides[index]),
                 ),
               );
             },
@@ -129,7 +166,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
           final cs = Theme.of(context).colorScheme;
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_slides.length, (i) {
+            children: List.generate(slides.length, (i) {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -148,13 +185,12 @@ class _PromoCarouselState extends State<PromoCarousel> {
   }
 }
 
-// ── Slide card (gradient + icon only; no network images) ─────────────────────
+// ── Slide card ────────────────────────────────────────────────────────────────
 
 class _PromoSlideCard extends StatelessWidget {
-  final _PromoSlideData slide;
-  final AppStrings s;
+  final _SlideVM vm;
 
-  const _PromoSlideCard({required this.slide, required this.s});
+  const _PromoSlideCard({required this.vm});
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +199,7 @@ class _PromoSlideCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [slide.accent, slide.accentLight],
+            colors: [vm.theme.accent, vm.theme.accentLight],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -171,7 +207,7 @@ class _PromoSlideCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Subtle geometric overlay for depth
+            // ── Subtle geometric overlay for depth ─────────────────────────
             Positioned(
               right: -20,
               top: -20,
@@ -196,7 +232,33 @@ class _PromoSlideCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Content
+            // ── Remote image (if provided) — right-side fill ───────────────
+            if (vm.imageUrl != null && vm.imageUrl!.isNotEmpty)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 130,
+                child: ShaderMask(
+                  shaderCallback: (rect) => LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      vm.theme.accent,
+                      Colors.transparent,
+                    ],
+                  ).createShader(rect),
+                  blendMode: BlendMode.dstOut,
+                  child: CachedNetworkImage(
+                    imageUrl: vm.imageUrl!,
+                    cacheManager: KoolanImageCacheManager.instance,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                    placeholder: (_, __) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            // ── Text + badge content ───────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -220,7 +282,8 @@ class _PromoSlideCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(slide.icon, color: Colors.white, size: 13),
+                              Icon(vm.theme.icon,
+                                  color: Colors.white, size: 13),
                               const SizedBox(width: 5),
                               const Text(
                                 'KOOLAN',
@@ -237,7 +300,7 @@ class _PromoSlideCard extends StatelessWidget {
                         const SizedBox(height: 10),
                         // Headline
                         Text(
-                          slide.headline(s),
+                          vm.headline,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -247,9 +310,9 @@ class _PromoSlideCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        // Sub-headline
+                        // Subtitle
                         Text(
-                          slide.sub(s),
+                          vm.subtitle,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.82),
                             fontSize: 11,
@@ -261,29 +324,72 @@ class _PromoSlideCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Right-side icon circle
+                  // ── Right side: network image OR icon circle ──────────────
                   Expanded(
                     flex: 3,
                     child: Align(
                       alignment: Alignment.centerRight,
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              width: 2),
-                        ),
-                        child: Icon(slide.icon, color: Colors.white, size: 28),
-                      ),
+                      child: vm.imageUrl != null && vm.imageUrl!.isNotEmpty
+                          ? _NetworkImageCircle(url: vm.imageUrl!, theme: vm.theme)
+                          : _IconCircle(theme: vm.theme),
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Helper sub-widgets ────────────────────────────────────────────────────────
+
+class _IconCircle extends StatelessWidget {
+  final PromoTheme theme;
+
+  const _IconCircle({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        shape: BoxShape.circle,
+        border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3), width: 2),
+      ),
+      child: Icon(theme.icon, color: Colors.white, size: 28),
+    );
+  }
+}
+
+class _NetworkImageCircle extends StatelessWidget {
+  final String url;
+  final PromoTheme theme;
+
+  const _NetworkImageCircle({required this.url, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+            color: Colors.white.withValues(alpha: 0.35), width: 2),
+      ),
+      child: ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: url,
+          cacheManager: KoolanImageCacheManager.instance,
+          fit: BoxFit.cover,
+          placeholder: (_, __) => _IconCircle(theme: theme),
+          errorWidget: (_, __, ___) => _IconCircle(theme: theme),
         ),
       ),
     );
