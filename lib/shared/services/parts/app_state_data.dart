@@ -321,6 +321,12 @@ extension AppStateData on KoolanAppState {
     required String price,
     required String description,
     required String location,
+    String? category,
+    String? conditionOrStatus,
+    String? spec1Value,
+    String? spec2Value,
+    String? spec3Value,
+    String? spec4Value,
     List<String> newImagePaths = const [],
     List<String> existingImageUrls = const [],
   }) async {
@@ -356,11 +362,21 @@ extension AppStateData on KoolanAppState {
             ? price.trim()
             : 'ETB ${price.trim()}';
 
+    final resolvedCategory = (category != null && category.isNotEmpty)
+        ? category
+        : listing.category;
+
     final updated = listing.copyWith(
+      category: resolvedCategory,
       title: title.trim(),
       price: priceStr,
       description: description.trim(),
       location: location.trim(),
+      conditionOrStatus: conditionOrStatus ?? listing.conditionOrStatus,
+      spec1Value: spec1Value ?? listing.spec1Value,
+      spec2Value: spec2Value ?? listing.spec2Value,
+      spec3Value: spec3Value ?? listing.spec3Value,
+      spec4Value: spec4Value ?? listing.spec4Value,
       imageUrl: primaryImageUrl,
       imageUrls: mergedUrls,
       localUpdatedAt: DateTime.now(),
@@ -373,10 +389,16 @@ extension AppStateData on KoolanAppState {
 
     try {
       await _repo!.updateListing(listing.id, {
+        'category': updated.category,
         'title': updated.title,
         'price': updated.price,
         'description': updated.description,
         'location': updated.location,
+        'condition_or_status': updated.conditionOrStatus,
+        'spec1_value': updated.spec1Value,
+        'spec2_value': updated.spec2Value,
+        'spec3_value': updated.spec3Value,
+        'spec4_value': updated.spec4Value,
         'image_url': primaryImageUrl,
         'image_urls': mergedUrls,
       });
