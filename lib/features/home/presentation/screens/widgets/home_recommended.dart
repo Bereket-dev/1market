@@ -214,11 +214,15 @@ class _RecommendationCard extends StatelessWidget {
                       width: 160,
                       height: 96,
                       fit: BoxFit.cover,
-                      errorWidget: _CategoryIconPlaceholder(
-                          category: item.category, cs: cs),
+                      errorWidget: ListingPlaceholder(
+                          category: item.category,
+                          width: 160,
+                          height: 96),
                     )
-                  : _CategoryIconPlaceholder(
-                      category: item.category, cs: cs),
+                  : ListingPlaceholder(
+                      category: item.category,
+                      width: 160,
+                      height: 96),
             ),
             // Content
             Expanded(
@@ -293,28 +297,7 @@ class _RecommendationCard extends StatelessWidget {
   }
 }
 
-class _CategoryIconPlaceholder extends StatelessWidget {
-  final String category;
-  final ColorScheme cs;
 
-  const _CategoryIconPlaceholder(
-      {required this.category, required this.cs});
+// (Category icon placeholder is now handled by ListingPlaceholder in cached_image_widget.dart)
 
-  @override
-  Widget build(BuildContext context) {
-    final icon = switch (category.toUpperCase()) {
-      'CARS' => Icons.directions_car_filled,
-      'HOUSES' => Icons.home_rounded,
-      'LAND' => Icons.landscape_rounded,
-      'SKILLS' => Icons.construction_rounded,
-      'OTHERS' => Icons.category_outlined,
-      _ => Icons.inventory_2_outlined,
-    };
-    return Container(
-      color: cs.primaryContainer.withValues(alpha: 0.25),
-      alignment: Alignment.center,
-      child: Icon(icon, color: cs.primary, size: 36),
-    );
-  }
-}
 

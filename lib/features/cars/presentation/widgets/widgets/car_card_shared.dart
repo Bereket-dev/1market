@@ -156,45 +156,35 @@ class _SpecIconLabel extends StatelessWidget {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-IconData _categoryIcon(String cat) => switch (cat.toUpperCase()) {
-      'CARS' => Icons.directions_car_filled,
-      'HOUSES' => Icons.home_rounded,
-      'LAND' => Icons.landscape_rounded,
-      'SKILLS' => Icons.construction_rounded,
-      'OTHERS' => Icons.category_outlined,
-      _ => Icons.inventory_2_outlined,
-    };
 
 // ── Saved listing image helper ────────────────────────────────────────────────
 
 /// A simple cached image widget sized for the horizontal saved-screen tile.
 class SavedListingImage extends StatelessWidget {
   final String imageUrl;
+  final String category;
   final double width;
   final double height;
 
   const SavedListingImage({
     super.key,
     required this.imageUrl,
+    required this.category,
     this.width = 90,
     this.height = 90,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return CachedImageWidget(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       width: width,
       height: height,
-      errorWidget: Container(
+      errorWidget: ListingPlaceholder(
+        category: category,
         width: width,
         height: height,
-        color: cs.surfaceContainerHighest,
-        alignment: Alignment.center,
-        child: Icon(Icons.image_not_supported_rounded,
-            color: cs.outline, size: 24),
       ),
     );
   }

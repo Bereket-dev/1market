@@ -60,10 +60,10 @@ class _HeroImageState extends State<_HeroImage> {
         children: [
           // ── Photo(s) ───────────────────────────────────────────────────
           if (images.isEmpty)
-            Container(
-              color: cs.surfaceContainerHighest,
-              child: Icon(Icons.image_not_supported,
-                  size: 48, color: cs.outline),
+            ListingPlaceholder(
+              category: listing.category,
+              width: double.infinity,
+              height: 280,
             )
           else if (!multi)
             // Single image — no PageView overhead
@@ -77,10 +77,10 @@ class _HeroImageState extends State<_HeroImage> {
                   child: CircularProgressIndicator(color: cs.primary),
                 ),
               ),
-              errorWidget: (_, _, _) => Container(
-                color: cs.surfaceContainerHighest,
-                child: Icon(Icons.image_not_supported,
-                    size: 48, color: cs.outline),
+              errorWidget: (_, _, _) => ListingPlaceholder(
+                category: listing.category,
+                width: double.infinity,
+                height: 280,
               ),
             )
           else
@@ -99,10 +99,10 @@ class _HeroImageState extends State<_HeroImage> {
                     child: CircularProgressIndicator(color: cs.primary),
                   ),
                 ),
-                errorWidget: (_, _, _) => Container(
-                  color: cs.surfaceContainerHighest,
-                  child: Icon(Icons.image_not_supported,
-                      size: 48, color: cs.outline),
+                errorWidget: (_, _, _) => ListingPlaceholder(
+                  category: listing.category,
+                  width: double.infinity,
+                  height: 280,
                 ),
               ),
             ),

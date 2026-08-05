@@ -112,9 +112,9 @@ class _SimilarListingCard extends StatelessWidget {
                       width: double.infinity,
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) =>
-                          _IconPlaceholder(category: listing.category, cs: cs),
+                          ListingPlaceholder(category: listing.category),
                     )
-                  : _IconPlaceholder(category: listing.category, cs: cs),
+                  : ListingPlaceholder(category: listing.category),
             ),
             // Label
             Expanded(
@@ -301,27 +301,4 @@ class _SimilarHiringCard extends StatelessWidget {
   }
 }
 
-// ── Icon placeholder ──────────────────────────────────────────────────────────
-
-class _IconPlaceholder extends StatelessWidget {
-  final String category;
-  final ColorScheme cs;
-  const _IconPlaceholder({required this.category, required this.cs});
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = switch (category.toUpperCase()) {
-      'CARS' => Icons.directions_car_filled,
-      'HOUSES' => Icons.home_rounded,
-      'LAND' => Icons.landscape_rounded,
-      'SKILLS' => Icons.construction_rounded,
-      'OTHERS' => Icons.category_outlined,
-      _ => Icons.inventory_2_outlined,
-    };
-    return Container(
-      color: cs.primaryContainer.withValues(alpha: 0.25),
-      alignment: Alignment.center,
-      child: Icon(icon, color: cs.primary, size: 28),
-    );
-  }
-}
+// (Category icon placeholder is now handled by ListingPlaceholder in cached_image_widget.dart)

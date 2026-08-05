@@ -136,6 +136,7 @@ class _Thumbnail extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: SavedListingImage(
             imageUrl: listing.imageUrl,
+            category: listing.category,
             width: 90,
             height: 90,
           ),
@@ -262,8 +263,6 @@ class _TileActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

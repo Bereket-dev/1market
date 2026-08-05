@@ -41,15 +41,10 @@ class ListingCompactCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 110,
-                  errorWidget: Container(
+                  errorWidget: ListingPlaceholder(
+                    category: listing.category,
+                    width: double.infinity,
                     height: 110,
-                    color: cs.primaryContainer.withValues(alpha: 0.2),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      _categoryIcon(listing.category),
-                      color: cs.primary,
-                      size: 32,
-                    ),
                   ),
                 ),
                 // Save overlay

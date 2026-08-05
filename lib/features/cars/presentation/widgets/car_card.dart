@@ -50,8 +50,11 @@ class PremiumClassifiedCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: 120,
-                    errorWidget:
-                        Container(color: cs.surfaceContainerHighest),
+                    errorWidget: ListingPlaceholder(
+                      category: listing.category,
+                      width: double.infinity,
+                      height: 120,
+                    ),
                   ),
                   Positioned(
                     top: 10,

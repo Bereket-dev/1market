@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/listing.dart';
@@ -99,7 +98,7 @@ class CompareOverlay extends StatelessWidget {
                 Expanded(
                   child: ListView.separated(
                     itemCount: rows.length,
-                    separatorBuilder: (_, __) => Divider(
+                    separatorBuilder: (context, _) => Divider(
                         color: cs.outlineVariant.withValues(alpha: 0.4)),
                     itemBuilder: (context, index) {
                       final row = rows[index];
@@ -169,18 +168,17 @@ class _ListingHeader extends StatelessWidget {
     return Column(children: [
       ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: CachedNetworkImage(
-            imageUrl: listing.imageUrl,
-            cacheManager: KoolanImageCacheManager.instance,
-            height: 70, width: 100, fit: BoxFit.cover,
-            placeholder: (_, __) => Container(
-              height: 70, width: 100, color: Colors.grey[200],
-            ),
-            errorWidget: (_, __, ___) => Container(
-              height: 70, width: 100, color: Colors.grey[300],
-              child: const Icon(Icons.image_not_supported, color: Colors.grey),
-            ),
+        child: CachedImageWidget(
+          imageUrl: listing.imageUrl,
+          width: 100,
+          height: 70,
+          fit: BoxFit.cover,
+          errorWidget: ListingPlaceholder(
+            category: listing.category,
+            width: 100,
+            height: 70,
           ),
+        ),
       ),
       const SizedBox(height: 4),
       Text(listing.titleForLocale(locale),

@@ -148,12 +148,10 @@ class _ProfileListingCard extends StatelessWidget {
                 width: 72,
                 height: 72,
                 fit: BoxFit.cover,
-                errorWidget: Container(
+                errorWidget: ListingPlaceholder(
+                  category: listing.category,
                   width: 72,
                   height: 72,
-                  color: cs.surfaceContainerHighest,
-                  child: Icon(Icons.image_not_supported_rounded,
-                      color: cs.outline, size: 24),
                 ),
               ),
             ),

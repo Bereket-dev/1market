@@ -64,12 +64,10 @@ class _MyListingTile extends StatelessWidget {
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  errorWidget: Container(
+                  errorWidget: ListingPlaceholder(
+                    category: listing.category,
                     width: 80,
                     height: 80,
-                    color: cs.surfaceContainerHighest,
-                    child: Icon(Icons.image_not_supported_rounded,
-                        color: cs.outline, size: 28),
                   ),
                 ),
               ),

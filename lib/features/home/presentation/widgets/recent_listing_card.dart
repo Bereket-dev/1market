@@ -43,10 +43,11 @@ class RecentListingCard extends StatelessWidget {
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
-                      errorWidget: Container(
-                          width: 80,
-                          height: 80,
-                          color: cs.surfaceContainerHighest),
+                      errorWidget: ListingPlaceholder(
+                        category: listing.category,
+                        width: 80,
+                        height: 80,
+                      ),
                     ),
                   ),
                 ],

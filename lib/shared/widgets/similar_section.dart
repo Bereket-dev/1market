@@ -15,6 +15,7 @@ import '../models/service.dart';
 import '../services/app_state.dart';
 import '../services/recommendation_engine.dart';
 import '../services/scorable_adapters.dart';
+import 'cached_image_widget.dart';
 part 'widgets/similar_shared_widgets.dart';
 part 'widgets/similar_services_section.dart';
 part 'widgets/similar_hiring_section.dart';

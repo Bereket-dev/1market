@@ -43,6 +43,22 @@ class CachedImageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Show the error/placeholder widget immediately for empty URLs —
+    // no network request attempted, no spinner shown.
+    if (imageUrl.isEmpty) {
+      final fallback = errorWidget ??
+          Container(
+            width: width,
+            height: height,
+            color: Colors.grey[300],
+            child: const Icon(Icons.image_not_supported, color: Colors.grey),
+          );
+      if (borderRadius != null) {
+        return ClipRRect(borderRadius: borderRadius!, child: fallback);
+      }
+      return fallback;
+    }
+
     Widget imageWidget = CachedNetworkImage(
       imageUrl: imageUrl,
       cacheManager: KoolanImageCacheManager.instance,
@@ -75,6 +91,80 @@ class CachedImageWidget extends StatelessWidget {
     }
     return imageWidget;
   }
+}
+
+/// Category-aware image placeholder for listings with no photo.
+///
+/// Shows a tinted background + a large icon that matches the listing category,
+/// so it is visually distinct from a loaded image while clearly communicating
+/// content type.  Do NOT use a loading spinner or shimmer here — the user
+/// must immediately understand this is a placeholder, not a pending load.
+class ListingPlaceholder extends StatelessWidget {
+  final String category;
+  final double? width;
+  final double? height;
+
+  const ListingPlaceholder({
+    super.key,
+    required this.category,
+    this.width,
+    this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final icon = _iconForCategory(category);
+
+    return Container(
+      width: width,
+      height: height,
+      color: cs.primaryContainer.withValues(alpha: 0.18),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: cs.primary.withValues(alpha: 0.55), size: _iconSize),
+          const SizedBox(height: 4),
+          Text(
+            _labelForCategory(category),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: cs.primary.withValues(alpha: 0.55),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double get _iconSize {
+    final h = height ?? 80;
+    if (h >= 200) return 56;
+    if (h >= 100) return 36;
+    return 24;
+  }
+
+  static IconData _iconForCategory(String category) =>
+      switch (category.toUpperCase()) {
+        'CARS' => Icons.directions_car_rounded,
+        'HOUSES' => Icons.home_rounded,
+        'LAND' => Icons.landscape_rounded,
+        'SKILLS' => Icons.construction_rounded,
+        'OTHERS' => Icons.category_outlined,
+        _ => Icons.inventory_2_outlined,
+      };
+
+  static String _labelForCategory(String category) =>
+      switch (category.toUpperCase()) {
+        'CARS' => 'No photo',
+        'HOUSES' => 'No photo',
+        'LAND' => 'No photo',
+        'SKILLS' => 'No photo',
+        _ => 'No photo',
+      };
 }
 
 class CachedCircularImage extends StatelessWidget {
