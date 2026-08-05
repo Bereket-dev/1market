@@ -73,6 +73,8 @@ async function getAccessToken(): Promise<string> {
 
 // ── FCM send ──────────────────────────────────────────────────────────────────
 
+type SendResult = 'sent' | 'stale_token';
+
 async function sendPush(
   token: string,
   title: string,
@@ -80,7 +82,7 @@ async function sendPush(
   data: Record<string, string>,
   accessToken: string,
   imageUrl?: string,
-): Promise<void> {
+): Promise<SendResult> {
   const payload = {
     message: {
       token,
@@ -134,11 +136,12 @@ async function sendPush(
     // Log and continue rather than throwing.
     if (err.includes('UNREGISTERED') || err.includes('INVALID_ARGUMENT')) {
       console.warn(`[push] Stale token for message, skipping: ${err}`);
-      return;
+      return 'stale_token';
     }
     throw new Error(`FCM send failed: ${err}`);
   }
   console.log(`[push] Sent successfully`);
+  return 'sent';
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -182,10 +185,15 @@ serve(async (req) => {
     data['notification_id'] = record.id;
 
     // Extract image URL from payload for rich push display.
-    const imageUrl = (record.payload?.imageUrl as string | undefined) || undefined;
+    // Treat empty string as missing (nearby trigger stores '' when no photo).
+    const rawImage = record.payload?.imageUrl;
+    const imageUrl =
+      typeof rawImage === 'string' && rawImage.trim() !== ''
+        ? rawImage
+        : undefined;
 
     const accessToken = await getAccessToken();
-    await sendPush(
+    const result = await sendPush(
       profile.fcm_token,
       record.title,
       record.body,
@@ -193,6 +201,22 @@ serve(async (req) => {
       accessToken,
       imageUrl,
     );
+
+    // Drop dead tokens so the next device login can claim a fresh one and
+    // nearby/message pushes stop targeting UNREGISTERED devices.
+    if (result === 'stale_token') {
+      const { error: clearErr } = await supabase
+        .from('profiles')
+        .update({ fcm_token: null })
+        .eq('id', record.user_id)
+        .eq('fcm_token', profile.fcm_token);
+      if (clearErr) {
+        console.warn(`[push] Failed to clear stale token: ${clearErr.message}`);
+      } else {
+        console.log(`[push] Cleared stale FCM token for user ${record.user_id}`);
+      }
+      return new Response('stale_token', { status: 200 });
+    }
 
     return new Response('ok', { status: 200 });
   } catch (e) {
