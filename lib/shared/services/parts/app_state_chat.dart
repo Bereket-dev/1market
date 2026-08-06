@@ -210,14 +210,20 @@ extension AppStateChat on KoolanAppState {
   Future<void> submitReport({
     required String reason,
     String? listingId,
+    String? serviceId,
+    String? hiringPostId,
     String? reportedUserId,
+    String? targetType,
     String? details,
   }) async {
     if (_repo == null) return;
     await _repo!.submitReport(
       reason: reason,
       listingId: listingId,
+      serviceId: serviceId,
+      hiringPostId: hiringPostId,
       reportedUserId: reportedUserId,
+      targetType: targetType,
       details: details,
     );
   }

@@ -21,7 +21,10 @@ extension SupabaseRepositoryHiring on SupabaseRepository {
   Future<void> submitReport({
     required String reason,
     String? listingId,
+    String? serviceId,
+    String? hiringPostId,
     String? reportedUserId,
+    String? targetType,
     String? details,
   }) async {
     final userId = currentUserId;
@@ -30,7 +33,10 @@ extension SupabaseRepositoryHiring on SupabaseRepository {
     await _client.from('reports').insert({
       'reporter_id': userId,
       'listing_id': listingId,
+      'service_id': serviceId,
+      'hiring_post_id': hiringPostId,
       'reported_user_id': reportedUserId,
+      'target_type': targetType,
       'reason': reason,
       'details': details,
     });

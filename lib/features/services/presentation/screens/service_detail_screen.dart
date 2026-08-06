@@ -7,6 +7,7 @@ import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/share_service.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
+import '../../../../shared/widgets/report_bottom_sheet.dart';
 import '../../../../shared/widgets/similar_section.dart';
 part 'widgets/service_detail_reviews.dart';
 part 'widgets/service_detail_hero.dart';
@@ -172,6 +173,33 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           textStyle: const TextStyle(fontSize: 13),
                         ),
                       ),
+                      // ── Report link — non-owner only ─────────────────────
+                      if (service.ownerId != state.profile?.id) ...[
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: () => showReportBottomSheet(
+                            context,
+                            targetType: 'service',
+                            serviceId: service.id,
+                            reportedUserId: service.ownerId,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.flag_outlined,
+                                  size: 15, color: cs.onSurfaceVariant),
+                              const SizedBox(width: 6),
+                              Text(
+                                s.reportMenuLabel,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const Divider(height: 32),
                       // ── Detail rows ────────────────────────────────────
                       _DetailRow(
@@ -238,6 +266,19 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                 ),
                 Row(
                   children: [
+                    // Report button — non-owner only
+                    if (service.ownerId != state.profile?.id) ...[
+                      _OverlayCircleButton(
+                        icon: Icons.flag_outlined,
+                        onPressed: () => showReportBottomSheet(
+                          context,
+                          targetType: 'service',
+                          serviceId: service.id,
+                          reportedUserId: service.ownerId,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     // Share button — visible to all
                     _OverlayCircleButton(
                       icon: Icons.share_outlined,

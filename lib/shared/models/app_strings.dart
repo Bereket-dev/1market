@@ -1367,4 +1367,72 @@ class AppStrings {
     'Kiri shaqaalaha xirfadlaha ah ee agagaarkaaga — maalin kasta waa la cusboonaysiiyaa.',
   );
 
+  // ── Reports & Flagging ────────────────────────────────────────────────────────
+
+  String get reportTitle =>
+      _t('Report Content', 'ይዘት ሪፖርት አድርጉ', 'Warbixin Soo Gudbi');
+
+  String get reportSubtitle =>
+      _t('Why are you reporting this?', 'ለምን ሪፖርት ያደርጋሉ?', 'Maxaad u warbixinaysa?');
+
+  // ── Reason chip labels ────────────────────────────────────────────────────────
+
+  String get reportReasonSpam =>
+      _t('Spam / Scam', 'ስፓም / ማጭበርበር', 'Xishood / Khiyaamo');
+
+  String get reportReasonMisleading =>
+      _t('Misleading or false information', 'አሳሳች ወይም ሐሰተኛ መረጃ', 'Macluumaad been ah');
+
+  String get reportReasonInappropriate =>
+      _t('Inappropriate content', 'ተገቢ ያልሆነ ይዘት', 'Waxyaabaha aan ku habboonayn');
+
+  String get reportReasonHarassment =>
+      _t('Harassment or unsafe', 'ትንኮሳ ወይም ደህንነቱ ያልተጠበቀ', 'Xoogsi ama Amaanka Khatar');
+
+  String get reportReasonOther =>
+      _t('Other', 'ሌላ', 'Kale');
+
+  // ── Details field ─────────────────────────────────────────────────────────────
+
+  String get reportDetailsLabel =>
+      _t('Additional details (required)', 'ተጨማሪ ዝርዝሮች (ያስፈልጋሉ)', 'Faahfaahin dheeraad ah (waajib ah)');
+
+  String get reportDetailsHint =>
+      _t('Please describe the issue…', 'እባክዎ ችግሩን ይግለጹ…', 'Fadlan sharrax mushkiladda…');
+
+  String get reportDetailsRequired =>
+      _t('Please provide details for "Other"', '"ሌላ" ዝርዝሮች ያስፈልጋሉ', '"Kale" faahfaahin ku bixi');
+
+  // ── Submit / outcome ──────────────────────────────────────────────────────────
+
+  String get reportSubmit =>
+      _t('Submit Report', 'ሪፖርት ላክ', 'Gudbi Warbixinta');
+
+  String get reportSubmitting =>
+      _t('Submitting…', 'በመላክ ላይ…', 'La dirayo…');
+
+  String get reportSuccess => _t(
+    'Thanks for your report. We\'ll review it shortly.',
+    'ሪፖርትዎ ለቀረቡ አመሰግናለሁ። ብዙ ሳይቆይ እናጣራዋለን።',
+    'Waxaan ku mahadcelinayaa warbixintaada. Dhawaan waa la dib-u-eegi doonaa.',
+  );
+
+  String get reportError =>
+      _t('Failed to submit. Please try again.', 'ማስገባቱ አልተሳካም። እንደገና ይሞክሩ።', 'Gudbigu wuu ku guul-darraystay. Isku day mar kale.');
+
+  String get reportAlreadyReported => _t(
+    'You have already reported this content.',
+    'ይህን ይዘት አስቀድመው ሪፖርት አድርገዋል።',
+    'Horay ayaad u soo gudbisay warbixinta qoraalkan.',
+  );
+
+  String get reportLoginRequired =>
+      _t('Please sign in to report content.', 'ሪፖርት ለማድረግ ይግቡ።', 'Gal si aad warbixin u gudbiso.');
+
+  String get reportSelfNotAllowed =>
+      _t('You cannot report your own content.', 'የራስዎን ይዘት ሪፖርት ማድረግ አይችሉም።', 'Adigu kuma soo warbixin kartid qoraalkaaga.');
+
+  String get reportMenuLabel =>
+      _t('Report', 'ሪፖርት አድርግ', 'Warbixin');
+
 }

@@ -146,6 +146,19 @@ class _HeroImageState extends State<_HeroImage> {
                       ),
                       const SizedBox(width: 8),
                     ],
+                    // Report button — only when NOT the owner
+                    if (!listing.isOwnedByCurrentUser) ...[
+                      _OverlayCircleButton(
+                        icon: Icons.flag_outlined,
+                        onPressed: () => showReportBottomSheet(
+                          context,
+                          targetType: 'listing',
+                          listingId: listing.id,
+                          reportedUserId: listing.sellerId,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     _OverlayCircleButton(
                       icon: Icons.share_outlined,
                       onPressed: () {

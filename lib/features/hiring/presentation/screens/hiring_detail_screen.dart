@@ -6,6 +6,7 @@ import '../../../../shared/models/service.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/share_service.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
+import '../../../../shared/widgets/report_bottom_sheet.dart';
 import '../../../../shared/widgets/similar_section.dart';
 part 'widgets/hiring_detail_picker.dart';
 part 'widgets/hiring_detail_hero.dart';
@@ -192,6 +193,18 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
         foregroundColor: cs.onSurface,
         elevation: 0,
         actions: [
+          // Report button — non-owner only
+          if (post.posterId != state.currentUser?.id)
+            IconButton(
+              icon: const Icon(Icons.flag_outlined),
+              tooltip: s.reportMenuLabel,
+              onPressed: () => showReportBottomSheet(
+                context,
+                targetType: 'hiring_post',
+                hiringPostId: post.id,
+                reportedUserId: post.posterId,
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
             tooltip: s.shareHiringSubject,
@@ -306,6 +319,35 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
               label: s.hiringLocationLabel,
               value: post.location,
             ),
+            // ── Report link — non-poster only ─────────────────────────
+            if (post.posterId != state.currentUser?.id) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => showReportBottomSheet(
+                  context,
+                  targetType: 'hiring_post',
+                  hiringPostId: post.id,
+                  reportedUserId: post.posterId,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.flag_outlined,
+                        size: 15, color: cs.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(
+                      s.reportMenuLabel,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             // ── Apply section ─────────────────────────────────────────
             if (_alreadyApplied) ...[

@@ -122,6 +122,34 @@ class _SellerCard extends StatelessWidget {
                 ),
               ],
             ),
+
+            // ── Report link — non-owner only ──────────────────────────
+            if (!listing.isOwnedByCurrentUser) ...[
+              const Divider(height: 24),
+              GestureDetector(
+                onTap: () => showReportBottomSheet(
+                  context,
+                  targetType: 'listing',
+                  listingId: listing.id,
+                  reportedUserId: listing.sellerId,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.flag_outlined,
+                        size: 15, color: cs.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(
+                      s.reportMenuLabel,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
