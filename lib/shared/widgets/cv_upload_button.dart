@@ -65,6 +65,7 @@ class _CvUploadButtonState extends State<CvUploadButton> {
               '${s.servicesCvTooLarge} (${(size / 1024 / 1024).toStringAsFixed(1)} MB / '
               '${(kCvMaxBytes / 1024 / 1024).toInt()} MB max)';
         });
+        break;
       case CvUploadQueued(
           fileName: final name,
           status: final status,
@@ -73,8 +74,10 @@ class _CvUploadButtonState extends State<CvUploadButton> {
           _pendingFileName = name;
           _pendingStatus = status;
         });
+        break;
       case CvUploadError(message: final msg):
         setState(() => _errorMessage = msg);
+        break;
     }
 
     widget.onResult(result);

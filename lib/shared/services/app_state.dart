@@ -27,6 +27,7 @@ import 'permission_service.dart';
 import 'recommendation_engine.dart';
 import 'supabase_repository.dart';
 import 'translation_service.dart';
+import 'cv_upload_service.dart';
 
 part 'parts/app_state_profile.dart';
 part 'parts/app_state_init.dart';

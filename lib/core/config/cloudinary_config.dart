@@ -1,8 +1,9 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Cloudinary credentials loaded from the `.env` file at runtime.
+/// Cloudinary credentials.
 ///
-/// Required keys in `.env`:
+/// Reads `--dart-define` first, then `.env` (same pattern as [AppSupabaseConfig]).
+/// Required keys:
 ///   CLOUD_NAME       – your Cloudinary cloud name
 ///   CLOUD_API_KEY    – API key (used to sign uploads)
 ///   CLOUD_API_SECRET – API secret (used to sign uploads, never sent to client
@@ -10,9 +11,25 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class CloudinaryConfig {
   CloudinaryConfig._();
 
-  static String get cloudName => dotenv.env['CLOUD_NAME'] ?? '';
-  static String get apiKey    => dotenv.env['CLOUD_API_KEY'] ?? '';
-  static String get apiSecret => dotenv.env['CLOUD_API_SECRET'] ?? '';
+  static const String _defineCloudName =
+      String.fromEnvironment('CLOUD_NAME');
+  static const String _defineApiKey =
+      String.fromEnvironment('CLOUD_API_KEY');
+  static const String _defineApiSecret =
+      String.fromEnvironment('CLOUD_API_SECRET');
+
+  static String _env(String define, String dotenvKey) {
+    if (define.isNotEmpty) return define;
+    try {
+      return dotenv.env[dotenvKey] ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static String get cloudName => _env(_defineCloudName, 'CLOUD_NAME');
+  static String get apiKey => _env(_defineApiKey, 'CLOUD_API_KEY');
+  static String get apiSecret => _env(_defineApiSecret, 'CLOUD_API_SECRET');
 
   /// Base URL for the Cloudinary upload API (signed uploads, images).
   static String get uploadUrl =>

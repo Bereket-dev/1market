@@ -123,7 +123,7 @@ class CvUploadService {
       result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-        withData: false,
+        withData: true,
         withReadStream: false,
       );
     } catch (e) {
@@ -135,11 +135,17 @@ class CvUploadService {
     }
 
     final picked = result.files.first;
-    final localPath = picked.path;
-    if (localPath == null) return CvUploadError('Could not read file path');
+    final persisted = await _persistPickedFile(
+      serviceId: serviceId,
+      picked: picked,
+    );
+    if (persisted == null) {
+      return CvUploadError('Could not read the selected file');
+    }
+    final file = persisted;
+    final localPath = file.path;
 
     // ── Size check ───────────────────────────────────────────────────────────
-    final file = File(localPath);
     int fileSize;
     try {
       fileSize = await file.length();
@@ -157,26 +163,28 @@ class CvUploadService {
       final client = Supabase.instance.client;
       if (client.auth.currentSession != null) {
         final userId = client.auth.currentUser?.id ?? 'unknown';
-        final result = await CloudinaryUploadService.instance.uploadRawFile(
+        final upload = await CloudinaryUploadService.instance.uploadRawFile(
           file: file,
           userId: userId,
           serviceId: serviceId,
         );
-        if (result is CloudinaryUploadSuccess) {
+        if (upload is CloudinaryUploadSuccess) {
+          await _box!.delete(serviceId);
           return CvUploadQueued(
-            remoteUrl: result.secureUrl,
+            remoteUrl: upload.secureUrl,
             localPath: localPath,
             fileName: fileName,
             status: SyncStatus.synced,
           );
-        } else if (result is CloudinaryUploadFailure) {
-          debugPrint('CV Cloudinary upload failed, will queue: ${result.message}');
-          // Fall through to offline queue.
+        } else if (upload is CloudinaryUploadFailure) {
+          if (!upload.message.startsWith('network:')) {
+            return CvUploadError(upload.message);
+          }
+          debugPrint('CV Cloudinary upload failed, will queue: ${upload.message}');
         }
       }
     } catch (e) {
       debugPrint('CV upload failed, will queue: $e');
-      // Fall through to offline queue.
     }
 
     // ── Offline queue ────────────────────────────────────────────────────────
@@ -194,6 +202,39 @@ class CvUploadService {
       fileName: fileName,
       status: SyncStatus.pending,
     );
+  }
+
+  /// Copies the picker result into app documents so the file survives cache
+  /// cleanup and still exists when an offline upload is flushed later.
+  Future<File?> _persistPickedFile({
+    required String serviceId,
+    required PlatformFile picked,
+  }) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final folder = Directory('${dir.path}/cv_uploads/$serviceId');
+    if (!folder.existsSync()) folder.createSync(recursive: true);
+
+    final rawName = picked.name;
+    final ext = rawName.contains('.')
+        ? '.${rawName.split('.').last.toLowerCase()}'
+        : '';
+    final dest = File('${folder.path}/cv$ext');
+
+    try {
+      if (await dest.exists()) await dest.delete();
+      if (picked.path != null) {
+        await File(picked.path!).copy(dest.path);
+        return dest;
+      }
+      final bytes = picked.bytes;
+      if (bytes != null) {
+        await dest.writeAsBytes(bytes, flush: true);
+        return dest;
+      }
+    } catch (e) {
+      debugPrint('CV persist failed: $e');
+    }
+    return null;
   }
 
   /// Retries any queued CV uploads. Called from the SyncService sync pass.
@@ -252,6 +293,22 @@ class CvUploadService {
       );
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Moves a queued upload from a local service id to the real Supabase id.
+  Future<void> rekeyPendingUpload(String oldServiceId, String newServiceId) async {
+    if (oldServiceId == newServiceId) return;
+    await initialize();
+    final raw = _box!.get(oldServiceId);
+    if (raw == null) return;
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      data['serviceId'] = newServiceId;
+      await _box!.put(newServiceId, jsonEncode(data));
+      await _box!.delete(oldServiceId);
+    } catch (e) {
+      debugPrint('CV rekey failed: $e');
     }
   }
 }

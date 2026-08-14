@@ -883,6 +883,21 @@ class AppStrings {
     'CV ተሰልፏል — ሲገናኙ ይጫናል',
     'CV waa la surayaa — marka internet la helo ayaa la soo raraa',
   );
+  String get servicesCvOpenFailed => _t(
+    'Could not open CV. Try copying the link.',
+    'ሲቪ መክፈት አልተቻለም። ሊንኩን ይቅዱ።',
+    'CV lama furi karin. Isku day inaad xiriirka koobiso.',
+  );
+  String get servicesCvLinkCopied => _t(
+    'CV link copied to clipboard',
+    'የሲቪ ሊንክ ወደ ቅንጥብ ሰሌዳ ተቀድቷል',
+    'Xiriirka CV waa la koobiyey',
+  );
+  String get servicesCvCopyLink => _t('Copy link', 'ሊንክ ቅዳ', 'Koobi xiriir');
+  String get servicesCvClose => _t('Close', 'ዝጋ', 'Xir');
+  String get servicesCvPreviewTitle => _t('CV Preview', 'የሲቪ ቅድመ እይታ', 'Horudhac CV');
+  String get servicesCvTapToPreview =>
+      _t('Tap to preview', 'ለመመልከት ይንኩ', 'Taabo si aad u aragto');
 
   // ── Hiring Posts ─────────────────────────────────────────────────────────────
   String get hiringTitle => _t('Hiring Posts', 'የቅጥር ልጥፎች', 'Xashiisyada Shaqada');

@@ -11,6 +11,7 @@ extension SyncServiceSyncpass on SyncService {
 
     // Flush any pending profile photo uploads first (avatar / banner).
     await _appState.flushPendingPhotoUploads();
+    await _appState.flushPendingCvUploads();
 
     final entries = await _loadPendingQueueEntries();
     for (final entry in entries) {

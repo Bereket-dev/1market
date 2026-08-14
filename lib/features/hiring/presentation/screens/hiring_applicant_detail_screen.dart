@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/rating_stars.dart';
@@ -9,6 +8,7 @@ import '../../../../shared/models/service.dart';
 import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
+import '../../../../shared/widgets/cv_viewer.dart';
 part 'widgets/hiring_applicant_detail_widgets.dart';
 part 'widgets/hiring_applicant_detail_helpers.dart';
 part 'widgets/hiring_applicant_detail_cv.dart';
@@ -116,45 +116,8 @@ class _HiringApplicantDetailScreenState
   }
 
   Future<void> _launchUrl(String url) async {
-    // Show the CV URL in a dialog and allow the user to copy it.
-    // (url_launcher is not in this project's dependencies.)
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          title: const Text('CV / Resume'),
-          content: SelectableText(
-            url,
-            style: TextStyle(
-              fontSize: 13,
-              color: cs.primary,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: url));
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('CV link copied to clipboard'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              child: const Text('Copy link'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
+    await _showCvDialog(context, url);
   }
 
   @override

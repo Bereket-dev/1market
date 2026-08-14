@@ -249,11 +249,15 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const _DetailRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
@@ -284,6 +288,11 @@ class _DetailRow extends StatelessWidget {
             ],
           ),
         ),
+        if (onAction != null && actionLabel != null)
+          TextButton(
+            onPressed: onAction,
+            child: Text(actionLabel!),
+          ),
       ],
     );
   }

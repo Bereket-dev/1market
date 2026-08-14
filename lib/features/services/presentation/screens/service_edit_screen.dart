@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
@@ -11,6 +10,7 @@ import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/cv_upload_service.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/cv_upload_button.dart';
+import '../../../../shared/widgets/cv_viewer.dart';
 import '../../../../shared/widgets/phone_prompt.dart';
 part 'widgets/service_edit_widgets.dart';
 part 'widgets/service_edit_form.dart';
@@ -492,9 +492,3 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CV Preview Card
-// Shows the existing CV filename, a copy-URL action, and an inline preview
-// note — without requiring url_launcher.
-// ─────────────────────────────────────────────────────────────────────────────

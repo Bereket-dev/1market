@@ -7,6 +7,7 @@ import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/share_service.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
+import '../../../../shared/widgets/cv_viewer.dart';
 import '../../../../shared/widgets/report_bottom_sheet.dart';
 import '../../../../shared/widgets/similar_section.dart';
 part 'widgets/service_detail_reviews.dart';
@@ -233,9 +234,18 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       _DetailRow(
                         icon: Icons.attach_file,
                         label: s.servicesDetailCv,
-                        value: service.cvFileUrl != null
-                            ? '${s.servicesDetailCvView}: ${service.cvFileUrl!.split('/').last}'
+                        value: service.cvFileUrl != null &&
+                                service.cvFileUrl!.isNotEmpty
+                            ? CvViewer.fileName(service.cvFileUrl!)
                             : s.servicesDetailNoCv,
+                        actionLabel: service.cvFileUrl != null &&
+                                service.cvFileUrl!.isNotEmpty
+                            ? s.servicesDetailCvView
+                            : null,
+                        onAction: service.cvFileUrl != null &&
+                                service.cvFileUrl!.isNotEmpty
+                            ? () => CvViewer.open(context, service.cvFileUrl!)
+                            : null,
                       ),
                       const SizedBox(height: 32),
                       const Divider(),

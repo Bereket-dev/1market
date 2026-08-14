@@ -150,6 +150,7 @@ extension AppStateServices on KoolanAppState {
           );
         }
         resolvedId = realId;
+        await CvUploadService.instance.rekeyPendingUpload(updated.id, realId);
       } else {
         await _repo!.updateService(updated.id, fields);
         final idx = allServices.indexWhere((s) => s.id == updated.id);
@@ -170,6 +171,25 @@ extension AppStateServices on KoolanAppState {
     }
     notifyListeners();
     return resolvedId;
+  }
+
+  /// Called by SyncService to flush queued CV uploads when back online.
+  Future<void> flushPendingCvUploads() async {
+    await CvUploadService.instance.flushPendingUploads(
+      onUploaded: (serviceId, remoteUrl) async {
+        var idx = allServices.indexWhere((s) => s.id == serviceId);
+        if (idx == -1) return;
+        allServices[idx] = allServices[idx].copyWith(cvFileUrl: remoteUrl);
+        notifyListeners();
+        try {
+          await _repo?.updateService(allServices[idx].id, {
+            'cv_file_url': remoteUrl,
+          });
+        } catch (e) {
+          debugPrint('[CvUpload] failed to persist URL for $serviceId: $e');
+        }
+      },
+    );
   }
 
   /// Called by SyncService after a successful push for an existing item.
@@ -205,6 +225,7 @@ extension AppStateServices on KoolanAppState {
       syncStatus: SyncStatus.synced,
     );
     notifyListeners();
+    unawaited(CvUploadService.instance.rekeyPendingUpload(localId, realId));
   }
 
   /// Called by SyncService after a new hiring post is inserted into Supabase.

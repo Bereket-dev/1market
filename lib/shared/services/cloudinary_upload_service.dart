@@ -190,13 +190,24 @@ class CloudinaryUploadService {
           'CLOUD_API_SECRET in .env');
     }
 
-    final fileName = p.basename(file.path);
-    final publicId = 'koolan/cvs/$userId/$serviceId/$fileName';
+    // Stable public_id so replacing a CV overwrites the previous file.
+    // Raw assets must include the extension in public_id.
+    final ext = p.extension(file.path).toLowerCase();
+    final safeExt = switch (ext) {
+      '.pdf' => '.pdf',
+      '.png' => '.png',
+      '.jpeg' || '.jpg' => '.jpg',
+      '.webp' => '.webp',
+      _ => ext.isNotEmpty ? ext : '.pdf',
+    };
+    final publicId = 'koolan/cvs/$userId/$serviceId/cv$safeExt';
     final timestamp =
         (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
 
-    // Sign using the same sorted-params + secret SHA-1 scheme.
+    // Sign every parameter except file, cloud_name, resource_type, api_key.
     final paramsToSign = {
+      'invalidate': 'true',
+      'overwrite': 'true',
       'public_id': publicId,
       'timestamp': timestamp,
     };
@@ -208,18 +219,27 @@ class CloudinaryUploadService {
         sha1.convert(utf8.encode('$sortedString${CloudinaryConfig.apiSecret}'))
             .toString();
 
+    final contentType = switch (safeExt) {
+      '.pdf' => http.MediaType('application', 'pdf'),
+      '.png' => http.MediaType('image', 'png'),
+      '.webp' => http.MediaType('image', 'webp'),
+      '.jpg' => http.MediaType('image', 'jpeg'),
+      _ => http.MediaType('application', 'octet-stream'),
+    };
+
     final uri = Uri.parse(CloudinaryConfig.rawUploadUrl);
     final request = http.MultipartRequest('POST', uri)
       ..fields['api_key'] = CloudinaryConfig.apiKey
       ..fields['timestamp'] = timestamp
       ..fields['public_id'] = publicId
+      ..fields['overwrite'] = 'true'
+      ..fields['invalidate'] = 'true'
       ..fields['signature'] = signature;
 
-    // Use application/octet-stream for all raw files (PDF, DOC, etc.)
     request.files.add(await http.MultipartFile.fromPath(
       'file',
       file.path,
-      contentType: http.MediaType('application', 'octet-stream'),
+      contentType: contentType,
     ));
 
     try {

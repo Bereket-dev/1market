@@ -2,8 +2,7 @@ part of '../service_edit_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CV Preview Card
-// Shows the existing CV filename, a copy-URL action, and an inline preview
-// note — without requiring url_launcher.
+// Shows the existing CV filename and opens a real preview / external viewer.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CvPreviewCard extends StatelessWidget {
@@ -17,129 +16,10 @@ class _CvPreviewCard extends StatelessWidget {
     required this.s,
   });
 
-  String get _fileName {
-    final parts = cvUrl.split('/');
-    return parts.isNotEmpty ? parts.last : cvUrl;
-  }
-
-  bool get _isImage {
-    final ext = cvUrl.toLowerCase().split('.').last.split('?').first;
-    return ['jpg', 'jpeg', 'png', 'webp'].contains(ext);
-  }
-
-  void _showPreviewDialog(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        contentPadding:
-            const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        title: Row(
-          children: [
-            Icon(Icons.description_rounded, color: cs.primary),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'CV Preview',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image preview if it's an image file
-            if (_isImage) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  cvUrl,
-                  fit: BoxFit.contain,
-                  loadingBuilder: (_, child, progress) => progress == null
-                      ? child
-                      : const Center(child: CircularProgressIndicator()),
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 120,
-                    color: cs.surfaceContainerHighest,
-                    child: Center(
-                      child: Icon(Icons.broken_image_rounded,
-                          color: cs.outline, size: 36),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            // File name
-            Text(
-              _fileName,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: cs.onSurface,
-                fontSize: 13,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            // URL (truncated)
-            Text(
-              cvUrl,
-              style: TextStyle(
-                  fontSize: 11, color: cs.onSurfaceVariant),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            // Copy URL chip
-            GestureDetector(
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: cvUrl));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('URL copied to clipboard')),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.copy_rounded,
-                        size: 14, color: cs.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Copy link',
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: cs.primary,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showPreviewDialog(context),
+      onTap: () => CvViewer.open(context, cvUrl),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -156,7 +36,7 @@ class _CvPreviewCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                _isImage
+                CvViewer.isImageUrl(cvUrl)
                     ? Icons.image_rounded
                     : Icons.picture_as_pdf_rounded,
                 color: cs.primary,
@@ -169,7 +49,7 @@ class _CvPreviewCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Current CV',
+                    s.servicesCurrentCv,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -178,7 +58,7 @@ class _CvPreviewCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _fileName,
+                    CvViewer.fileName(cvUrl),
                     style: TextStyle(
                       fontSize: 13,
                       color: cs.onSurface,
@@ -189,15 +69,13 @@ class _CvPreviewCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Tap to preview',
-                    style: TextStyle(
-                        fontSize: 11, color: cs.onSurfaceVariant),
+                    s.servicesCvTapToPreview,
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.visibility_rounded,
-                color: cs.primary, size: 18),
+            Icon(Icons.visibility_rounded, color: cs.primary, size: 18),
           ],
         ),
       ),
