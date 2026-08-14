@@ -2,6 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
+import '../services/cloudinary_url_builder.dart';
+
+/// Delivery size for Cloudinary transforms. Non-Cloudinary URLs pass through.
+enum CachedImageDelivery {
+  /// No transform — avatars, already-sized URLs, unknown sources.
+  raw,
+
+  /// Marketplace / feed cards (~320×240).
+  card,
+
+  /// Compact list rows (~240×180).
+  compact,
+
+  /// Detail hero (~800w).
+  hero,
+
+  /// Full-screen viewer (~1280w).
+  full,
+}
+
 /// A cache manager that keeps images for 90 days and holds up to 2 000 files.
 /// Using a named singleton ensures every widget shares the same on-disk store.
 class KoolanImageCacheManager extends CacheManager with ImageCacheManager {
@@ -29,6 +49,7 @@ class CachedImageWidget extends StatelessWidget {
   final BorderRadius? borderRadius;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final CachedImageDelivery delivery;
 
   const CachedImageWidget({
     super.key,
@@ -39,13 +60,24 @@ class CachedImageWidget extends StatelessWidget {
     this.borderRadius,
     this.placeholder,
     this.errorWidget,
+    this.delivery = CachedImageDelivery.raw,
   });
+
+  String get _resolvedUrl => switch (delivery) {
+        CachedImageDelivery.raw => imageUrl,
+        CachedImageDelivery.card => CloudinaryUrlBuilder.card(imageUrl),
+        CachedImageDelivery.compact => CloudinaryUrlBuilder.compact(imageUrl),
+        CachedImageDelivery.hero => CloudinaryUrlBuilder.hero(imageUrl),
+        CachedImageDelivery.full => CloudinaryUrlBuilder.full(imageUrl),
+      };
 
   @override
   Widget build(BuildContext context) {
+    final resolvedUrl = _resolvedUrl;
+
     // Show the error/placeholder widget immediately for empty URLs —
     // no network request attempted, no spinner shown.
-    if (imageUrl.isEmpty) {
+    if (resolvedUrl.isEmpty) {
       final fallback = errorWidget ??
           Container(
             width: width,
@@ -60,7 +92,7 @@ class CachedImageWidget extends StatelessWidget {
     }
 
     Widget imageWidget = CachedNetworkImage(
-      imageUrl: imageUrl,
+      imageUrl: resolvedUrl,
       cacheManager: KoolanImageCacheManager.instance,
       fit: fit,
       width: width,
@@ -81,7 +113,7 @@ class CachedImageWidget extends StatelessWidget {
             color: Colors.grey[300],
             child: const Icon(Icons.image_not_supported, color: Colors.grey),
           ),
-      cacheKey: imageUrl,
+      cacheKey: resolvedUrl,
       fadeInDuration: const Duration(milliseconds: 200),
       fadeOutDuration: const Duration(milliseconds: 200),
     );

@@ -178,6 +178,7 @@ class SavedListingImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CachedImageWidget(
       imageUrl: imageUrl,
+      delivery: CachedImageDelivery.compact,
       fit: BoxFit.cover,
       width: width,
       height: height,

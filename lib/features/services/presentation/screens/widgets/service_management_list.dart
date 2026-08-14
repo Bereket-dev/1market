@@ -123,6 +123,7 @@ class _ServiceCard extends StatelessWidget {
                 child: service.imageUrl.isNotEmpty
                     ? CachedImageWidget(
                         imageUrl: service.imageUrl,
+                        delivery: CachedImageDelivery.compact,
                         width: 80,
                         height: 80,
                         fit: BoxFit.cover,

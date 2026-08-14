@@ -47,6 +47,7 @@ class PremiumClassifiedCard extends StatelessWidget {
                 children: [
                   CachedImageWidget(
                     imageUrl: listing.imageUrl,
+                    delivery: CachedImageDelivery.card,
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: 120,

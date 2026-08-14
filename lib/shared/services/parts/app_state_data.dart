@@ -201,13 +201,16 @@ extension AppStateData on KoolanAppState {
     String? userId,
     bool forceRefresh = false,
   }) async {
+    marketRepo.beginSyncCycle();
+
     // Use the profile's city field as the regional anchor.
     // profile is loaded in P2, so it may be null on first ever launch —
     // _regionalTiers defaults to Jigjiga in that case.
     final userCity = profile?.city;
 
     if (userCity != null && !forceRefresh) {
-      // Tiered regional sync: city → nearby → all.
+      // Tiered regional sync on updated_at fallback; no-ops to one version
+      // pass when the monotonic cursor is active.
       await marketRepo.syncWithRegionalPriority(
         userCity: userCity,
         currentUserId: userId,
@@ -355,22 +358,24 @@ extension AppStateData on KoolanAppState {
 
     await HiveSyncStore.instance.setInProgressEntity(null);
 
-    // ── Phase 4: bootstrap the version cursor ─────────────────────────────
+    // ── Phase 4: bootstrap version cursor to server tip ───────────────────
     //
-    // After a cold seed the local mirror is populated but getSyncVersion()
-    // returns null, so syncViaCursorVersion() always falls back to the
-    // updated_at path.  Seeding version = 0 here means the very next sync
-    // will call get_changes_since(0), receive all current changes, and
-    // advance the cursor to the latest version — activating the monotonic
-    // version-cursor path from that point onwards.
+    // After cold seed the mirror is populated via full-page fetch. Jump the
+    // monotonic cursor to max(marketplace_changes.version) WITHOUT replaying
+    // change-log payloads (that would re-download everything). Subsequent
+    // syncs then use get_changes_since(tip) for true deltas.
     //
-    // Only seed if no version is already stored so we never overwrite a
+    // Only bootstrap when no version is stored so we never overwrite a
     // valid high-water mark from a previous session.
     final existingVersion = HiveSyncStore.instance.getSyncVersion();
     if (existingVersion == null) {
-      await HiveSyncStore.instance.setSyncVersion(0);
+      final tip = await marketRepo.bootstrapSyncVersionToLatest();
       if (kDebugMode) {
-        debugPrint('[coldSeed] seeded sync_version=0 — version cursor active on next sync');
+        debugPrint(
+          tip == null
+              ? '[coldSeed] version cursor bootstrap skipped (RPC unavailable)'
+              : '[coldSeed] version cursor bootstrapped to v$tip',
+        );
       }
     }
   }

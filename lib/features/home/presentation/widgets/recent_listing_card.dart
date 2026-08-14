@@ -40,6 +40,7 @@ class RecentListingCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     child: CachedImageWidget(
                       imageUrl: listing.imageUrl,
+                      delivery: CachedImageDelivery.compact,
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,

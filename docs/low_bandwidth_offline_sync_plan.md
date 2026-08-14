@@ -503,9 +503,9 @@ LIMIT 100
 
 #### 1.5 Image thumbnails for cards
 
-- [ ] Add `lib/shared/services/cloudinary_url_builder.dart` with size presets.
-- [ ] Update card widgets to use thumbnail URLs.
-- [ ] Upload pipeline: request eager transformations or store `public_id`.
+- [x] Add `lib/shared/services/cloudinary_url_builder.dart` with size presets.
+- [x] Update feed/card widgets via `CachedImageDelivery` on `CachedImageWidget` (card/compact).
+- [ ] Upload pipeline: request eager transformations or store `public_id` (optional; dual-read already handles legacy URLs).
 
 #### 1.6 Stale-while-revalidate UI
 
@@ -614,12 +614,16 @@ LIMIT 100
 
 - [x] `marketplace_changes` table + triggers on listings/services/hiring_posts (`026_marketplace_changes.sql`).
 - [x] RPC: `get_changes_since(version)` (same migration).
+- [x] RPC: `get_latest_sync_version()` (`027_get_latest_sync_version.sql`) for tip bootstrap without payload replay.
 - [x] Client migrates from `updated_at` cursor to monotonic version (`MarketplaceRepository.syncViaCursorVersion`, Hive `getSyncVersion` / `setSyncVersion`).
-- [x] Cold-seed bootstrap: after Priority-1 seed, `setSyncVersion(0)` so the next sync activates the version-cursor path.
+- [x] Cold-seed / null-cursor bootstrap: jump to server tip via `bootstrapSyncVersionToLatest()` (never `setSyncVersion(0)` + full replay).
+- [x] One version pass per refresh cycle (`beginSyncCycle` + coalesce); TTL stamped on empty success.
+- [x] Heal devices stuck at `sync_version=0` by jumping to tip when the log has advanced.
 
 #### 4.2 Regional priority sync
 
-- [x] Tiered prefetch for Jijiga → Dire Dawa → other (`MarketplaceRepository.syncWithRegionalPriority`, wired from `app_state_data`).
+- [x] Tiered prefetch for Jijiga → Dire Dawa → other on the **updated_at fallback** path (`syncWithRegionalPriority`).
+- [x] When the version cursor is active, regional city loops are skipped (change log is global).
 
 #### 4.3 SQLite / Drift evaluation
 
@@ -640,6 +644,7 @@ LIMIT 100
 | `0xx_add_deleted_at.sql` | Tombstone sync for listings/services/hiring | 1 |
 | `0xx_list_summary_view.sql` | Optional view for card-optimized rows | 1 |
 | `026_marketplace_changes.sql` | Change log + triggers + `get_changes_since` RPC | 4 ✅ |
+| `027_get_latest_sync_version.sql` | Tip bootstrap RPC (no payload replay) | 4 ✅ |
 
 **Phase 1 `deleted_at` example:**
 

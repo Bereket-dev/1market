@@ -8,6 +8,7 @@ import '../models/hiring_post.dart';
 import '../models/listing.dart';
 import '../models/service.dart';
 import 'image_prefetch_service.dart';
+import 'cloudinary_url_builder.dart';
 import 'offline/hive_sync_store.dart';
 import 'search_index_service.dart';
 import 'supabase_repository.dart';
@@ -67,11 +68,20 @@ class MarketplaceRepository {
   static const _kServicesTtl    = Duration(minutes: 10);
   static const _kHiringPostsTtl = Duration(minutes: 10);
 
-  // ── Phase 4: concurrency guard for the shared version-cursor pass ────────
+  // ── Phase 4: concurrency / coalesce guards for the shared version pass ───
   //
-  // Only one `syncViaCursorVersion` call runs at a time.  Any concurrent
-  // caller waits on the same Completer instead of issuing a duplicate RPC.
+  // Only one `syncViaCursorVersion` call runs at a time. Concurrent callers
+  // await the same Completer. Sequential callers in the same sync cycle
+  // (listings → services → hiring) reuse [_versionSyncedThisCycle] so we
+  // never issue duplicate get_changes_since RPCs in one refresh.
   Completer<bool>? _versionSyncCompleter;
+  bool _versionSyncedThisCycle = false;
+
+  /// Clears the per-refresh coalesce flag. Call at the start of each inbound
+  /// sync pass (P1 / regional) so a new refresh can run the version cursor.
+  void beginSyncCycle() {
+    _versionSyncedThisCycle = false;
+  }
 
   // ── Bandwidth byte counter ────────────────────────────────────────────────
 
@@ -144,24 +154,26 @@ class MarketplaceRepository {
   /// Syncs all three entity types in a single pass using the monotonic
   /// marketplace_changes version cursor.
   ///
-  /// Returns `true` when the version cursor existed (> 0) and was used,
-  /// `false` when there is no version cursor so callers must fall back to the
-  /// per-entity updated_at cursor.
+  /// Returns `true` when the version cursor is active and was used (or is
+  /// already caught up for this sync cycle), `false` when callers must fall
+  /// back to the per-entity updated_at cursor.
   ///
-  /// Concurrent callers share one in-flight pass: only the first caller
-  /// actually issues RPC calls; the rest await the same [Completer].
+  /// Concurrent callers share one in-flight pass. Sequential callers in the
+  /// same cycle (after [beginSyncCycle]) reuse the first result without a
+  /// second RPC.
   ///
-  /// Pass [forceRefresh] = true to bypass the TTL check that would otherwise
-  /// skip a version-cursor pass when all entities are still fresh.
-  ///
-  /// [userCity] is accepted for API uniformity but is not applied inside the
-  /// version-cursor pass — the changes log is region-agnostic. City filtering
-  /// is only applied in the updated_at delta fallback path.
+  /// [userCity] is accepted for API uniformity but is not applied — the
+  /// changes log is region-agnostic. City filtering applies only on the
+  /// updated_at fallback path.
   Future<bool> syncViaCursorVersion({
     bool forceRefresh = false,
     String? userCity,
   }) async {
-    // If a version-cursor pass is already in flight, piggyback on it.
+    // Already completed a version pass in this sync cycle — reuse result.
+    if (_versionSyncedThisCycle) {
+      return _store.getSyncVersion() != null;
+    }
+
     final existing = _versionSyncCompleter;
     if (existing != null && !existing.isCompleted) {
       return existing.future;
@@ -172,46 +184,105 @@ class MarketplaceRepository {
 
     try {
       final result = await _syncViaVersionCursor(forceRefresh: forceRefresh);
+      if (result) _versionSyncedThisCycle = true;
       completer.complete(result);
     } catch (e, st) {
       completer.completeError(e, st);
+    } finally {
+      _versionSyncCompleter = null;
     }
 
     return completer.future;
   }
 
+  /// Boots the version cursor to the server high-water mark without replaying
+  /// change-log payloads. Safe when the local mirror was filled by cold seed
+  /// or updated_at delta.
+  Future<int?> bootstrapSyncVersionToLatest() async {
+    try {
+      final latest = await _remote.getLatestSyncVersion();
+      await _store.setSyncVersion(latest);
+      if (kDebugMode) {
+        debugPrint(
+          '[MarketplaceRepo] bootstrapped sync_version=$latest '
+          '(no change-log replay)',
+        );
+      }
+      return latest;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MarketplaceRepo] bootstrap sync_version failed: $e');
+      }
+      return null;
+    }
+  }
+
+  Future<void> _stampAllEntityFetchedAt() async {
+    final now = DateTime.now().toUtc();
+    await _store.setLastFetchedAt(_kListings, now);
+    await _store.setLastFetchedAt(_kServices, now);
+    await _store.setLastFetchedAt(_kHiringPosts, now);
+  }
+
   /// Internal implementation of the version-cursor sync pass.
-  ///
-  /// Fetches from marketplace_changes in batches of [_kChangesBatchSize],
-  /// dispatches each change to the appropriate merge helper, advances the
-  /// version cursor and per-entity timestamp cursors.
   Future<bool> _syncViaVersionCursor({bool forceRefresh = false}) async {
-    final storedVersion = _store.getSyncVersion();
+    var storedVersion = _store.getSyncVersion();
 
-    // No version cursor yet — tell the caller to use updated_at fallback.
-    if (storedVersion == null || storedVersion <= 0) return false;
+    // Uninitialized — jump to tip without replaying history.
+    if (storedVersion == null) {
+      final bootstrapped = await bootstrapSyncVersionToLatest();
+      if (bootstrapped == null) return false;
+      await _stampAllEntityFetchedAt();
+      return true;
+    }
 
-    // If none of the entities need refreshing, skip the network pass.
+    // Heal sync_version=0 written by the broken cold-seed bootstrap while the
+    // change log already had rows. Mirror stayed current via updated_at.
+    if (storedVersion == 0) {
+      try {
+        final latest = await _remote.getLatestSyncVersion();
+        if (latest > 0) {
+          await _store.setSyncVersion(latest);
+          await _stampAllEntityFetchedAt();
+          if (kDebugMode) {
+            debugPrint(
+              '[MarketplaceRepo] healed sync_version 0 → $latest (no replay)',
+            );
+          }
+          return true;
+        }
+        // latest == 0: empty log; 0 is a valid caught-up cursor — continue.
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[MarketplaceRepo] heal sync_version=0 failed: $e');
+        }
+        return false;
+      }
+    }
+
     final allFresh = !forceRefresh &&
-        _isFresh(_kListings,    _kListingsTtl,    forceRefresh: false) &&
-        _isFresh(_kServices,    _kServicesTtl,    forceRefresh: false) &&
+        _isFresh(_kListings, _kListingsTtl, forceRefresh: false) &&
+        _isFresh(_kServices, _kServicesTtl, forceRefresh: false) &&
         _isFresh(_kHiringPosts, _kHiringPostsTtl, forceRefresh: false);
 
     if (allFresh) {
       if (kDebugMode) {
-        debugPrint('[MarketplaceRepo] version cursor: all entities fresh — skipping');
+        debugPrint(
+          '[MarketplaceRepo] version cursor: all entities fresh — skipping',
+        );
       }
       return true;
     }
 
     if (kDebugMode) {
-      debugPrint('[MarketplaceRepo] version cursor sync starting from v$storedVersion');
+      debugPrint(
+        '[MarketplaceRepo] version cursor sync starting from v$storedVersion',
+      );
     }
 
     var version = storedVersion;
     var totalChanges = 0;
 
-    // Track per-entity max changedAt for updating the timestamp cursors.
     DateTime? maxListingChangedAt;
     DateTime? maxServiceChangedAt;
     DateTime? maxHiringPostChangedAt;
@@ -227,8 +298,6 @@ class MarketplaceRepository {
 
         totalChanges += changes.length;
 
-        // Count bandwidth for this batch (non-null payloads only; tombstones
-        // are tiny and skipped for simplicity).
         final payloads = changes
             .where((c) => c.payload != null)
             .map((c) => c.payload!)
@@ -239,30 +308,27 @@ class MarketplaceRepository {
           final estimatedBytes = changes.length * 300;
           debugPrint(
             '[MarketplaceRepo] version cursor: received ${changes.length} changes '
-            '(~$estimatedBytes bytes estimated), v${changes.first.version}..v${changes.last.version}',
+            '(~$estimatedBytes bytes estimated), '
+            'v${changes.first.version}..v${changes.last.version}',
           );
         }
 
-        // Bucket the changes by entity type so we can call the right merge.
-        final listingRows    = <Map<String, dynamic>>[];
-        final serviceRows    = <Map<String, dynamic>>[];
+        final listingRows = <Map<String, dynamic>>[];
+        final serviceRows = <Map<String, dynamic>>[];
         final hiringPostRows = <Map<String, dynamic>>[];
 
         for (final change in changes) {
-          final isDelete = change.operation == 'DELETE' || change.payload == null;
+          final isDelete =
+              change.operation == 'DELETE' || change.payload == null;
 
           switch (change.entityType) {
             case 'listing':
               if (isDelete) {
                 await _store.deleteListingMirror(change.entityId);
                 await SearchIndexService.instance.removeEntity(change.entityId);
-                if (kDebugMode) {
-                  debugPrint('[MarketplaceRepo] Tombstoned listing ${change.entityId} (version cursor)');
-                }
               } else {
                 listingRows.add(change.payload!);
               }
-              // Track max changedAt for this entity type.
               if (maxListingChangedAt == null ||
                   change.changedAt.isAfter(maxListingChangedAt)) {
                 maxListingChangedAt = change.changedAt;
@@ -272,9 +338,6 @@ class MarketplaceRepository {
               if (isDelete) {
                 await _store.deleteServiceMirror(change.entityId);
                 await SearchIndexService.instance.removeEntity(change.entityId);
-                if (kDebugMode) {
-                  debugPrint('[MarketplaceRepo] Tombstoned service ${change.entityId} (version cursor)');
-                }
               } else {
                 serviceRows.add(change.payload!);
               }
@@ -287,9 +350,6 @@ class MarketplaceRepository {
               if (isDelete) {
                 await _store.deleteHiringPostMirror(change.entityId);
                 await SearchIndexService.instance.removeEntity(change.entityId);
-                if (kDebugMode) {
-                  debugPrint('[MarketplaceRepo] Tombstoned hiring post ${change.entityId} (version cursor)');
-                }
               } else {
                 hiringPostRows.add(change.payload!);
               }
@@ -300,13 +360,13 @@ class MarketplaceRepository {
 
             default:
               if (kDebugMode) {
-                debugPrint('[MarketplaceRepo] unknown entity_type: ${change.entityType}');
+                debugPrint(
+                  '[MarketplaceRepo] unknown entity_type: ${change.entityType}',
+                );
               }
           }
         }
 
-        // Merge non-deleted payloads through the existing merge helpers so all
-        // eviction / search-index logic is applied consistently.
         if (listingRows.isNotEmpty) {
           await _mergeListingsDelta(listingRows);
           _scheduleImagePrefetch(listingRows);
@@ -320,33 +380,28 @@ class MarketplaceRepository {
           _scheduleImagePrefetch(hiringPostRows);
         }
 
-        // Advance the version cursor to the highest version seen.
-        final maxVersion = changes.map((c) => c.version).reduce(
-          (a, b) => a > b ? a : b,
-        );
+        final maxVersion = changes
+            .map((c) => c.version)
+            .reduce((a, b) => a > b ? a : b);
         if (maxVersion > version) {
           version = maxVersion;
           await _store.setSyncVersion(version);
         }
 
-        // Stop when the batch was smaller than the page size — no more rows.
         if (changes.length < _kChangesBatchSize) break;
       }
 
-      // After a successful pass, advance the per-entity timestamp cursors so
-      // the updated_at fallback stays accurate.
-      final now = DateTime.now().toUtc();
+      // Always stamp TTLs after a successful pass (including empty).
+      await _stampAllEntityFetchedAt();
+
       if (maxListingChangedAt != null) {
         await _store.setSyncCursor(_kListings, maxListingChangedAt);
-        await _store.setLastFetchedAt(_kListings, now);
       }
       if (maxServiceChangedAt != null) {
         await _store.setSyncCursor(_kServices, maxServiceChangedAt);
-        await _store.setLastFetchedAt(_kServices, now);
       }
       if (maxHiringPostChangedAt != null) {
         await _store.setSyncCursor(_kHiringPosts, maxHiringPostChangedAt);
-        await _store.setLastFetchedAt(_kHiringPosts, now);
       }
 
       if (kDebugMode && totalChanges > 0) {
@@ -632,33 +687,43 @@ class MarketplaceRepository {
     return [city, ...others];
   }
 
-  /// Runs a tiered regional sync, making local data available in priority order:
+  /// Runs a tiered regional sync on the updated_at fallback path only.
   ///
-  ///   Pass 1 — user's own city (or Jigjiga default) — loads fastest.
-  ///   Pass 2 — nearby cities (Dire Dawa, Harar) — medium priority.
-  ///   Pass 3 — no city filter (all regions, delta only, respects TTL).
+  /// When the version cursor is active, the change log is global — regional
+  /// city filters do not apply, so this method runs a single version pass and
+  /// returns (avoiding N city × 3 entity network loops).
   ///
-  /// Passes 1 and 2 filter by city and do not advance the global sync cursor
-  /// (so Pass 3 still fetches the full un-filtered delta). Pass 3 uses the
-  /// standard no-filter path, which does advance cursors and TTL stamps.
+  /// Otherwise:
+  ///   Pass 1 — user's own city (or Jigjiga default).
+  ///   Pass 2 — nearby cities (Dire Dawa, Harar) then other majors.
+  ///   Pass 3 — no city filter (advances global cursors + TTL).
   ///
-  /// [currentUserId] and [savedIds] are forwarded to the listing loader so
-  /// saved/owned flags are applied correctly.
+  /// Passes 1–2 do not advance the global sync cursor.
   Future<void> syncWithRegionalPriority({
     required String? userCity,
     required String? currentUserId,
     required Set<String> savedIds,
     bool forceRefresh = false,
   }) async {
+    beginSyncCycle();
+
+    // Version cursor is region-agnostic — one pass covers all cities.
+    final usedVersion = await syncViaCursorVersion(forceRefresh: forceRefresh);
+    if (usedVersion) {
+      if (kDebugMode) {
+        debugPrint(
+          '[MarketplaceRepo] regional sync skipped — version cursor active',
+        );
+      }
+      return;
+    }
+
     final tiers = _regionalTiers(userCity);
 
     if (kDebugMode) {
       debugPrint('[MarketplaceRepo] regional sync tiers: $tiers');
     }
 
-    // Pass 1: user's city (tier[0]).
-    // Pass 2: remaining cities from tier 2 (tiers[1..]).
-    // These passes do NOT advance global cursors (userCity != null path).
     for (final city in tiers) {
       await syncListingsDelta(
         currentUserId: currentUserId,
@@ -674,8 +739,6 @@ class MarketplaceRepository {
       }
     }
 
-    // Pass 3: no city filter — fetches all remaining regions and advances
-    // the global updated_at cursors + TTL stamps.
     if (kDebugMode) {
       debugPrint('[MarketplaceRepo] regional pass 3: full delta (no city filter)');
     }
@@ -834,11 +897,15 @@ class MarketplaceRepository {
     final urls = <String>[];
     for (final row in rows) {
       final primary = row['image_url'] as String?;
-      if (primary != null && primary.isNotEmpty) urls.add(primary);
+      if (primary != null && primary.isNotEmpty) {
+        urls.add(CloudinaryUrlBuilder.card(primary));
+      }
       final gallery = row['image_urls'];
       if (gallery is List && gallery.isNotEmpty) {
         final first = gallery.first;
-        if (first is String && first.isNotEmpty) urls.add(first);
+        if (first is String && first.isNotEmpty) {
+          urls.add(CloudinaryUrlBuilder.card(first));
+        }
       }
     }
     ImagePrefetchService.instance.scheduleCardImages(urls);

@@ -160,6 +160,23 @@ extension SupabaseRepositoryListings on SupabaseRepository {
 
   // ── Phase 4: monotonic version-cursor sync ─────────────────────────────────
 
+  /// Returns the current high-water mark from [marketplace_changes], or 0 when
+  /// the change log is empty.
+  ///
+  /// Used to bootstrap the client cursor after cold seed / first upgrade so we
+  /// never replay the full payload history via [getChangesSince].
+  Future<int> getLatestSyncVersion() async {
+    final response = await _client.rpc('get_latest_sync_version');
+    if (response == null) return 0;
+    if (response is num) return response.toInt();
+    if (response is String) return int.tryParse(response) ?? 0;
+    assert(
+      false,
+      '[getLatestSyncVersion] unexpected RPC response type: ${response.runtimeType}',
+    );
+    return 0;
+  }
+
   /// Calls the [get_changes_since] Postgres RPC and returns the raw response
   /// decoded as a list of [MarketplaceChange] objects.
   ///

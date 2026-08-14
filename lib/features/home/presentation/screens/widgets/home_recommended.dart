@@ -211,6 +211,7 @@ class _RecommendationCard extends StatelessWidget {
               child: item.imageUrl != null && item.imageUrl!.isNotEmpty
                   ? CachedImageWidget(
                       imageUrl: item.imageUrl!,
+                      delivery: CachedImageDelivery.card,
                       width: 160,
                       height: 96,
                       fit: BoxFit.cover,
