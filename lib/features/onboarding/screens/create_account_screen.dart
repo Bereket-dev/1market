@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
 part 'widgets/create_account_form.dart';
 part 'widgets/create_account_body.dart';
@@ -107,18 +108,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     );
   }
 
-  String _friendlyError(String msg) {
-    final lower = msg.toLowerCase();
-    if (lower.contains('not authenticated') ||
-        lower.contains('user not confirmed') ||
-        lower.contains('email not confirmed') ||
-        lower.contains('confirmation required') ||
-        lower.contains('verify your email') ||
-        lower.contains('confirm your email')) {
-      return KoolanAppStateScope.of(context).s.authConfirmationRequired;
-    }
-    return msg;
-  }
+  String _mapError(Object error) =>
+      ErrorMapper.userMessage(error, KoolanAppStateScope.of(context).s);
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
@@ -156,9 +147,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       }
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = _friendlyError(e.message));
+      setState(() => _error = _mapError(e));
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = _mapError(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

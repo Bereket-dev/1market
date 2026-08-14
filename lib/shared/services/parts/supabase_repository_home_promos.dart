@@ -11,8 +11,10 @@ extension SupabaseRepositoryHomePromos on SupabaseRepository {
         .select('slot, headline, subtitle, image_url, theme')
         .order('slot', ascending: true);
 
-    return (rows as List)
-        .map((row) => HomePromo.fromJson(row as Map<String, dynamic>))
-        .toList();
+    return SafeParse.mapList(
+      rows as List,
+      HomePromo.fromJson,
+      context: 'home_promos',
+    );
   }
 }

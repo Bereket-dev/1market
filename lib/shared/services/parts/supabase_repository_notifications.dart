@@ -13,7 +13,11 @@ extension SupabaseRepositoryNotifications on SupabaseRepository {
         .select()
         .eq('user_id', userId)
         .order('created_at', ascending: false);
-    return (rows as List).cast<Map<String, dynamic>>();
+    return SafeParse.mapList(
+      rows as List,
+      (row) => Map<String, dynamic>.from(row as Map),
+      context: 'notifications',
+    );
   }
 
   Future<void> insertNotification({
@@ -50,7 +54,11 @@ extension SupabaseRepositoryNotifications on SupabaseRepository {
         .eq('id', userId)
         .maybeSingle();
     if (data == null) return null;
-    return UserProfile.fromJson(data);
+    return SafeParse.tryMap(
+      Map<String, dynamic>.from(data),
+      UserProfile.fromJson,
+      context: 'public_profile',
+    );
   }
 
   /// Fetches all service reviews received by [userId] in a single join query.
@@ -61,21 +69,24 @@ extension SupabaseRepositoryNotifications on SupabaseRepository {
         .eq('services.owner_id', userId)
         .order('created_at', ascending: false);
 
-    return (rows as List).map((row) {
-      final r = row as Map<String, dynamic>;
-      final profile = r['profiles'] as Map<String, dynamic>?;
-      return ServiceReview(
-        id: r['id'] as String,
-        serviceId: r['service_id'] as String,
-        reviewerId: r['reviewer_id'] as String,
-        rating: (r['rating'] as num?)?.toInt() ?? 3,
-        comment: r['comment'] as String? ?? '',
-        createdAt:
-            DateTime.tryParse(r['created_at'] as String? ?? '') ??
-                DateTime.now(),
-        reviewerName: profile?['display_name'] as String?,
-        reviewerAvatarUrl: profile?['avatar_url'] as String?,
-      );
-    }).toList();
+    return SafeParse.mapList(
+      rows as List,
+      (r) {
+        final profile = r['profiles'] as Map<String, dynamic>?;
+        return ServiceReview(
+          id: r['id'] as String,
+          serviceId: r['service_id'] as String,
+          reviewerId: r['reviewer_id'] as String,
+          rating: (r['rating'] as num?)?.toInt() ?? 3,
+          comment: r['comment'] as String? ?? '',
+          createdAt:
+              DateTime.tryParse(r['created_at'] as String? ?? '') ??
+                  DateTime.now(),
+          reviewerName: profile?['display_name'] as String?,
+          reviewerAvatarUrl: profile?['avatar_url'] as String?,
+        );
+      },
+      context: 'reviews_for_user',
+    );
   }
 }

@@ -77,7 +77,7 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _submitError = e.toString());
+      setState(() => _submitError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

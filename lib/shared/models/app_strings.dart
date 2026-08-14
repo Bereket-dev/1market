@@ -619,6 +619,119 @@ class AppStrings {
   String get initLoading => _t('Loading…', 'በመጫን ላይ…', 'Waa la soo rarayaa…');
   String get initRetry => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
 
+  // ── Safe error messages (never show raw exceptions) ─────────────────────────
+  String get errorNetwork => _t(
+        'No internet connection. Check your network and try again.',
+        'የበይነመረብ ግንኙነት የለም። ግንኙነትዎን ያረጋግጡና እንደገና ይሞክሩ።',
+        'Xiriir internet ma jiro. Hubi shabakaddaada oo isku day mar kale.',
+      );
+  String get errorTimeout => _t(
+        'The request timed out. Please try again.',
+        'ጥያቄው ጊዜው አልፏል። እባክዎ እንደገና ይሞክሩ።',
+        'Codsiga wuu dhacay. Fadlan isku day mar kale.',
+      );
+  String get errorSessionExpired => _t(
+        'Your session expired. Please sign in again.',
+        'ክፍለ ጊዜዎ አልፏል። እባክዎ እንደገና ይግቡ።',
+        'Fadhigaga wuu dhacay. Fadlan gal mar kale.',
+      );
+  String get errorUnauthorized => _t(
+        'Please sign in to continue.',
+        'ለመቀጠል እባክዎ ይግቡ።',
+        'Fadlan gal si aad u sii wadato.',
+      );
+  String get errorForbidden => _t(
+        'You do not have permission to do that.',
+        'ያንን ለማድረግ ፈቃድ የለዎትም።',
+        'Ma lihid ogolaansho inaad taas sameyso.',
+      );
+  String get errorNotFound => _t(
+        'We could not find that item.',
+        'ያንን ንጥል ማግኘት አልቻልንም።',
+        'Waan heli Karin shaygaas.',
+      );
+  String get errorValidation => _t(
+        'Please check your input and try again.',
+        'እባክዎ ግብዓትዎን ያረጋግጡና እንደገና ይሞክሩ።',
+        'Fadlan hubi gelintaada oo isku day mar kale.',
+      );
+  String get errorCancelled => _t(
+        'Cancelled.',
+        'ተሰርዟል።',
+        'Waa la joojiyey.',
+      );
+  String get errorServer => _t(
+        'Something went wrong on our side. Please try again later.',
+        'በእኛ በኩል ችግር ተፈጥሯል። እባክዎ ቆይተው እንደገና ይሞክሩ።',
+        'Waxbaa khaldamay dhinaceena. Fadlan isku day mar dambe.',
+      );
+  String get errorUnknown => _t(
+        'Something went wrong. Please try again.',
+        'የሆነ ችግር ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።',
+        'Waxbaa khaldamay. Fadlan isku day mar kale.',
+      );
+  String get errorAuthGeneric => _t(
+        'Sign-in failed. Please try again.',
+        'መግባት አልተሳካም። እባክዎ እንደገና ይሞክሩ።',
+        'Galitaanku wuu fashilmay. Fadlan isku day mar kale.',
+      );
+  String get errorInvalidCredentials => _t(
+        'Incorrect email or password.',
+        'ትክክል ያልሆነ ኢሜይል ወይም የይለፍ ቃል።',
+        'Iimayl ama erayga sirta ah waa khalad.',
+      );
+  String get errorEmailAlreadyRegistered => _t(
+        'An account with this email already exists.',
+        'በዚህ ኢሜይል የተመዘገበ መለያ አለ።',
+        'Akoon ku jira iimaylkan ayaa hore u jira.',
+      );
+  String get errorCantConnect => _t(
+        'Can’t connect right now.',
+        'አሁን መገናኘት አልተቻለም።',
+        'Hadda ma xiriiri karno.',
+      );
+  String get errorCantConnectHint => _t(
+        'Check your network and try again.',
+        'ግንኙነትዎን ያረጋግጡና እንደገና ይሞክሩ።',
+        'Hubi shabakaddaada oo isku day mar kale.',
+      );
+  String get errorSomethingWrong => _t(
+        'Something went wrong',
+        'የሆነ ችግር ተፈጥሯል',
+        'Waxbaa khaldamay',
+      );
+  String get errorReport => _t('Report', 'ሪፖርት', 'Soo sheeg');
+  String get errorReportThanks => _t(
+        'Thanks — report sent.',
+        'አመሰግናለሁ — ሪፖርት ተልኳል።',
+        'Mahadsanid — warbixinta waa la diray.',
+      );
+  String get errorOfflineCached => _t(
+        'Showing cached data — you appear to be offline.',
+        'የተቀመጠ ውሂብ እያሳየ ነው — ከመስመር ውጭ ይመስላሉ።',
+        'Waxaan muujinaynaa xog keydsan — waxaad mooddaa offline tahay.',
+      );
+  String get errorOfflineNoCache => _t(
+        'No internet connection and no cached data available.',
+        'የበይነመረብ ግንኙነት የለም እና የተቀመጠ ውሂብ የለም።',
+        'Xiriir internet ma jiro mana jirto xog keydsan.',
+      );
+  String get errorSyncConflict => _t(
+        'Your recent edit was overwritten by a newer change.',
+        'የቅርብ ጊዜ ለውጥዎ በአዲስ ለውጥ ተተክቷል።',
+        'Tafatirkaaga dhowaan waxaa beddelay beddel cusub.',
+      );
+  String get errorSyncCorrupt => _t(
+        'A saved change was damaged and removed. Please try again.',
+        'የተቀመጠ ለውጥ ተበላሽቷል እና ተወግዷል። እባክዎ እንደገና ይሞክሩ።',
+        'Isbeddel keydsan wuu burburay oo waa la tirtiray. Fadlan isku day mar kale.',
+      );
+  String get errorSupabaseUnavailable => _t(
+        'Service temporarily unavailable. Please try again.',
+        'አገልግሎቱ ለጊዜው አይገኝም። እባክዎ እንደገና ይሞክሩ።',
+        'Adeeggu si ku meel gaar ah uma heli karo. Fadlan isku day mar kale.',
+      );
+
   // ── Category Picker Sheet ────────────────────────────────────────────────────
   String get pickerTitle => _t('What would you like to post?', 'ምን ማስታወቂያ ይለጥፋሉ?', 'Maxaad rabta inaad ku dajiso?');
   String get pickerCancel => _t('Cancel', 'ሰርዝ', 'Jooji');
@@ -1162,6 +1275,11 @@ class AppStrings {
   String get editProfilePhone => _t('Phone number', 'ስልክ ቁጥር', 'Lambarka telefoonka');
   String get editProfileCity => _t('City', 'ከተማ', 'Magaalada');
   String get editProfilePhotoQueued => _t('Photo will upload when you reconnect', 'ፎቶ ሲገናኙ ይጫናል', 'Sawirku wuxuu rarmi doonaa marka aad ku xidnaatid');
+  String get wizardPhotosQueued => _t(
+        'Some photos will upload when you reconnect.',
+        'አንዳንድ ፎቶዎች ሲገናኙ ይጫናሉ።',
+        'Qaar ka mid ah sawirrada ayaa rarmi doona marka aad ku xidnaato.',
+      );
 
   // ── Listing Detail Screen ────────────────────────────────────────────────────
   String get detailLinkShared => _t('Link shared!', 'ሊንክ ተጋርቷል!', 'Xiriirka la wadaagay!');

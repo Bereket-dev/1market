@@ -50,7 +50,7 @@ extension AppStateChat on KoolanAppState {
       chatSessions = await _enrichChatSessions(raw);
       notifyListeners();
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
     }
   }
@@ -93,7 +93,7 @@ extension AppStateChat on KoolanAppState {
 
     try {
       if (_repo == null) {
-        dataError = 'Supabase unavailable';
+        dataError = s.errorSupabaseUnavailable;
         notifyListeners();
         return;
       }
@@ -110,7 +110,7 @@ extension AppStateChat on KoolanAppState {
       );
       notifyListeners();
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       rethrow;
     }
@@ -129,7 +129,7 @@ extension AppStateChat on KoolanAppState {
     if (listing == null || listing.sellerId == null) return null;
     try {
       if (_repo == null) {
-        dataError = 'Supabase unavailable';
+        dataError = s.errorSupabaseUnavailable;
         notifyListeners();
         return null;
       }
@@ -142,7 +142,7 @@ extension AppStateChat on KoolanAppState {
       notifyListeners();
       return threadId;
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       return null;
     }
@@ -172,7 +172,7 @@ extension AppStateChat on KoolanAppState {
       await sendChatMessage(threadId, text);
       return true;
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       return false;
     }
@@ -186,7 +186,7 @@ extension AppStateChat on KoolanAppState {
   }) async {
     try {
       if (_repo == null) {
-        dataError = 'Supabase unavailable';
+        dataError = s.errorSupabaseUnavailable;
         notifyListeners();
         return null;
       }
@@ -199,7 +199,7 @@ extension AppStateChat on KoolanAppState {
       notifyListeners();
       return threadId;
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       return null;
     }

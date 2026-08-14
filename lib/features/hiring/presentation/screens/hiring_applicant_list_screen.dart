@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/application.dart';
@@ -58,7 +59,7 @@ class _HiringApplicantListScreenState
         state.updateHiringPostApplicantCount(widget.postId, apps.length);
       }
     } catch (e) {
-      if (mounted) setState(() => _errorMessage = e.toString());
+      if (mounted) setState(() => _errorMessage = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

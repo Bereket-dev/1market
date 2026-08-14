@@ -55,9 +55,11 @@ extension SupabaseRepositoryHiring on SupabaseRepository {
         .select()
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
-    return (rows as List)
-        .map((r) => HiringPost.fromJson(r as Map<String, dynamic>))
-        .toList();
+    return SafeParse.mapList(
+      rows as List,
+      HiringPost.fromJson,
+      context: 'hiring_posts',
+    );
   }
 
   /// Returns applicant count per hiring post id for the current user's posts.
@@ -96,9 +98,11 @@ extension SupabaseRepositoryHiring on SupabaseRepository {
             'fetchApplicationsForPost timed out',
           ),
         );
-    return (rows as List)
-        .map((r) => Application.fromJson(r as Map<String, dynamic>))
-        .toList();
+    return SafeParse.mapList(
+      rows as List,
+      Application.fromJson,
+      context: 'applications_for_post',
+    );
   }
 
   /// Fetches all applications submitted by the current user,
@@ -113,9 +117,11 @@ extension SupabaseRepositoryHiring on SupabaseRepository {
         )
         .eq('applicant_id', userId)
         .order('submitted_at', ascending: false);
-    return (rows as List)
-        .map((r) => Application.fromJson(r as Map<String, dynamic>))
-        .toList();
+    return SafeParse.mapList(
+      rows as List,
+      Application.fromJson,
+      context: 'my_applications',
+    );
   }
 
   /// Checks whether the current user has already applied to [hiringPostId]

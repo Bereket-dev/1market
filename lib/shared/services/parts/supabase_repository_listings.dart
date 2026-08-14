@@ -20,13 +20,15 @@ extension SupabaseRepositoryListings on SupabaseRepository {
     final favorites = savedIds ??
         (userId != null ? await _fetchFavoriteIds(userId) : <String>{});
 
-    return (rows as List)
-        .map((row) => Listing.fromJson(
-              row as Map<String, dynamic>,
-              isSaved: favorites.contains(row['id'] as String),
-              isOwnedByCurrentUser: row['seller_id'] == userId,
-            ))
-        .toList();
+    return SafeParse.mapList(
+      rows as List,
+      (row) => Listing.fromJson(
+        row,
+        isSaved: favorites.contains(row['id'] as String?),
+        isOwnedByCurrentUser: row['seller_id'] == userId,
+      ),
+      context: 'listings',
+    );
   }
 
   Future<List<Service>> fetchServices({
@@ -39,9 +41,11 @@ extension SupabaseRepositoryListings on SupabaseRepository {
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
 
-    return (rows as List)
-        .map((row) => Service.fromJson(row as Map<String, dynamic>))
-        .toList();
+    return SafeParse.mapList(
+      rows as List,
+      Service.fromJson,
+      context: 'services',
+    );
   }
 
   Future<Set<String>> _fetchFavoriteIds(String userId) async {
@@ -106,7 +110,11 @@ extension SupabaseRepositoryListings on SupabaseRepository {
         .select('*, profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)')
         .single();
 
-    return Listing.fromJson(row, isOwnedByCurrentUser: true);
+    return SafeParse.tryMap(
+      Map<String, dynamic>.from(row),
+      (json) => Listing.fromJson(json, isOwnedByCurrentUser: true),
+      context: 'listing_create',
+    )!;
   }
 
   /// Updates an existing listing row. Only the provided fields are changed.

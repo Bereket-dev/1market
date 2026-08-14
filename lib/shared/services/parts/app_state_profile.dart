@@ -45,7 +45,7 @@ extension AppStateProfile on KoolanAppState {
       notifyListeners();
     } catch (e) {
       profile = profile?.copyWith(syncStatus: SyncStatus.failed);
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       rethrow; // Let callers (EditProfileScreen._save) show the error to the user.
     }
@@ -85,7 +85,7 @@ extension AppStateProfile on KoolanAppState {
     required Future<void> Function(String secureUrl) onSuccess,
   }) async {
     final current = profile;
-    if (current == null) return 'Not signed in';
+    if (current == null) return s.errorUnauthorized;
 
     FilePickerResult? result;
     try {
@@ -94,15 +94,16 @@ extension AppStateProfile on KoolanAppState {
         withData: false,
         withReadStream: false,
       );
-    } catch (e) {
-      debugPrint('[PhotoUpload] picker error: $e');
-      return e.toString();
+    } catch (e, st) {
+      if (kDebugMode) debugPrint('[PhotoUpload] picker error: $e');
+      unawaited(ErrorReporter.recordError(e, st, reason: 'photo_pick'));
+      return s.editProfilePhotoError;
     }
 
     if (result == null || result.files.isEmpty) return null;
 
     final localPath = result.files.first.path;
-    if (localPath == null) return 'Could not read file path from picker';
+    if (localPath == null) return s.editProfilePhotoError;
 
     final file = File(localPath);
     int fileSize;
@@ -112,8 +113,7 @@ extension AppStateProfile on KoolanAppState {
       fileSize = result.files.first.size;
     }
     if (fileSize > _photoMaxBytes) {
-      final mb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
-      return 'Photo is too large ($mb MB) — maximum allowed is 5 MB';
+      return s.servicesCvTooLarge;
     }
 
     final client = Supabase.instance.client;
@@ -132,13 +132,20 @@ extension AppStateProfile on KoolanAppState {
           notifyListeners();
           return null;
 
-        case CloudinaryUploadFailure(:final message):
-          if (message.startsWith('network:')) {
-            debugPrint('[PhotoUpload] network error, queueing: $message');
+        case CloudinaryUploadFailure(:final code):
+          if (code == CloudinaryFailureCode.network) {
+            if (kDebugMode) {
+              debugPrint('[PhotoUpload] network error, queueing');
+            }
             break;
           }
-          debugPrint('[PhotoUpload] cloudinary error: $message');
-          return 'Upload failed: $message';
+          if (kDebugMode) debugPrint('[PhotoUpload] cloudinary error: $code');
+          return switch (code) {
+            CloudinaryFailureCode.unauthorized => s.errorUnauthorized,
+            CloudinaryFailureCode.notConfigured => s.errorSupabaseUnavailable,
+            CloudinaryFailureCode.network => s.errorNetwork,
+            _ => s.errorUnknown,
+          };
       }
     }
 
@@ -166,7 +173,7 @@ extension AppStateProfile on KoolanAppState {
       'localPath': localPath,
     });
     await store.savePendingPhotoUpload(key, payload);
-    debugPrint('[PhotoUpload] queued for later: $key');
+    if (kDebugMode) debugPrint('[PhotoUpload] queued for later: $key');
   }
 
   /// Called by SyncService to flush any queued photo uploads when back online.
@@ -220,13 +227,17 @@ extension AppStateProfile on KoolanAppState {
             }
             notifyListeners();
             await store.deletePendingPhotoUpload(key);
-            debugPrint('[PhotoUpload] flushed: $key → $secureUrl');
+            if (kDebugMode) {
+              debugPrint('[PhotoUpload] flushed: $key → $secureUrl');
+            }
 
-          case CloudinaryUploadFailure(:final message):
-            debugPrint('[PhotoUpload] flush failed for $key: $message');
+          case CloudinaryUploadFailure(:final code):
+            if (kDebugMode) {
+              debugPrint('[PhotoUpload] flush failed for $key: $code');
+            }
         }
       } catch (e) {
-        debugPrint('[PhotoUpload] flush error for $key: $e');
+        if (kDebugMode) debugPrint('[PhotoUpload] flush error for $key: $e');
       }
     }
   }
@@ -235,10 +246,14 @@ extension AppStateProfile on KoolanAppState {
     if (profile == null) return;
     try {
       await _repo?.updateProfile({column: value});
-      debugPrint('[ProfileSync] $column updated in Supabase ✅');
+      if (kDebugMode) {
+        debugPrint('[ProfileSync] $column updated in Supabase');
+      }
     } catch (e) {
-      debugPrint('[ProfileSync] direct update failed ($column): $e');
-      dataError = e.toString();
+      if (kDebugMode) {
+        debugPrint('[ProfileSync] direct update failed ($column): $e');
+      }
+      reportDataError(e);
       notifyListeners();
     }
   }
@@ -256,7 +271,7 @@ extension AppStateProfile on KoolanAppState {
         profile = profile?.copyWith(syncStatus: SyncStatus.synced);
       } catch (e) {
         profile = profile?.copyWith(syncStatus: SyncStatus.failed);
-        dataError = e.toString();
+        reportDataError(e);
       }
       notifyListeners();
     }

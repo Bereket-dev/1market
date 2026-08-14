@@ -21,7 +21,8 @@ extension SupabaseRepositoryChat on SupabaseRepository {
           'chat_messages(id, sender_id, text, created_at)',
         )
         .or('buyer_id.eq.$userId,seller_id.eq.$userId')
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .timeout(const Duration(seconds: 20));
 
     final sessions = <ChatSession>[];
     for (final thread in threads as List) {
@@ -43,13 +44,11 @@ extension SupabaseRepositoryChat on SupabaseRepository {
 
       // Messages also embedded — no extra round-trip.
       final rawMessages = (t['chat_messages'] as List?) ?? [];
-      final chatMessages = rawMessages.map((m) {
-        return ChatMessage.fromJson(
-          m as Map<String, dynamic>,
-          currentUserId: userId,
-        );
-      }).toList()
-        ..sort((a, b) => a.localUpdatedAt.compareTo(b.localUpdatedAt));
+      final chatMessages = SafeParse.mapList(
+        rawMessages,
+        (m) => ChatMessage.fromJson(m, currentUserId: userId),
+        context: 'chat_messages',
+      )..sort((a, b) => a.localUpdatedAt.compareTo(b.localUpdatedAt));
 
       sessions.add(ChatSession(
         id: threadId,
@@ -87,7 +86,8 @@ extension SupabaseRepositoryChat on SupabaseRepository {
         .select('id')
         .eq('listing_id', listingId)
         .eq('buyer_id', userId)
-        .maybeSingle();
+        .maybeSingle()
+        .timeout(const Duration(seconds: 15));
 
     if (existing != null) {
       return existing['id'] as String;
@@ -101,7 +101,8 @@ extension SupabaseRepositoryChat on SupabaseRepository {
           'seller_id': sellerId,
         })
         .select('id')
-        .single();
+        .single()
+        .timeout(const Duration(seconds: 15));
 
     return created['id'] as String;
   }
@@ -125,7 +126,8 @@ extension SupabaseRepositoryChat on SupabaseRepository {
         .eq('buyer_id', applicantId)
         .eq('seller_id', posterId)
         .isFilter('listing_id', null)
-        .maybeSingle();
+        .maybeSingle()
+        .timeout(const Duration(seconds: 15));
 
     if (existing != null) {
       return existing['id'] as String;
@@ -139,7 +141,8 @@ extension SupabaseRepositoryChat on SupabaseRepository {
           // listing_id intentionally null — this is a hiring chat
         })
         .select('id')
-        .single();
+        .single()
+        .timeout(const Duration(seconds: 15));
 
     return created['id'] as String;
   }
@@ -159,9 +162,14 @@ extension SupabaseRepositoryChat on SupabaseRepository {
           'text': text,
         })
         .select()
-        .single();
+        .single()
+        .timeout(const Duration(seconds: 15));
 
-    return ChatMessage.fromJson(row, currentUserId: userId);
+    return SafeParse.tryMap(
+      Map<String, dynamic>.from(row),
+      (json) => ChatMessage.fromJson(json, currentUserId: userId),
+      context: 'chat_message_send',
+    )!;
   }
 
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/syncable_entity.dart';
@@ -122,7 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

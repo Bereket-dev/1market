@@ -6,7 +6,7 @@ part of '../app_state.dart';
 extension AppStateInit on KoolanAppState {
   Future<void> _initialize() async {
     final t0 = DateTime.now().millisecondsSinceEpoch;
-    debugPrint('[AUTH] _initialize started at ${t0}ms');
+    if (kDebugMode) debugPrint('[AUTH] _initialize started at ${t0}ms');
     initError = null;
     try {
       final savedLang = await app_local.LocalStorage.getLanguage();
@@ -28,17 +28,21 @@ extension AppStateInit on KoolanAppState {
       await _sessionReadyCompleter.future.timeout(
         const Duration(seconds: 5),
         onTimeout: () {
-          debugPrint(
+          if (kDebugMode) {
+            debugPrint(
             '[AUTH] initialSession timed out after '
             '${DateTime.now().millisecondsSinceEpoch - t0}ms — proceeding with current state',
-          );
+            );
+          }
           return null;
         },
       );
-      debugPrint(
+      if (kDebugMode) {
+        debugPrint(
         '[AUTH] session ready after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
-      );
-      debugPrint('Repo available: ${_repo != null}');
+        );
+      }
+      if (kDebugMode) debugPrint('Repo available: ${_repo != null}');
 
       if (!isSignedIn || _repo == null) {
         final onboardingDone =
@@ -63,11 +67,11 @@ extension AppStateInit on KoolanAppState {
         resolvedProfile = await _repo!.ensureProfile();
         await app_local.LocalStorage.saveProfileCache(resolvedProfile.toJson());
       } catch (networkError) {
-        debugPrint('Profile fetch failed (likely offline): $networkError');
+        if (kDebugMode) debugPrint('Profile fetch failed (likely offline): $networkError');
         final cached = await app_local.LocalStorage.getProfileCache();
         if (cached != null) {
           resolvedProfile = UserProfile.fromJson(cached);
-          debugPrint('Restored profile from local cache');
+          if (kDebugMode) debugPrint('Restored profile from local cache');
         }
       }
 
@@ -116,7 +120,7 @@ extension AppStateInit on KoolanAppState {
       onboardingPhase = OnboardingPhase.location;
       notifyListeners();
     } catch (e) {
-      initError = e.toString();
+      initError = 'init_failed';
       final onboardingDone =
           await app_local.LocalStorage.isOnboardingComplete();
       if (onboardingDone) {
@@ -126,9 +130,11 @@ extension AppStateInit on KoolanAppState {
       }
       notifyListeners();
     } finally {
-      debugPrint(
+      if (kDebugMode) {
+        debugPrint(
         '[AUTH] _initialize finished after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
-      );
+        );
+      }
     }
   }
 
@@ -211,8 +217,8 @@ extension AppStateInit on KoolanAppState {
       await loadAllData();
       unawaited(_initPushNotifications());
     } catch (e) {
-      debugPrint('[AUTH] hydrateSessionProfile failed: $e');
-      dataError = e.toString();
+      if (kDebugMode) debugPrint('[AUTH] hydrateSessionProfile failed: $e');
+      reportDataError(e);
       notifyListeners();
     }
   }
@@ -250,7 +256,7 @@ extension AppStateInit on KoolanAppState {
         await app_local.LocalStorage.saveProfileCache(profile!.toJson());
       }
     } catch (e) {
-      debugPrint('[ProfileSetup] profile update failed (non-fatal): $e');
+      if (kDebugMode) debugPrint('[ProfileSetup] profile update failed (non-fatal): $e');
     }
     await app_local.LocalStorage.saveOnboardingPhase('location');
     onboardingPhase = OnboardingPhase.location;
@@ -321,13 +327,13 @@ extension AppStateInit on KoolanAppState {
           preferredCategory: goal,
           syncStatus: SyncStatus.synced,
         );
-        debugPrint('[GoalSelection] preferred_category saved to DB: $goal');
+        if (kDebugMode) debugPrint('[GoalSelection] preferred_category saved to DB: $goal');
       } catch (e) {
         profile = profile?.copyWith(
           preferredCategory: goal,
           syncStatus: SyncStatus.pending,
         );
-        debugPrint('[GoalSelection] DB write failed (will sync later): $e');
+        if (kDebugMode) debugPrint('[GoalSelection] DB write failed (will sync later): $e');
       }
     } else {
       profile = profile?.copyWith(preferredCategory: goal);
@@ -346,7 +352,7 @@ extension AppStateInit on KoolanAppState {
     try {
       await syncService.init();
     } catch (e) {
-      debugPrint('syncService.init() failed: $e');
+      if (kDebugMode) debugPrint('syncService.init() failed: $e');
     }
     await app_local.LocalStorage.clearOnboardingPhase();
     await loadAllData();
@@ -363,12 +369,12 @@ extension AppStateInit on KoolanAppState {
       // Persist token to Supabase profile so the Edge Function can target this device.
       if (_repo != null) {
         await _repo!.updateProfile({'fcm_token': token});
-        debugPrint('[FCM] Token saved to Supabase profile');
+        if (kDebugMode) debugPrint('[FCM] Token saved to Supabase profile');
       }
 
       // Keep token fresh — save new token whenever Firebase rotates it.
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-        debugPrint('[FCM] Token refreshed: $newToken');
+        if (kDebugMode) debugPrint('[FCM] Token refreshed: $newToken');
         if (_repo != null) {
           await _repo!.updateProfile({'fcm_token': newToken});
         }
@@ -377,28 +383,28 @@ extension AppStateInit on KoolanAppState {
       // Show foreground messages as local heads-up notifications and refresh
       // the in-app notification list.
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('[FCM] Foreground message: ${message.messageId}');
+        if (kDebugMode) debugPrint('[FCM] Foreground message: ${message.messageId}');
         PermissionService.showForegroundNotification(message);
         if (_repo != null) {
           _repo!.fetchNotifications().then((list) {
             notifications = list;
             notifyListeners();
           }).catchError((e) {
-            debugPrint('[FCM] fetchNotifications on foreground message failed: $e');
+            if (kDebugMode) debugPrint('[FCM] fetchNotifications on foreground message failed: $e');
           });
         }
       });
 
       // Deep-link when user taps a push while the app is in background.
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        debugPrint('[FCM] Notification opened app: ${message.messageId}');
+        if (kDebugMode) debugPrint('[FCM] Notification opened app: ${message.messageId}');
         _navigateFromPushPayload(message.data);
         if (_repo != null) {
           _repo!.fetchNotifications().then((list) {
             notifications = list;
             notifyListeners();
           }).catchError((e) {
-            debugPrint('[FCM] fetchNotifications after tap failed: $e');
+            if (kDebugMode) debugPrint('[FCM] fetchNotifications after tap failed: $e');
           });
         }
       });
@@ -407,19 +413,19 @@ extension AppStateInit on KoolanAppState {
       // via a notification tap.
       final initial = await FirebaseMessaging.instance.getInitialMessage();
       if (initial != null) {
-        debugPrint('[FCM] App launched from notification: ${initial.messageId}');
+        if (kDebugMode) debugPrint('[FCM] App launched from notification: ${initial.messageId}');
         _navigateFromPushPayload(initial.data);
         if (_repo != null) {
           try {
             notifications = await _repo!.fetchNotifications();
             notifyListeners();
           } catch (e) {
-            debugPrint('[FCM] fetchNotifications on launch failed: $e');
+            if (kDebugMode) debugPrint('[FCM] fetchNotifications on launch failed: $e');
           }
         }
       }
     } catch (e) {
-      debugPrint('[FCM] _initPushNotifications error: $e');
+      if (kDebugMode) debugPrint('[FCM] _initPushNotifications error: $e');
     }
   }
 
@@ -454,7 +460,7 @@ extension AppStateInit on KoolanAppState {
                   pushScreen(ActiveChatScreenRoute(newIndex));
                 }
               }).catchError((e) {
-                debugPrint('[FCM] fetchChatSessions for deep-link failed: $e');
+                if (kDebugMode) debugPrint('[FCM] fetchChatSessions for deep-link failed: $e');
               });
             }
           }
@@ -485,7 +491,7 @@ extension AppStateInit on KoolanAppState {
         pushScreen(NotificationsScreenRoute());
 
       default:
-        debugPrint('[FCM] Unknown screen in payload: $screen');
+        if (kDebugMode) debugPrint('[FCM] Unknown screen in payload: $screen');
     }
   }
 }

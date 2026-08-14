@@ -4,10 +4,15 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/errors/app_error.dart';
+import '../../core/errors/error_mapper.dart';
+import '../../core/errors/error_reporter.dart';
+import '../../core/errors/safe_parse.dart';
 import '../../core/router/routes.dart';
 import 'cloudinary_upload_service.dart';
 import '../models/app_strings.dart';
@@ -65,29 +70,35 @@ class KoolanAppState extends ChangeNotifier {
     // it through dataError so the SnackBar listener in _ShellScaffold picks it
     // up.
     syncService.onDiscard = (entityType, entityId) {
-      dataError = 'Your recent $entityType edit was overwritten by a newer change.';
+      dataError = s.errorSyncConflict;
+      notifyListeners();
+    };
+    syncService.onCorrupt = (entityType, entityId) {
+      dataError = s.errorSyncCorrupt;
       notifyListeners();
     };
     final client = AppSupabaseConfig.clientOrNull();
     if (client != null) {
       try {
         _repo = SupabaseRepository(client);
-        debugPrint('Supabase repository created');
+        if (kDebugMode) debugPrint('Supabase repository created');
       } catch (e, st) {
-        debugPrint('Supabase repository unavailable: $e');
-        debugPrint(st.toString());
+        ErrorReporter.recordError(e, st, reason: 'repo_create');
         _repo = null;
       }
 
       try {
         client.auth.onAuthStateChange.listen(
           (event) async {
-            debugPrint('Auth event: ${event.event}');
+            if (kDebugMode) debugPrint('Auth event: ${event.event}');
 
             if (event.event == AuthChangeEvent.initialSession) {
-              debugPrint(
-                '[AUTH] initialSession received at ${DateTime.now().millisecondsSinceEpoch}ms',
-              );
+              if (kDebugMode) {
+                debugPrint(
+                  '[AUTH] initialSession received at '
+                  '${DateTime.now().millisecondsSinceEpoch}ms',
+                );
+              }
               if (!_sessionReadyCompleter.isCompleted) {
                 _sessionReadyCompleter.complete(event.session);
               }
@@ -98,6 +109,8 @@ class KoolanAppState extends ChangeNotifier {
                 event.session != null) {
               _pendingOAuthCompletion = false;
               _authError = null;
+              final uid = event.session?.user.id;
+              if (uid != null) unawaited(ErrorReporter.setUserId(uid));
               if (onboardingPhase == OnboardingPhase.auth ||
                   onboardingPhase == OnboardingPhase.initializing) {
                 await onFreshAuth();
@@ -110,16 +123,17 @@ class KoolanAppState extends ChangeNotifier {
             }
 
             if (event.event == AuthChangeEvent.tokenRefreshed) {
-              debugPrint('[AUTH] Token silently refreshed — session extended');
+              if (kDebugMode) {
+                debugPrint('[AUTH] Token silently refreshed — session extended');
+              }
               return;
             }
 
             if (event.event == AuthChangeEvent.signedOut) {
-              debugPrint(
-                '[AUTH] signedOut event — entering guest mode. '
-                'User will be prompted to sign in again if they attempt an '
-                'auth-gated action.',
-              );
+              if (kDebugMode) {
+                debugPrint('[AUTH] signedOut event — entering guest mode');
+              }
+              unawaited(ErrorReporter.setUserId(null));
               await _enterGuestMode(clearOnboardingData: false);
               return;
             }
@@ -127,29 +141,48 @@ class KoolanAppState extends ChangeNotifier {
             notifyListeners();
           },
           onError: (Object error, StackTrace stackTrace) {
-            debugPrint('[AUTH] Auth stream error: $error');
-            debugPrint(stackTrace.toString());
-            final message = error is AuthException
-                ? error.message
-                : error.toString();
-            reportOAuthFailure(message);
+            ErrorReporter.recordError(
+              error,
+              stackTrace,
+              reason: 'auth_stream',
+            );
+            reportOAuthFailure(error);
           },
         );
       } catch (e, st) {
-        debugPrint('Auth listener setup failed: $e');
-        debugPrint(st.toString());
+        ErrorReporter.recordError(e, st, reason: 'auth_listener_setup');
         if (!_sessionReadyCompleter.isCompleted) {
           _sessionReadyCompleter.complete(null);
         }
       }
     } else {
-      debugPrint('Supabase not initialized yet; skipping repo/auth setup');
+      if (kDebugMode) {
+        debugPrint('Supabase not initialized yet; skipping repo/auth setup');
+      }
       _repo = null;
       if (!_sessionReadyCompleter.isCompleted) {
         _sessionReadyCompleter.complete(null);
       }
     }
     _initialize();
+  }
+
+  /// Maps [error] to a user-safe [dataError] string. Never stores raw
+  /// exception text. Triggers clean sign-out on session expiry.
+  void reportDataError(Object error, [StackTrace? stack]) {
+    unawaited(ErrorReporter.recordError(error, stack));
+    if (AppError.requiresReauth(error)) {
+      unawaited(handleSessionExpired());
+      return;
+    }
+    dataError = ErrorMapper.userMessage(error, s);
+  }
+
+  /// Sign out cleanly and surface a session-expired toast.
+  Future<void> handleSessionExpired() async {
+    await signOut();
+    dataError = s.errorSessionExpired;
+    notifyListeners();
   }
 
   SupabaseRepository? _repo;

@@ -59,6 +59,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   geolocator: ^13.0.2
   share_plus: ^10.1.4
+  firebase_crashlytics: ^4.3.10
 
 dependency_overrides:
   # Flutter 3.32.0's bundled flutter_localizations uses intl.DateSymbols which
@@ -99,7 +100,8 @@ flutter:
   assets:
     - assets/brand/
     - assets/promo/
-    - .env
+    # Do NOT ship .env — secrets must not land in the APK.
+    # Local runs: `flutter run --dart-define-from-file=.env`
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -127,6 +127,9 @@ class SyncService {
   /// Called when a queued entry is discarded due to an LWW conflict.
   void Function(String entityType, String entityId)? onDiscard;
 
+  /// Called when a queued entry has corrupted JSON and is dropped.
+  void Function(String entityType, String entityId)? onCorrupt;
+
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _wasOffline = false;
   Timer? _reconnectDebounce;
@@ -150,7 +153,7 @@ class SyncService {
         if (_wasOffline && !isOffline) {
           _reconnectDebounce?.cancel();
           _reconnectDebounce = Timer(const Duration(milliseconds: 500), () {
-            debugPrint('[SyncService] Network reconnected — triggering sync');
+            if (kDebugMode) debugPrint('[SyncService] Network reconnected — triggering sync');
             requestSync();
           });
         }

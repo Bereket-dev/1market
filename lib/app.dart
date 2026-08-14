@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/bootstrap/service_bootstrap.dart';
 import 'core/constants/colors.dart';
+import 'core/errors/error_reporter.dart';
 import 'core/router/routes.dart';
 import 'core/theme/app_theme.dart';
 import 'features/cars/presentation/screens/category_list_screen.dart';
@@ -39,6 +41,7 @@ import 'features/hiring/presentation/screens/notifications_screen.dart';
 import 'features/listings/presentation/screens/my_listings_screen.dart';
 import 'features/profile/presentation/screens/public_profile_screen.dart';
 import 'shared/services/app_state.dart';
+import 'shared/models/app_strings.dart';
 import 'shared/widgets/toast_banner.dart';
 part 'widgets/app_shell.dart';
 part 'widgets/app_nav.dart';
@@ -48,10 +51,14 @@ class KoolanApp extends StatefulWidget {
   final bool initialDarkMode;
   final String initialLocale;
 
+  /// Stable bootstrap failure code from [ServiceBootstrap], or null when OK.
+  final String? bootstrapErrorCode;
+
   const KoolanApp({
     super.key,
     this.initialDarkMode = false,
     this.initialLocale = 'en',
+    this.bootstrapErrorCode,
   });
 
   @override
@@ -59,43 +66,72 @@ class KoolanApp extends StatefulWidget {
 }
 
 class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
-  late final KoolanAppState _appState;
+  late KoolanAppState _appState;
+  String? _bootstrapErrorCode;
+  bool _retryingBootstrap = false;
 
   @override
   void initState() {
     super.initState();
+    _bootstrapErrorCode = widget.bootstrapErrorCode;
     _appState = KoolanAppState(
       initialDarkMode: widget.initialDarkMode,
       initialLocale: widget.initialLocale,
     );
     WidgetsBinding.instance.addObserver(this);
-    // Handle the case where the app is cold-started from a deep link
-    // (e.g. Facebook OAuth redirect while the app was not running).
-    // supabase_flutter v2 uses app_links internally and processes the
-    // initial URI automatically, but we trigger a session check here so
-    // the auth state stream fires onFreshAuth if a valid PKCE code arrived.
-    _handleColdStartDeepLink();
+    if (_bootstrapErrorCode == null) {
+      _handleColdStartDeepLink();
+    }
   }
 
-  /// Called once on startup. If the app was launched via a
-  /// io.supabase.koolan://login-callback/ deep link (cold start from OAuth
-  /// redirect), supabase_flutter will have already exchanged the code by the
-  /// time the first frame renders. We listen for the signedIn event in
-  /// app_state.dart, but if the event was already emitted before the listener
-  /// was attached we check the session explicitly here.
+  Future<void> _retryBootstrap() async {
+    if (_retryingBootstrap) return;
+    setState(() => _retryingBootstrap = true);
+    try {
+      final result = await ServiceBootstrap.initialize();
+      if (!mounted) return;
+      if (result.ok) {
+        _appState.dispose();
+        setState(() {
+          _bootstrapErrorCode = null;
+          _retryingBootstrap = false;
+          _appState = KoolanAppState(
+            initialDarkMode: widget.initialDarkMode,
+            initialLocale: widget.initialLocale,
+          );
+        });
+        _handleColdStartDeepLink();
+      } else {
+        setState(() {
+          _bootstrapErrorCode = result.errorCode;
+          _retryingBootstrap = false;
+        });
+      }
+    } catch (e, st) {
+      await ErrorReporter.recordError(e, st, reason: 'bootstrap_retry');
+      if (!mounted) return;
+      setState(() {
+        _bootstrapErrorCode = 'supabase_init_failed';
+        _retryingBootstrap = false;
+      });
+    }
+  }
+
+  /// Cold-start OAuth deep link: supabase may already have a session.
   Future<void> _handleColdStartDeepLink() async {
-    // Wait one frame so KoolanAppState has set up its auth listener first.
     await Future<void>.delayed(Duration.zero);
     try {
       final client = Supabase.instance.client;
       final session = client.auth.currentSession;
       if (session != null &&
           _appState.onboardingPhase == OnboardingPhase.initializing) {
-        debugPrint('[DeepLink] Cold-start session found — calling onFreshAuth');
+        if (kDebugMode) {
+          debugPrint('[DeepLink] Cold-start session found — onFreshAuth');
+        }
         await _appState.onFreshAuth();
       }
-    } catch (e) {
-      debugPrint('[DeepLink] Cold-start check error: $e');
+    } catch (e, st) {
+      await ErrorReporter.recordError(e, st, reason: 'cold_start_deeplink');
     }
   }
 
@@ -112,7 +148,9 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      debugPrint('[KoolanApp] App foregrounded — triggering sync');
+      if (kDebugMode) {
+        debugPrint('[KoolanApp] App foregrounded — triggering sync');
+      }
       _appState.syncService.requestSync();
     }
   }
@@ -120,6 +158,19 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (kDebugMode) debugPrint('[KoolanApp] build');
+    if (_bootstrapErrorCode != null) {
+      return MaterialApp(
+        title: 'Koolan – Jigjiga Marketplace',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: widget.initialDarkMode ? ThemeMode.dark : ThemeMode.light,
+        home: _BootstrapFailureScreen(
+          retrying: _retryingBootstrap,
+          onRetry: _retryBootstrap,
+        ),
+      );
+    }
     return KoolanAppStateScope(
       notifier: _appState,
       child: ListenableBuilder(
@@ -154,5 +205,3 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
     );
   }
 }
-
-// ── Onboarding gate ───────────────────────────────────────────────────────────

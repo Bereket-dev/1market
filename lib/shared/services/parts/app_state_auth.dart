@@ -59,8 +59,8 @@ extension AppStateAuth on KoolanAppState {
       } else {
         await _enterGuestMode(clearOnboardingData: false);
       }
-    } catch (e) {
-      debugPrint('Sign out failed: $e');
+    } catch (e, st) {
+      ErrorReporter.recordError(e, st, reason: 'sign_out');
       await _enterGuestMode(clearOnboardingData: false);
     }
   }
@@ -104,17 +104,21 @@ extension AppStateAuth on KoolanAppState {
   /// Facebook often fails with "Error getting user email from external
   /// provider" when email permission is denied — without email, Supabase
   /// cannot link the Facebook identity to an existing same-email profile.
-  void reportOAuthFailure(String message) {
+  void reportOAuthFailure(Object error) {
     if (!_pendingOAuthCompletion && onboardingPhase != OnboardingPhase.auth) {
       return;
     }
     _pendingOAuthCompletion = false;
-    final lower = message.toLowerCase();
+    final text = error is AuthException
+        ? error.message
+        : error.toString();
+    final lower = text.toLowerCase();
     final isEmailIssue = lower.contains('email') ||
         lower.contains('external provider') ||
         lower.contains('user_email');
-    final friendly =
-        isEmailIssue ? s.authFacebookEmailRequired : message;
+    final friendly = isEmailIssue
+        ? s.authFacebookEmailRequired
+        : ErrorMapper.userMessage(error, s);
     _authError = friendly;
     // Guest-mode auth gate closes before OAuth returns — use the shell toast.
     if (onboardingPhase == OnboardingPhase.ready) {

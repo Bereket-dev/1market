@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
 
 class LanguageScreen extends StatefulWidget {
@@ -84,7 +85,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
                             await state.completeLanguageOnboarding(_selected!);
                           } catch (e) {
                             if (mounted) {
-                              setState(() => _error = e.toString());
+                              setState(
+                                () => _error = ErrorMapper.userMessage(e, s),
+                              );
                             }
                           } finally {
                             if (mounted) {

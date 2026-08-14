@@ -12,7 +12,7 @@ extension SupabaseRepositoryProfile on SupabaseRepository {
         .eq('id', userId)
         .maybeSingle();
     if (data == null) return null;
-    return UserProfile.fromJson(data);
+    return SafeParse.tryMap(data, UserProfile.fromJson, context: 'profile');
   }
 
   Future<UserProfile> ensureProfile() async {

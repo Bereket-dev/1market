@@ -9,9 +9,8 @@
 //   FIREBASE_CLIENT_EMAIL    — service account email from firebase-adminsdk JSON
 //   FIREBASE_PRIVATE_KEY     — the private_key value (with \n as literal newlines)
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { create, getNumericDate } from 'https://deno.land/x/djwt@v2.8/mod.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { create, getNumericDate } from 'npm:djwt@2.8';
 
 // ── Environment ───────────────────────────────────────────────────────────────
 
@@ -146,7 +145,7 @@ async function sendPush(
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   try {
     // Supabase sends the row as { type, table, record, old_record }.
     const { record } = await req.json() as {

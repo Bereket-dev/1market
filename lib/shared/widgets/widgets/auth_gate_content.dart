@@ -76,9 +76,11 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
       Navigator.of(context).pop();
       await appState.onFreshAuth();
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) setState(() => _error = ErrorMapper.userMessage(e, appState.s));
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = ErrorMapper.userMessage(e, appState.s));
+      }
     } finally {
       if (mounted) setState(() => _loadingGoogle = false);
     }
@@ -125,17 +127,18 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
       // (guest/ready) or onFreshAuth (onboarding auth phase).
     } on AuthException catch (e) {
       if (mounted) {
-        final isCancelled = e.message.toLowerCase().contains('access_denied') ||
-            e.message.toLowerCase().contains('access denied');
-        if (!isCancelled) setState(() => _error = e.message);
+        final cancelled = AppError.classify(e) == AppErrorKind.cancelled;
+        if (!cancelled) {
+          setState(() => _error = ErrorMapper.userMessage(e, appState.s));
+        }
         _appState?.clearOAuthPending();
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().toLowerCase();
-        final isCancelled =
-            msg.contains('access_denied') || msg.contains('access denied');
-        if (!isCancelled) setState(() => _error = e.toString());
+        final cancelled = AppError.classify(e) == AppErrorKind.cancelled;
+        if (!cancelled) {
+          setState(() => _error = ErrorMapper.userMessage(e, appState.s));
+        }
         _appState?.clearOAuthPending();
       }
     } finally {

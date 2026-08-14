@@ -15,7 +15,7 @@ extension AppStateReviews on KoolanAppState {
       notifyListeners();
       return reviews;
     } catch (e) {
-      debugPrint('loadReviewsForService error: $e');
+      if (kDebugMode) debugPrint('loadReviewsForService error: $e');
       return _reviewsCache[serviceId] ?? [];
     }
   }
@@ -27,7 +27,7 @@ extension AppStateReviews on KoolanAppState {
     required String comment,
   }) async {
     if (_repo == null) {
-      dataError = 'Supabase unavailable';
+      dataError = s.errorSupabaseUnavailable;
       notifyListeners();
       return;
     }
@@ -49,7 +49,7 @@ extension AppStateReviews on KoolanAppState {
       _reviewsCache[serviceId] = existing;
       notifyListeners();
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       rethrow;
     }
@@ -71,7 +71,7 @@ extension AppStateReviews on KoolanAppState {
       notifyListeners();
       return p;
     } catch (e) {
-      debugPrint('loadPublicProfile error: $e');
+      if (kDebugMode) debugPrint('loadPublicProfile error: $e');
       return _publicProfileCache[userId];
     }
   }
@@ -84,7 +84,7 @@ extension AppStateReviews on KoolanAppState {
       notifyListeners();
       return reviews;
     } catch (e) {
-      debugPrint('loadReviewsForUser error: $e');
+      if (kDebugMode) debugPrint('loadReviewsForUser error: $e');
       return _userReviewsCache[userId] ?? [];
     }
   }

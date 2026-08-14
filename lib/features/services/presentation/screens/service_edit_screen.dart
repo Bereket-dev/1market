@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
@@ -126,7 +127,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
         withReadStream: false,
       );
     } catch (e) {
-      setState(() => _imageError = e.toString());
+      setState(() => _imageError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
       return;
     }
     if (result == null || result.files.isEmpty) return;

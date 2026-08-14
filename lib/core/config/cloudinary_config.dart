@@ -1,13 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Cloudinary credentials.
+/// Cloudinary **public** config for the client.
 ///
-/// Reads `--dart-define` first, then `.env` (same pattern as [AppSupabaseConfig]).
-/// Required keys:
-///   CLOUD_NAME       – your Cloudinary cloud name
-///   CLOUD_API_KEY    – API key (used to sign uploads)
-///   CLOUD_API_SECRET – API secret (used to sign uploads, never sent to client
-///                      directly — only used to compute the request signature)
+/// Release builds must only ship [cloudName] (via `--dart-define`).
+/// Upload signatures are produced by the `cloudinary-sign` Edge Function so
+/// [apiSecret] never ships in the APK.
+///
+/// Local debug may still supply key/secret via dart-define / dotenv as a
+/// fallback when the Edge Function is unavailable.
 class CloudinaryConfig {
   CloudinaryConfig._();
 
@@ -20,6 +21,7 @@ class CloudinaryConfig {
 
   static String _env(String define, String dotenvKey) {
     if (define.isNotEmpty) return define;
+    if (!kDebugMode) return '';
     try {
       return dotenv.env[dotenvKey] ?? '';
     } catch (_) {
@@ -28,7 +30,11 @@ class CloudinaryConfig {
   }
 
   static String get cloudName => _env(_defineCloudName, 'CLOUD_NAME');
+
+  /// Local-only fallback — empty in release unless mistakenly passed via define.
   static String get apiKey => _env(_defineApiKey, 'CLOUD_API_KEY');
+
+  /// Local-only fallback — must not be present in release APKs.
   static String get apiSecret => _env(_defineApiSecret, 'CLOUD_API_SECRET');
 
   /// Base URL for the Cloudinary upload API (signed uploads, images).
@@ -39,6 +45,10 @@ class CloudinaryConfig {
   static String get rawUploadUrl =>
       'https://api.cloudinary.com/v1_1/$cloudName/raw/upload';
 
-  static bool get isConfigured =>
-      cloudName.isNotEmpty && apiKey.isNotEmpty && apiSecret.isNotEmpty;
+  /// Client only needs the public cloud name; signing is server-side.
+  static bool get isConfigured => cloudName.isNotEmpty;
+
+  /// True when a local secret is available (debug / legacy fallback).
+  static bool get hasLocalSigningCredentials =>
+      apiKey.isNotEmpty && apiSecret.isNotEmpty;
 }

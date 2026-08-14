@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -44,11 +45,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           .showSnackBar(SnackBar(content: Text(KoolanAppStateScope.of(context).s.changePasswordSuccess)));
       Navigator.of(context).pop();
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ErrorMapper.userMessage(e, s))),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ErrorMapper.userMessage(e, s))),
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

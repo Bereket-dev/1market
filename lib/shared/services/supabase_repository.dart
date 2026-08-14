@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/errors/safe_parse.dart';
 import '../models/application.dart';
 import '../models/chat.dart';
 import '../models/hiring_post.dart';

@@ -101,7 +101,7 @@ class TranslationService {
     try {
       box = await Hive.openBox<String>(_retryBoxName);
     } catch (e) {
-      debugPrint('[Translation] Failed to open retry box: $e');
+      if (kDebugMode) debugPrint('[Translation] Failed to open retry box: $e');
       return;
     }
 
@@ -132,7 +132,7 @@ class TranslationService {
           retryCount: retryCount,
         ));
       } catch (e) {
-        debugPrint('[Translation] Malformed retry job $key: $e');
+        if (kDebugMode) debugPrint('[Translation] Malformed retry job $key: $e');
         await box.delete(key);
       }
     }
@@ -151,7 +151,7 @@ class TranslationService {
   }) async {
     await _ensureInitialized();
     if (!isAvailable) {
-      debugPrint('[Translation] Gemini API key not set — skipping $listingId');
+      if (kDebugMode) debugPrint('[Translation] Gemini API key not set — skipping $listingId');
       return;
     }
 
@@ -168,7 +168,7 @@ class TranslationService {
         .toList();
 
     if (targets.isEmpty) {
-      debugPrint('[Translation] All locales already translated for $listingId');
+      if (kDebugMode) debugPrint('[Translation] All locales already translated for $listingId');
       return;
     }
 
@@ -204,10 +204,12 @@ class TranslationService {
         descriptionTranslations: newDescs,
       );
 
+      if (kDebugMode) {
       debugPrint('[Translation] Completed translation for $listingId '
           'into: ${targets.join(", ")}');
+      }
     } catch (e) {
-      debugPrint('[Translation] Failed for $listingId (attempt $retryCount): $e');
+      if (kDebugMode) debugPrint('[Translation] Failed for $listingId (attempt $retryCount): $e');
       await _enqueueRetry(
         listingId: listingId,
         title: title,
@@ -250,7 +252,7 @@ class TranslationService {
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', listingId);
     } catch (e) {
-      debugPrint('[Translation] Supabase patch failed for $listingId: $e');
+      if (kDebugMode) debugPrint('[Translation] Supabase patch failed for $listingId: $e');
       rethrow;
     }
   }
@@ -265,8 +267,10 @@ class TranslationService {
     required int retryCount,
   }) async {
     if (retryCount >= _maxRetries) {
+      if (kDebugMode) {
       debugPrint(
           '[Translation] Max retries reached for $listingId — will retry on next startup');
+      }
     }
 
     final backoffSeconds =
@@ -290,7 +294,7 @@ class TranslationService {
       // Key: listingId so newer attempts overwrite stale ones for the same listing.
       await box.put(listingId, job);
     } catch (e) {
-      debugPrint('[Translation] Could not persist retry job: $e');
+      if (kDebugMode) debugPrint('[Translation] Could not persist retry job: $e');
     }
   }
 }

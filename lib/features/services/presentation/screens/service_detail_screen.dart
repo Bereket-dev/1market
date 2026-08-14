@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/rating_stars.dart';

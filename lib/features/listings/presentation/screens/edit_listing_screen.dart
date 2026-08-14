@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
@@ -113,7 +114,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
         withReadStream: false,
       );
     } catch (e) {
-      setState(() => _uploadError = e.toString());
+      setState(() => _uploadError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
       return;
     }
 
@@ -157,7 +158,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       if (!mounted) return;
       state.popScreen();
     } catch (e) {
-      setState(() => _uploadError = e.toString());
+      setState(() => _uploadError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

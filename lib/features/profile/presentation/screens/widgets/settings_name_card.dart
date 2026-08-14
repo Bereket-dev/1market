@@ -80,7 +80,7 @@ class _InlineNameCardState extends State<_InlineNameCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s))),
         );
       }
     } finally {

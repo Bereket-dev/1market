@@ -76,7 +76,18 @@ class _CvUploadButtonState extends State<CvUploadButton> {
         });
         break;
       case CvUploadError(message: final msg):
-        setState(() => _errorMessage = msg);
+        setState(() {
+          _errorMessage = switch (msg) {
+            'pick_failed' || 'unexpected' || 'uploadFailed' || 'upload_failed' =>
+              s.errorUnknown,
+            'notConfigured' || 'not_configured' => s.errorSupabaseUnavailable,
+            'unauthorized' => s.errorUnauthorized,
+            'network' => s.errorNetwork,
+            _ when msg.toLowerCase().contains('too large') => msg,
+            _ when msg.toLowerCase().contains('could not read') => s.errorUnknown,
+            _ => s.errorUnknown,
+          };
+        });
         break;
     }
 

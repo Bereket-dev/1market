@@ -40,7 +40,7 @@ extension AppStateData on KoolanAppState {
             services.map((s) => s.toJson()).toList(),
           );
         } catch (e) {
-          debugPrint('fetchServices (guest) failed: $e');
+          if (kDebugMode) debugPrint('fetchServices (guest) failed: $e');
         }
         try {
           final posts = await anonRepo.fetchHiringPosts(
@@ -50,12 +50,12 @@ extension AppStateData on KoolanAppState {
           allHiringPosts = posts;
           hasMoreHiringPosts = posts.length >= SupabaseRepository.kPageSize;
         } catch (e) {
-          debugPrint('fetchHiringPosts (guest) failed: $e');
+          if (kDebugMode) debugPrint('fetchHiringPosts (guest) failed: $e');
         }
         try {
           homePromos = await anonRepo.fetchHomePromos();
         } catch (e) {
-          debugPrint('fetchHomePromos (guest) failed: $e');
+          if (kDebugMode) debugPrint('fetchHomePromos (guest) failed: $e');
         }
         chatSessions = [];
         return;
@@ -82,7 +82,7 @@ extension AppStateData on KoolanAppState {
         final raw = await _repo!.fetchChatSessions();
         chatSessions = await _enrichChatSessions(raw);
       } catch (e) {
-        debugPrint('fetchChatSessions failed: $e');
+        if (kDebugMode) debugPrint('fetchChatSessions failed: $e');
       }
       try {
         final posts = await _repo!.fetchHiringPosts(
@@ -100,28 +100,28 @@ extension AppStateData on KoolanAppState {
           return count > 0 ? p.copyWith(applicantCount: count) : p;
         }).toList();
       } catch (e) {
-        debugPrint('fetchHiringPosts failed: $e');
+        if (kDebugMode) debugPrint('fetchHiringPosts failed: $e');
       }
       try {
         myApplications = await _repo!.fetchMyApplications();
       } catch (e) {
-        debugPrint('fetchMyApplications failed: $e');
+        if (kDebugMode) debugPrint('fetchMyApplications failed: $e');
       }
       try {
         notifications = await _repo!.fetchNotifications();
       } catch (e) {
-        debugPrint('fetchNotifications failed: $e');
+        if (kDebugMode) debugPrint('fetchNotifications failed: $e');
       }
       try {
         homePromos = await _repo!.fetchHomePromos();
       } catch (e) {
-        debugPrint('fetchHomePromos failed: $e');
+        if (kDebugMode) debugPrint('fetchHomePromos failed: $e');
       }
     } on SocketException catch (e) {
-      debugPrint('fetchListings offline (SocketException): $e');
+      if (kDebugMode) debugPrint('fetchListings offline (SocketException): $e');
       await _serveListingsFromCache();
     } on HandshakeException catch (e) {
-      debugPrint('fetchListings offline (HandshakeException): $e');
+      if (kDebugMode) debugPrint('fetchListings offline (HandshakeException): $e');
       await _serveListingsFromCache();
     } catch (e) {
       final msg = e.toString().toLowerCase();
@@ -136,11 +136,11 @@ extension AppStateData on KoolanAppState {
           msg.contains('errno = 111');
 
       if (isNetworkError) {
-        debugPrint('fetchListings network error: $e');
+        if (kDebugMode) debugPrint('fetchListings network error: $e');
         await _serveListingsFromCache();
       } else {
-        debugPrint('fetchListings error: $e');
-        dataError = e.toString();
+        if (kDebugMode) debugPrint('fetchListings error: $e');
+        reportDataError(e);
       }
     } finally {
       isLoadingData = false;
@@ -155,28 +155,29 @@ extension AppStateData on KoolanAppState {
     final listingsCached = await app_local.LocalStorage.getListingsCache();
     if (listingsCached != null && listingsCached.isNotEmpty) {
       final userId = currentUser?.id;
-      allListings = listingsCached
-          .map(
-            (json) => Listing.fromJson(
-              json,
-              isSaved: json['is_saved'] as bool? ?? false,
-              isOwnedByCurrentUser: json['seller_id'] == userId,
-            ),
-          )
-          .toList();
+      allListings = SafeParse.mapList(
+        listingsCached,
+        (json) => Listing.fromJson(
+          json,
+          isSaved: json['is_saved'] as bool? ?? false,
+          isOwnedByCurrentUser: json['seller_id'] == userId,
+        ),
+        context: 'listings_cache',
+      );
     }
     final servicesCached = await app_local.LocalStorage.getServicesCache();
     if (servicesCached != null && servicesCached.isNotEmpty) {
       final userId = currentUser?.id;
-      allServices = servicesCached
-          .map((json) => Service.fromJson(json))
-          .where((service) => service.ownerId == userId || service.availability)
-          .toList();
+      allServices = SafeParse.mapList(
+        servicesCached,
+        Service.fromJson,
+        context: 'services_cache',
+      ).where((service) => service.ownerId == userId || service.availability).toList();
     }
     if (allListings.isNotEmpty || allServices.isNotEmpty) {
-      dataError = 'Showing cached data — you appear to be offline.';
+      dataError = s.errorOfflineCached;
     } else {
-      dataError = 'No internet connection and no cached data available.';
+      dataError = s.errorOfflineNoCache;
     }
   }
 
@@ -235,7 +236,7 @@ extension AppStateData on KoolanAppState {
       allListings = [...allListings, ...newItems];
       hasMoreListings = page.length >= SupabaseRepository.kPageSize;
     } catch (e) {
-      debugPrint('loadMoreListings failed: $e');
+      if (kDebugMode) debugPrint('loadMoreListings failed: $e');
     } finally {
       isLoadingMore = false;
       notifyListeners();
@@ -259,7 +260,7 @@ extension AppStateData on KoolanAppState {
       allServices = [...allServices, ...newItems];
       hasMoreServices = page.length >= SupabaseRepository.kPageSize;
     } catch (e) {
-      debugPrint('loadMoreServices failed: $e');
+      if (kDebugMode) debugPrint('loadMoreServices failed: $e');
     } finally {
       isLoadingMore = false;
       notifyListeners();
@@ -283,7 +284,7 @@ extension AppStateData on KoolanAppState {
       allHiringPosts = [...allHiringPosts, ...newItems];
       hasMoreHiringPosts = page.length >= SupabaseRepository.kPageSize;
     } catch (e) {
-      debugPrint('loadMoreHiringPosts failed: $e');
+      if (kDebugMode) debugPrint('loadMoreHiringPosts failed: $e');
     } finally {
       isLoadingMore = false;
       notifyListeners();
@@ -320,7 +321,7 @@ extension AppStateData on KoolanAppState {
     try {
       await _repo?.deleteListing(listingId);
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
     }
   }
@@ -341,7 +342,7 @@ extension AppStateData on KoolanAppState {
     List<String> existingImageUrls = const [],
   }) async {
     if (_repo == null) {
-      dataError = 'Supabase unavailable';
+      dataError = s.errorSupabaseUnavailable;
       notifyListeners();
       return;
     }
@@ -419,7 +420,7 @@ extension AppStateData on KoolanAppState {
       if (idx != -1) {
         allListings[idx] = updated.copyWith(syncStatus: SyncStatus.failed);
       }
-      dataError = e.toString();
+      reportDataError(e);
     }
     notifyListeners();
   }
@@ -435,14 +436,14 @@ extension AppStateData on KoolanAppState {
     notifyListeners();
     try {
       if (_repo == null) {
-        dataError = 'Supabase unavailable';
+        dataError = s.errorSupabaseUnavailable;
         notifyListeners();
         return;
       }
       await _repo!.toggleFavorite(listingId, listing.isSaved);
     } catch (e) {
       allListings[index] = listing;
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       rethrow;
     }

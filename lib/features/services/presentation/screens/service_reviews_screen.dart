@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../core/widgets/rating_stars.dart';
 import '../../../../shared/models/app_strings.dart';
@@ -84,7 +85,7 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _submitError = e.toString());
+      setState(() => _submitError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

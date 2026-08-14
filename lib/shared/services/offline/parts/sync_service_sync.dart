@@ -12,6 +12,7 @@ extension SyncServiceSyncpass on SyncService {
     // Flush any pending profile photo uploads first (avatar / banner).
     await _appState.flushPendingPhotoUploads();
     await _appState.flushPendingCvUploads();
+    await _appState.flushPendingListingImages();
 
     final entries = await _loadPendingQueueEntries();
     for (final entry in entries) {
@@ -27,86 +28,112 @@ extension SyncServiceSyncpass on SyncService {
   Future<List<SyncQueueEntry>> _loadPendingQueueEntries() async {
     final entries = <SyncQueueEntry>[];
 
+    Future<void> discardCorrupt(
+      SyncEntityType type,
+      String id,
+      Future<void> Function(String) deleteFn,
+      String? payload,
+    ) async {
+      if (payload == null) return;
+      final entry = SyncQueueEntry.fromJson(payload, type);
+      if (entry == null) {
+        await deleteFn(id);
+        onCorrupt?.call(type.nameValue, id);
+      } else {
+        entries.add(entry);
+      }
+    }
+
     final listingIds = await _store.getDraftListingIds();
     for (final id in listingIds) {
-      final payload = _store.readDraftListing(id);
-      if (payload == null) continue;
-      final entry = SyncQueueEntry.fromJson(payload, SyncEntityType.listing);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.listing,
+        id,
+        _store.deleteDraftListing,
+        _store.readDraftListing(id),
+      );
     }
 
     final profileIds = await _store.getPendingProfileEditIds();
     for (final id in profileIds) {
-      final payload = _store.readPendingProfileEdit(id);
-      if (payload == null) continue;
-      final entry = SyncQueueEntry.fromJson(payload, SyncEntityType.profile);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.profile,
+        id,
+        _store.deletePendingProfileEdit,
+        _store.readPendingProfileEdit(id),
+      );
     }
 
     final serviceIds = await _store.getPendingServiceEditIds();
     for (final id in serviceIds) {
-      final payload = _store.readPendingServiceEdit(id);
-      if (payload == null) continue;
-      final entry = SyncQueueEntry.fromJson(payload, SyncEntityType.service);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.service,
+        id,
+        _store.deletePendingServiceEdit,
+        _store.readPendingServiceEdit(id),
+      );
     }
 
     final serviceDeleteIds = await _store.getPendingServiceDeleteIds();
     for (final id in serviceDeleteIds) {
-      final payload = _store.readPendingServiceDelete(id);
-      if (payload == null) continue;
-      final entry =
-          SyncQueueEntry.fromJson(payload, SyncEntityType.serviceDelete);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.serviceDelete,
+        id,
+        _store.deletePendingServiceDelete,
+        _store.readPendingServiceDelete(id),
+      );
     }
 
     final messageIds = await _store.getPendingMessageIds();
     for (final id in messageIds) {
-      final payload = _store.readPendingMessage(id);
-      if (payload == null) continue;
-      final entry =
-          SyncQueueEntry.fromJson(payload, SyncEntityType.chatMessage);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.chatMessage,
+        id,
+        _store.deletePendingMessage,
+        _store.readPendingMessage(id),
+      );
     }
 
     final hiringPostIds = await _store.getPendingHiringPostEditIds();
     for (final id in hiringPostIds) {
-      final payload = _store.readPendingHiringPostEdit(id);
-      if (payload == null) continue;
-      final entry =
-          SyncQueueEntry.fromJson(payload, SyncEntityType.hiringPost);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.hiringPost,
+        id,
+        _store.deletePendingHiringPostEdit,
+        _store.readPendingHiringPostEdit(id),
+      );
     }
 
     final hiringPostDeleteIds =
         await _store.getPendingHiringPostDeleteIds();
     for (final id in hiringPostDeleteIds) {
-      final payload = _store.readPendingHiringPostDelete(id);
-      if (payload == null) continue;
-      final entry =
-          SyncQueueEntry.fromJson(payload, SyncEntityType.hiringPostDelete);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.hiringPostDelete,
+        id,
+        _store.deletePendingHiringPostDelete,
+        _store.readPendingHiringPostDelete(id),
+      );
     }
 
     final applicationIds = await _store.getPendingApplicationIds();
     for (final id in applicationIds) {
-      final payload = _store.readPendingApplication(id);
-      if (payload == null) continue;
-      final entry =
-          SyncQueueEntry.fromJson(payload, SyncEntityType.application);
-      if (entry != null) entries.add(entry);
+      await discardCorrupt(
+        SyncEntityType.application,
+        id,
+        _store.deletePendingApplication,
+        _store.readPendingApplication(id),
+      );
     }
 
     final appStatusIds =
         await _store.getPendingApplicationStatusUpdateIds();
     for (final id in appStatusIds) {
-      final payload = _store.readPendingApplicationStatusUpdate(id);
-      if (payload == null) continue;
-      final entry = SyncQueueEntry.fromJson(
-        payload,
+      await discardCorrupt(
         SyncEntityType.applicationStatusUpdate,
+        id,
+        _store.deletePendingApplicationStatusUpdate,
+        _store.readPendingApplicationStatusUpdate(id),
       );
-      if (entry != null) entries.add(entry);
     }
 
     entries.sort((a, b) => a.localUpdatedAt.compareTo(b.localUpdatedAt));
@@ -180,15 +207,15 @@ extension SyncServiceSyncpass on SyncService {
       }
       return true;
     } on SocketException catch (error) {
-      debugPrint('Network error during sync: $error');
+      if (kDebugMode) debugPrint('Network error during sync: $error');
       await _markEntryFailed(entry);
       return false;
     } on TimeoutException catch (error) {
-      debugPrint('Timeout during sync: $error');
+      if (kDebugMode) debugPrint('Timeout during sync: $error');
       await _markEntryFailed(entry);
       return false;
     } catch (error) {
-      debugPrint('Sync failure for ${entry.entityType.nameValue}: $error');
+      if (kDebugMode) debugPrint('Sync failure for ${entry.entityType.nameValue}: $error');
       await _markEntryFailed(entry);
       return false;
     }
@@ -365,11 +392,13 @@ extension SyncServiceSyncpass on SyncService {
     // the queue. Notify via callback so the UI can show a SnackBar without
     // using any popup or overlay pattern.
     await _deleteQueueEntry(entry);
-    debugPrint(
-      '[SyncService] discarded stale ${entry.entityType.nameValue} '
-      '${entry.entityId}: remote=${remoteUpdatedAt.toIso8601String()} '
-      'local=${entry.localUpdatedAt.toIso8601String()}',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[SyncService] discarded stale ${entry.entityType.nameValue} '
+        '${entry.entityId}: remote=${remoteUpdatedAt.toIso8601String()} '
+        'local=${entry.localUpdatedAt.toIso8601String()}',
+      );
+    }
     onDiscard?.call(entry.entityType.nameValue, entry.entityId);
   }
 

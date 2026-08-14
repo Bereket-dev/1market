@@ -121,7 +121,7 @@ extension AppStateHiring on KoolanAppState {
           syncStatus: SyncStatus.failed,
         );
       }
-      dataError = e.toString();
+      reportDataError(e);
     }
     notifyListeners();
     return resolvedId;
@@ -133,7 +133,7 @@ extension AppStateHiring on KoolanAppState {
     try {
       await _repo?.deleteHiringPost(id);
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
     }
   }
@@ -153,7 +153,7 @@ extension AppStateHiring on KoolanAppState {
       allHiringPosts[index] = updated.copyWith(syncStatus: SyncStatus.synced);
     } catch (e) {
       allHiringPosts[index] = updated.copyWith(syncStatus: SyncStatus.failed);
-      dataError = e.toString();
+      reportDataError(e);
     }
     notifyListeners();
   }
@@ -173,7 +173,7 @@ extension AppStateHiring on KoolanAppState {
       notifyListeners();
       return apps;
     } catch (e) {
-      debugPrint('loadApplicationsForPost error: $e');
+      if (kDebugMode) debugPrint('loadApplicationsForPost error: $e');
       return _applicantsCache[hiringPostId] ?? [];
     }
   }
@@ -238,7 +238,7 @@ extension AppStateHiring on KoolanAppState {
           syncStatus: SyncStatus.failed,
         );
       }
-      dataError = e.toString();
+      reportDataError(e);
     }
     notifyListeners();
   }
@@ -298,7 +298,7 @@ extension AppStateHiring on KoolanAppState {
           );
         }
       }
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
     }
     notifyListeners();
@@ -345,7 +345,7 @@ extension AppStateHiring on KoolanAppState {
     try {
       await _repo?.markNotificationRead(notificationId);
     } catch (e) {
-      debugPrint('markNotificationRead error: $e');
+      if (kDebugMode) debugPrint('markNotificationRead error: $e');
     }
   }
 
@@ -373,7 +373,7 @@ extension AppStateHiring on KoolanAppState {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('_notifyNewApplication error: $e');
+      if (kDebugMode) debugPrint('_notifyNewApplication error: $e');
     }
   }
 
@@ -414,7 +414,7 @@ extension AppStateHiring on KoolanAppState {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('_notifyStatusChanged error: $e');
+      if (kDebugMode) debugPrint('_notifyStatusChanged error: $e');
     }
   }
 }

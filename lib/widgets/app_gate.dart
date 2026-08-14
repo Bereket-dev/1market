@@ -42,11 +42,6 @@ class _InitializingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kDebugMode) debugPrint('[InitializingScreen] build');
     final cs = Theme.of(context).colorScheme;
-    // Use getInheritedWidgetOfExactType (non-registering) here because
-    // _InitializingScreen only reads .s strings and never needs to rebuild
-    // when appState changes — it is shown exactly once, before the app is
-    // ready.  Registering a dependency would add it to the listener set
-    // unnecessarily and could contribute to the build-scope assertion crash.
     final appState = context
         .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
         .notifier!;
@@ -69,13 +64,64 @@ class _InitializingScreen extends StatelessWidget {
                 Icon(Icons.error_outline, color: cs.error, size: 48),
                 const SizedBox(height: 16),
                 Text(
-                  error!,
+                  s.errorCantConnect,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: cs.error),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(onPressed: onRetry, child: Text(s.initRetry)),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when Firebase/Supabase bootstrap fails before [KoolanAppState] exists.
+class _BootstrapFailureScreen extends StatelessWidget {
+  const _BootstrapFailureScreen({
+    required this.retrying,
+    required this.onRetry,
+  });
+
+  final bool retrying;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    // Locale prefs may exist but AppStrings needs a locale code; default en.
+    final s = AppStrings('en');
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off_outlined, color: cs.error, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                s.errorCantConnect,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                s.errorCantConnectHint,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 24),
+              if (retrying)
+                const CircularProgressIndicator()
+              else
+                FilledButton(onPressed: onRetry, child: Text(s.initRetry)),
             ],
           ),
         ),

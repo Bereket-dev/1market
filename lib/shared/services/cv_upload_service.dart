@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/syncable_entity.dart';
+import '../../core/errors/app_error.dart';
+import '../../core/errors/error_reporter.dart';
 import 'cloudinary_upload_service.dart';
 import 'offline/hive_sync_store.dart' show HiveSyncStore;
 
@@ -126,8 +129,9 @@ class CvUploadService {
         withData: true,
         withReadStream: false,
       );
-    } catch (e) {
-      return CvUploadError(e.toString());
+    } catch (e, st) {
+      await ErrorReporter.recordError(e, st, reason: 'cv_pick');
+      return CvUploadError('pick_failed');
     }
 
     if (result == null || result.files.isEmpty) {
@@ -158,36 +162,54 @@ class CvUploadService {
 
     final fileName = picked.name;
 
-    // ── Try online upload ────────────────────────────────────────────────────
-    try {
-      final client = Supabase.instance.client;
-      if (client.auth.currentSession != null) {
-        final userId = client.auth.currentUser?.id ?? 'unknown';
-        final upload = await CloudinaryUploadService.instance.uploadRawFile(
-          file: file,
-          userId: userId,
-          serviceId: serviceId,
-        );
-        if (upload is CloudinaryUploadSuccess) {
-          await _box!.delete(serviceId);
-          return CvUploadQueued(
-            remoteUrl: upload.secureUrl,
-            localPath: localPath,
-            fileName: fileName,
-            status: SyncStatus.synced,
-          );
-        } else if (upload is CloudinaryUploadFailure) {
-          if (!upload.message.startsWith('network:')) {
-            return CvUploadError(upload.message);
-          }
-          debugPrint('CV Cloudinary upload failed, will queue: ${upload.message}');
-        }
-      }
-    } catch (e) {
-      debugPrint('CV upload failed, will queue: $e');
+    final client = Supabase.instance.client;
+    if (client.auth.currentSession == null) {
+      return CvUploadError('unauthorized');
     }
 
-    // ── Offline queue ────────────────────────────────────────────────────────
+    // ── Try online upload ────────────────────────────────────────────────────
+    var queueForLater = false;
+    try {
+      final userId = client.auth.currentUser?.id ?? 'unknown';
+      final upload = await CloudinaryUploadService.instance.uploadRawFile(
+        file: file,
+        userId: userId,
+        serviceId: serviceId,
+      );
+      if (upload is CloudinaryUploadSuccess) {
+        await _box!.delete(serviceId);
+        return CvUploadQueued(
+          remoteUrl: upload.secureUrl,
+          localPath: localPath,
+          fileName: fileName,
+          status: SyncStatus.synced,
+        );
+      }
+      if (upload is CloudinaryUploadFailure) {
+        if (upload.code == CloudinaryFailureCode.network) {
+          queueForLater = true;
+          if (kDebugMode) {
+            debugPrint('CV Cloudinary upload failed, will queue: ${upload.code}');
+          }
+        } else {
+          return CvUploadError(upload.code.name);
+        }
+      }
+    } catch (e, st) {
+      if (AppError.isTransientNetwork(e)) {
+        queueForLater = true;
+        if (kDebugMode) debugPrint('CV upload failed, will queue: $e');
+      } else {
+        unawaited(ErrorReporter.recordError(e, st, reason: 'cv_upload'));
+        return CvUploadError('unexpected');
+      }
+    }
+
+    if (!queueForLater) {
+      return CvUploadError('unexpected');
+    }
+
+    // ── Offline queue (network failures only) ────────────────────────────────
     final pending = PendingCvUpload(
       serviceId: serviceId,
       localPath: localPath,
@@ -232,7 +254,7 @@ class CvUploadService {
         return dest;
       }
     } catch (e) {
-      debugPrint('CV persist failed: $e');
+      if (kDebugMode) debugPrint('CV persist failed: $e');
     }
     return null;
   }
@@ -255,7 +277,10 @@ class CvUploadService {
       try {
         final data = jsonDecode(raw) as Map<String, dynamic>;
         final pending = PendingCvUpload.fromJson(data);
-        if (pending == null) continue;
+        if (pending == null) {
+          await _box!.delete(key);
+          continue;
+        }
 
         final file = File(pending.localPath);
         if (!await file.exists()) {
@@ -273,11 +298,13 @@ class CvUploadService {
           await onUploaded(pending.serviceId, result.secureUrl);
           await _box!.delete(key);
         } else if (result is CloudinaryUploadFailure) {
-          debugPrint('CV upload flush failed for key $key: ${result.message}');
+          if (kDebugMode) {
+            debugPrint('CV upload flush failed for key $key: ${result.code}');
+          }
           // Keep in queue for next pass.
         }
       } catch (e) {
-        debugPrint('CV upload flush failed for key $key: $e');
+        if (kDebugMode) debugPrint('CV upload flush failed for key $key: $e');
       }
     }
   }
@@ -308,7 +335,7 @@ class CvUploadService {
       await _box!.put(newServiceId, jsonEncode(data));
       await _box!.delete(oldServiceId);
     } catch (e) {
-      debugPrint('CV rekey failed: $e');
+      if (kDebugMode) debugPrint('CV rekey failed: $e');
     }
   }
 }

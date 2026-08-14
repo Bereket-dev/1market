@@ -5,6 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/errors/app_error.dart';
+import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
 import 'create_account_screen.dart';
 import 'reset_password_screen.dart';
@@ -111,6 +113,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  String _mapError(Object error) =>
+      ErrorMapper.userMessage(error, KoolanAppStateScope.of(context).s);
+
   InputDecoration _fieldDeco(
     BuildContext context, {
     required String label,
@@ -166,19 +171,6 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     );
   }
 
-  String _friendlyError(String msg) {
-    final lower = msg.toLowerCase();
-    if (lower.contains('not authenticated') ||
-        lower.contains('user not confirmed') ||
-        lower.contains('email not confirmed') ||
-        lower.contains('confirmation required') ||
-        lower.contains('verify your email') ||
-        lower.contains('confirm your email')) {
-      return KoolanAppStateScope.of(context).s.authConfirmationRequired;
-    }
-    return msg;
-  }
-
   // ── Sign-in ────────────────────────────────────────────────────────────────
 
   Future<void> _signIn() async {
@@ -200,9 +192,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = _friendlyError(e.message));
+      setState(() => _error = _mapError(e));
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = _mapError(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -253,9 +245,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       await KoolanAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
-      setState(() => _error = e.message);
+      setState(() => _error = _mapError(e));
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = _mapError(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -277,8 +269,6 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       KoolanAppStateScope.of(context).markOAuthPending();
       setState(() => _facebookOAuthInFlight = true);
-      // Request email so Supabase can auto-link this Facebook identity to an
-      // existing account that already uses the same verified email.
       await client.auth.signInWithOAuth(
         OAuthProvider.facebook,
         redirectTo: AppSupabaseConfig.redirectUrl,
@@ -287,10 +277,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
       );
     } on AuthException catch (e) {
       if (mounted) {
-        final cancelled = e.message.toLowerCase().contains('access_denied') ||
-            e.message.toLowerCase().contains('access denied');
+        final msg = _mapError(e);
+        final cancelled = AppError.classify(e) == AppErrorKind.cancelled;
         setState(() {
-          _error = cancelled ? null : e.message;
+          _error = cancelled ? null : msg;
           _isLoading = false;
           _facebookOAuthInFlight = false;
         });
@@ -298,10 +288,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
       }
     } catch (e) {
       if (mounted) {
-        final msg       = e.toString().toLowerCase();
-        final cancelled = msg.contains('access_denied') || msg.contains('access denied');
+        final cancelled = AppError.classify(e) == AppErrorKind.cancelled;
         setState(() {
-          _error = cancelled ? null : e.toString();
+          _error = cancelled ? null : _mapError(e);
           _isLoading = false;
           _facebookOAuthInFlight = false;
         });

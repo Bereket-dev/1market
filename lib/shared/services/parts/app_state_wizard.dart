@@ -19,7 +19,7 @@ extension AppStateWizard on KoolanAppState {
         withReadStream: false,
       );
     } catch (e) {
-      listingImageUploadError = e.toString();
+      listingImageUploadError = s.errorUnknown;
       notifyListeners();
       return;
     }
@@ -85,7 +85,7 @@ extension AppStateWizard on KoolanAppState {
 
     try {
       if (_repo == null) {
-        dataError = 'Supabase unavailable';
+        dataError = s.errorSupabaseUnavailable;
         notifyListeners();
         return '';
       }
@@ -93,7 +93,7 @@ extension AppStateWizard on KoolanAppState {
       // ── 1. Upload picked images to Cloudinary ──────────────────────────────
       final tempListingId = 'tmp_${DateTime.now().millisecondsSinceEpoch}';
       final uploadedUrls = <String>[];
-      final errors = <String>[];
+      final pendingNetworkImages = <Map<String, dynamic>>[];
 
       if (postImagePaths.isNotEmpty) {
         isUploadingListingImages = true;
@@ -112,17 +112,22 @@ extension AppStateWizard on KoolanAppState {
           switch (result) {
             case CloudinaryUploadSuccess(:final secureUrl):
               uploadedUrls.add(secureUrl);
-            case CloudinaryUploadFailure(:final message):
-              errors.add(message);
+            case CloudinaryUploadFailure(:final code):
+              if (code == CloudinaryFailureCode.network) {
+                pendingNetworkImages.add({
+                  'localPath': postImagePaths[i],
+                  'index': i,
+                });
+              } else {
+                isUploadingListingImages = false;
+                listingImageUploadError = _listingUploadErrorFor(code);
+                notifyListeners();
+                return '';
+              }
           }
         }
 
         isUploadingListingImages = false;
-        if (errors.isNotEmpty) {
-          listingImageUploadError =
-              '${errors.length} image(s) failed to upload';
-          notifyListeners();
-        }
       }
 
       final primaryImageUrl = uploadedUrls.isNotEmpty
@@ -164,6 +169,14 @@ extension AppStateWizard on KoolanAppState {
       );
 
       allListings.insert(0, newListing);
+      if (pendingNetworkImages.isNotEmpty) {
+        await _queueListingImages(
+          listingId: newListing.id,
+          userId: userId,
+          images: pendingNetworkImages,
+        );
+        dataError = s.wizardPhotosQueued;
+      }
       resetWizard();
       notifyListeners();
 
@@ -177,9 +190,142 @@ extension AppStateWizard on KoolanAppState {
       return newListing.id;
     } catch (e) {
       isUploadingListingImages = false;
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
       rethrow;
+    }
+  }
+
+  String _listingUploadErrorFor(CloudinaryFailureCode code) {
+    return switch (code) {
+      CloudinaryFailureCode.unauthorized => s.errorUnauthorized,
+      CloudinaryFailureCode.notConfigured => s.errorSupabaseUnavailable,
+      CloudinaryFailureCode.network => s.errorNetwork,
+      _ => s.errorUnknown,
+    };
+  }
+
+  Future<void> _queueListingImages({
+    required String listingId,
+    required String userId,
+    required List<Map<String, dynamic>> images,
+  }) async {
+    final store = HiveSyncStore.instance;
+    await store.initialize();
+    await store.savePendingListingImages(
+      listingId,
+      jsonEncode({
+        'listingId': listingId,
+        'userId': userId,
+        'images': images,
+      }),
+    );
+    if (kDebugMode) {
+      debugPrint('[ListingUpload] queued ${images.length} images for $listingId');
+    }
+  }
+
+  /// Flushes listing images queued after network failures during post wizard.
+  Future<void> flushPendingListingImages() async {
+    final store = HiveSyncStore.instance;
+    await store.initialize();
+    if (_repo == null) return;
+
+    final listingIds = await store.getPendingListingImageIds();
+    for (final listingId in listingIds) {
+      final raw = store.readPendingListingImages(listingId);
+      if (raw == null) continue;
+      try {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        final userId = data['userId'] as String? ?? currentUser?.id ?? '';
+        final images = (data['images'] as List?) ?? [];
+        if (userId.isEmpty || images.isEmpty) {
+          await store.deletePendingListingImages(listingId);
+          continue;
+        }
+
+        final uploaded = <String, String>{};
+        var keepQueued = false;
+        for (final item in images) {
+          if (item is! Map) continue;
+          final localPath = item['localPath'] as String?;
+          final index = item['index'] as int? ?? uploaded.length;
+          if (localPath == null) continue;
+          final file = File(localPath);
+          if (!await file.exists()) continue;
+
+          final result = await CloudinaryUploadService.instance.uploadListingImage(
+            imageFile: file,
+            userId: userId,
+            listingId: listingId,
+            index: index,
+          );
+          switch (result) {
+            case CloudinaryUploadSuccess(:final secureUrl):
+              uploaded['$index'] = secureUrl;
+            case CloudinaryUploadFailure(:final code):
+              if (code == CloudinaryFailureCode.network) {
+                keepQueued = true;
+              } else if (kDebugMode) {
+                debugPrint('[ListingUpload] flush failed for $listingId: $code');
+              }
+          }
+        }
+
+        if (uploaded.isEmpty) {
+          if (!keepQueued) await store.deletePendingListingImages(listingId);
+          continue;
+        }
+
+        final idx = allListings.indexWhere((l) => l.id == listingId);
+        final existing = idx >= 0 ? allListings[idx] : null;
+        final merged = List<String>.from(existing?.imageUrls ?? []);
+        if (merged.isEmpty && existing?.imageUrl.isNotEmpty == true) {
+          merged.add(existing!.imageUrl);
+        }
+        for (final url in uploaded.values) {
+          if (!merged.contains(url)) merged.add(url);
+        }
+
+        await _repo!.updateListing(listingId, {
+          'image_url': merged.first,
+          'image_urls': merged,
+        });
+
+        if (idx >= 0) {
+          allListings[idx] = allListings[idx].copyWith(
+            imageUrl: merged.first,
+            imageUrls: merged,
+          );
+          notifyListeners();
+        }
+
+        if (keepQueued) {
+          final remaining = images.where((item) {
+            if (item is! Map) return false;
+            final index = '${item['index']}';
+            return !uploaded.containsKey(index);
+          }).toList();
+          if (remaining.isEmpty) {
+            await store.deletePendingListingImages(listingId);
+          } else {
+            await store.savePendingListingImages(
+              listingId,
+              jsonEncode({
+                'listingId': listingId,
+                'userId': userId,
+                'images': remaining,
+              }),
+            );
+          }
+        } else {
+          await store.deletePendingListingImages(listingId);
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[ListingUpload] flush error for $listingId: $e');
+        }
+      }
     }
   }
 }

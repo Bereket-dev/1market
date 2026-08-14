@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -46,11 +47,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       );
       Navigator.of(context).pop();
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ErrorMapper.userMessage(e, s))),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ErrorMapper.userMessage(e, s))),
+      );
     } finally {
       if (mounted) setState(() => _isSending = false);
     }

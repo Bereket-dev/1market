@@ -5,6 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/errors/app_error.dart';
+import '../../core/errors/error_mapper.dart';
 import '../services/app_state.dart';
 part 'widgets/auth_gate_logos.dart';
 part 'widgets/auth_gate_content.dart';

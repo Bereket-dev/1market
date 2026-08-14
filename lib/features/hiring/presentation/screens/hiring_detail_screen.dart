@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/service.dart';
@@ -148,7 +149,7 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
           errMsg.contains('23505')) {
         setState(() => _applyError = s.hiringDuplicateError);
       } else {
-        setState(() => _applyError = e.toString());
+        setState(() => _applyError = ErrorMapper.userMessage(e, s));
       }
     } finally {
       if (mounted) setState(() => _applying = false);

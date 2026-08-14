@@ -167,7 +167,7 @@ extension AppStateServices on KoolanAppState {
           syncStatus: SyncStatus.failed,
         );
       }
-      dataError = e.toString();
+      reportDataError(e);
     }
     notifyListeners();
     return resolvedId;
@@ -186,7 +186,7 @@ extension AppStateServices on KoolanAppState {
             'cv_file_url': remoteUrl,
           });
         } catch (e) {
-          debugPrint('[CvUpload] failed to persist URL for $serviceId: $e');
+          if (kDebugMode) debugPrint('[CvUpload] failed to persist URL for $serviceId: $e');
         }
       },
     );
@@ -247,7 +247,7 @@ extension AppStateServices on KoolanAppState {
     try {
       await _repo?.deleteService(id);
     } catch (e) {
-      dataError = e.toString();
+      reportDataError(e);
       notifyListeners();
     }
   }
@@ -267,7 +267,7 @@ extension AppStateServices on KoolanAppState {
       allServices[index] = updated.copyWith(syncStatus: SyncStatus.synced);
     } catch (e) {
       allServices[index] = updated.copyWith(syncStatus: SyncStatus.failed);
-      dataError = e.toString();
+      reportDataError(e);
     }
     notifyListeners();
   }

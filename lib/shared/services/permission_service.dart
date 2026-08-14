@@ -64,7 +64,7 @@ class PermissionService {
 
   static void _onNotificationTapped(NotificationResponse response) {
     // Navigation on tap can be wired here if needed later.
-    debugPrint('[PermissionService] Notification tapped: ${response.payload}');
+    if (kDebugMode) debugPrint('[PermissionService] Notification tapped: ${response.payload}');
   }
 
   // ── FCM setup ──────────────────────────────────────────────────────────────
@@ -82,8 +82,11 @@ class PermissionService {
         provisional: false,
       );
 
-      debugPrint(
-          '[PermissionService] Notification auth status: ${settings.authorizationStatus}');
+      if (kDebugMode) {
+        debugPrint(
+          '[PermissionService] Notification auth status: ${settings.authorizationStatus}',
+        );
+      }
 
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         return null;
@@ -97,10 +100,14 @@ class PermissionService {
       );
 
       final token = await messaging.getToken();
-      debugPrint('[PermissionService] FCM token: $token');
+      if (kDebugMode) {
+        debugPrint(
+          '[PermissionService] FCM token ${token == null ? "missing" : "obtained"}',
+        );
+      }
       return token;
     } catch (e) {
-      debugPrint('[PermissionService] FCM permission/token error: $e');
+      if (kDebugMode) debugPrint('[PermissionService] FCM permission/token error: $e');
       return null;
     }
   }
@@ -205,7 +212,7 @@ class PermissionService {
       await file.writeAsBytes(response.bodyBytes);
       return file.path;
     } catch (e) {
-      debugPrint('[PermissionService] notification image download failed: $e');
+      if (kDebugMode) debugPrint('[PermissionService] notification image download failed: $e');
       return null;
     }
   }
@@ -233,7 +240,7 @@ class PermissionService {
       // Check whether location services are enabled at all.
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        debugPrint('[PermissionService] Location services disabled on device');
+        if (kDebugMode) debugPrint('[PermissionService] Location services disabled on device');
         return null;
       }
 
@@ -242,13 +249,13 @@ class PermissionService {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          debugPrint('[PermissionService] Location permission denied');
+          if (kDebugMode) debugPrint('[PermissionService] Location permission denied');
           return null;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        debugPrint('[PermissionService] Location permission permanently denied');
+        if (kDebugMode) debugPrint('[PermissionService] Location permission permanently denied');
         return null;
       }
 
@@ -260,11 +267,14 @@ class PermissionService {
         ),
       );
 
-      debugPrint(
-          '[PermissionService] Position: ${position.latitude}, ${position.longitude}');
+      if (kDebugMode) {
+        debugPrint(
+          '[PermissionService] Position: ${position.latitude}, ${position.longitude}',
+        );
+      }
       return position;
     } catch (e) {
-      debugPrint('[PermissionService] Location fetch error: $e');
+      if (kDebugMode) debugPrint('[PermissionService] Location fetch error: $e');
       return null;
     }
   }
