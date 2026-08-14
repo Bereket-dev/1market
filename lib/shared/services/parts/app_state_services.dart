@@ -192,6 +192,47 @@ extension AppStateServices on KoolanAppState {
     );
   }
 
+  /// Called by SyncService after each sync pass completes.
+  /// Updates [lastSuccessfulSyncAt] and [syncObservability] for the observability model.
+  void onSyncPassComplete({
+    required Duration duration,
+    required bool hadNetworkError,
+  }) {
+    if (!hadNetworkError) {
+      lastSuccessfulSyncAt = DateTime.now();
+      syncObservability.recordSuccess(duration: duration);
+    } else {
+      syncObservability.recordAttempt();
+    }
+    unawaited(refreshSyncQueueCounts());
+    notifyListeners();
+  }
+
+  /// Called by SyncService when an entry reaches [kStatusFailedRequiresAttention].
+  void onSyncEntryRequiresAttention(SyncEntityType type, String entityId) {
+    unawaited(refreshSyncQueueCounts());
+    notifyListeners();
+    if (kDebugMode) {
+      debugPrint(
+        '[AppState] Sync entry requires attention: ${type.nameValue} $entityId',
+      );
+    }
+  }
+
+  /// Re-counts pending / failed_requires_attention entries in the Hive queue.
+  Future<void> refreshSyncQueueCounts() async {
+    try {
+      await HiveSyncStore.instance.initialize();
+      final stats = await HiveSyncStore.instance.countOutboundQueueStats();
+      syncObservability.setQueueCounts(
+        pending: stats.pending,
+        requiresAttention: stats.requiresAttention,
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AppState] refreshSyncQueueCounts failed: $e');
+    }
+  }
+
   /// Called by SyncService after a successful push for an existing item.
   void markEntitySynced(SyncEntityType type, String id) {
     switch (type) {

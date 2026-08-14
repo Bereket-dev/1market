@@ -26,8 +26,10 @@ import '../models/service.dart';
 import '../models/service_review.dart';
 import '../models/syncable_entity.dart';
 import 'local_storage.dart' as app_local;
+import 'marketplace_repository.dart';
 import 'offline/hive_sync_store.dart' hide SyncStatus;
 import 'offline/sync_service.dart';
+import 'sync_status.dart';
 import 'permission_service.dart';
 import 'recommendation_engine.dart';
 import 'supabase_repository.dart';
@@ -195,6 +197,10 @@ class KoolanAppState extends ChangeNotifier {
   /// Read-only anon repo used for guest browsing (pagination load-more).
   SupabaseRepository? _anonRepo;
 
+  /// Phase 1: local-first marketplace data layer (lazy-initialised when _repo
+  /// or _anonRepo becomes available).
+  MarketplaceRepository? _marketplaceRepo;
+
   /// Completes when Supabase fires [AuthChangeEvent.initialSession].
   final Completer<Session?> _sessionReadyCompleter = Completer<Session?>();
 
@@ -215,7 +221,16 @@ class KoolanAppState extends ChangeNotifier {
   UserProfile? profile;
   String? initError;
   bool isLoadingData = false;
+  /// True while a background delta/refresh sync is running after local data
+  /// was already shown to the user (stale-while-revalidate pattern).
+  bool isRefreshing = false;
+  /// The timestamp of the last successful full or delta sync from Supabase.
+  /// Null until the first successful sync in the current app session.
+  DateTime? lastSuccessfulSyncAt;
   String? dataError;
+
+  /// Phase 2: aggregate sync observability — updated by SyncService callbacks.
+  final SyncObservabilityStatus syncObservability = SyncObservabilityStatus();
 
   User? get currentUser {
     try {

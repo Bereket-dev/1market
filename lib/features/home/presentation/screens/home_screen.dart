@@ -11,6 +11,7 @@ import '../../../../shared/services/recommendation_engine.dart';
 import '../../../../shared/services/scorable_adapters.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
+import '../../../../shared/widgets/sync_status_banner.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/recent_listing_card.dart';
@@ -35,6 +36,8 @@ class HomeScreen extends StatelessWidget {
         children: [
           // ── Header ─────────────────────────────────────────────────────────
           _HomeHeader(),
+
+          const SyncStatusBanner(),
 
           // ── Scrollable body ─────────────────────────────────────────────────
           Expanded(

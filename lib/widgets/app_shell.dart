@@ -298,6 +298,14 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
                       onDismiss: _dismissToast,
                     ),
                   ),
+
+                // ── Debug sync overlay (bottom-left, debug builds only) ───
+                if (kDebugMode)
+                  Positioned(
+                    left: 8,
+                    bottom: hideBar ? 12 : 96,
+                    child: SyncDebugOverlay(appState: widget.appState),
+                  ),
               ],
             ),
           ),

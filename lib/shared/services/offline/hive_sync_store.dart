@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -42,6 +44,14 @@ class HiveSyncStore {
   // Listing image upload queue (network failures during post wizard)
   late Box<String> _pendingListingImagesBox;
 
+  // ── Phase 1: full entity mirror boxes ─────────────────────────────────────
+  late Box<String> _listingsMirrorBox;
+  late Box<String> _servicesMirrorBox;
+  late Box<String> _hiringPostsMirrorBox;
+
+  // ── Phase 2: favorites outbound queue ─────────────────────────────────────
+  late Box<String> _pendingFavoritesBox;
+
   Future<void> initialize() async {
     if (_initialized) return;
 
@@ -81,6 +91,14 @@ class HiveSyncStore {
         await Hive.openBox<String>('pending_photo_uploads_box');
     _pendingListingImagesBox =
         await Hive.openBox<String>('pending_listing_images_box');
+
+    // Phase 1: entity mirror boxes (keyed by entity id)
+    _listingsMirrorBox   = await Hive.openBox<String>('listings_mirror_box');
+    _servicesMirrorBox   = await Hive.openBox<String>('services_mirror_box');
+    _hiringPostsMirrorBox = await Hive.openBox<String>('hiring_posts_mirror_box');
+
+    // Phase 2: favorites outbound queue
+    _pendingFavoritesBox = await Hive.openBox<String>('pending_favorites_box');
 
     await _enforceImageCacheLimit();
     _initialized = true;
@@ -390,6 +408,227 @@ class HiveSyncStore {
 
   Future<void> _ensureInitialized() async {
     if (!_initialized) await initialize();
+  }
+
+  // ── Phase 1: SyncMetadata — per-entity updated_at cursors ─────────────────
+  //
+  // Keys stored in _metaBox:
+  //   sync_cursor_listings      → ISO-8601 string of last seen updated_at
+  //   sync_cursor_services      → same
+  //   sync_cursor_hiring_posts  → same
+  //   sync_last_synced_at       → ISO-8601 of last successful full/delta sync
+
+  static const _kLastSyncedAt = 'sync_last_synced_at';
+
+  DateTime? getSyncCursor(String entity) {
+    final raw = _metaBox.get('sync_cursor_$entity');
+    if (raw == null) return null;
+    return DateTime.tryParse(raw)?.toUtc();
+  }
+
+  Future<void> setSyncCursor(String entity, DateTime ts) async {
+    await _ensureInitialized();
+    await _metaBox.put('sync_cursor_$entity', ts.toUtc().toIso8601String());
+  }
+
+  DateTime? getLastSyncedAt() {
+    final raw = _metaBox.get(_kLastSyncedAt);
+    if (raw == null) return null;
+    return DateTime.tryParse(raw)?.toUtc();
+  }
+
+  Future<void> setLastSyncedAt(DateTime ts) async {
+    await _ensureInitialized();
+    await _metaBox.put(_kLastSyncedAt, ts.toUtc().toIso8601String());
+  }
+
+  // ── Phase 2: resumable inbound sync metadata ──────────────────────────────
+  //
+  // When a multi-batch delta or cold seed is interrupted, these keys let the
+  // next pass resume without re-fetching from page 0.
+
+  static const _kInProgressEntity = 'sync_in_progress_entity';
+
+  String? getInProgressEntity() => _metaBox.get(_kInProgressEntity);
+
+  Future<void> setInProgressEntity(String? entity) async {
+    await _ensureInitialized();
+    if (entity == null) {
+      await _metaBox.delete(_kInProgressEntity);
+    } else {
+      await _metaBox.put(_kInProgressEntity, entity);
+    }
+  }
+
+  int? getSeedOffset(String entity) {
+    final raw = _metaBox.get('sync_seed_offset_$entity');
+    if (raw == null) return null;
+    return int.tryParse(raw);
+  }
+
+  Future<void> setSeedOffset(String entity, int offset) async {
+    await _ensureInitialized();
+    await _metaBox.put('sync_seed_offset_$entity', offset.toString());
+  }
+
+  Future<void> clearSeedOffset(String entity) async {
+    await _ensureInitialized();
+    await _metaBox.delete('sync_seed_offset_$entity');
+  }
+
+  int getRecordsFetchedThisSession(String entity) {
+    final raw = _metaBox.get('sync_records_fetched_$entity');
+    if (raw == null) return 0;
+    return int.tryParse(raw) ?? 0;
+  }
+
+  Future<void> setRecordsFetchedThisSession(String entity, int count) async {
+    await _ensureInitialized();
+    await _metaBox.put('sync_records_fetched_$entity', count.toString());
+  }
+
+  Future<void> clearRecordsFetchedThisSession(String entity) async {
+    await _ensureInitialized();
+    await _metaBox.delete('sync_records_fetched_$entity');
+  }
+
+  /// Counts outbound queue entries by terminal / pending status.
+  Future<({int pending, int requiresAttention})> countOutboundQueueStats() async {
+    await _ensureInitialized();
+    var pending = 0;
+    var requiresAttention = 0;
+
+    void tally(String? json) {
+      if (json == null) return;
+      try {
+        final data = jsonDecode(json) as Map<String, dynamic>;
+        final status = data['syncStatus'] as String? ?? 'pending';
+        if (status == 'failed_requires_attention') {
+          requiresAttention++;
+        } else if (status != 'synced') {
+          pending++;
+        }
+      } catch (_) {}
+    }
+
+    for (final key in _draftListingsBox.keys) {
+      tally(_draftListingsBox.get(key));
+    }
+    for (final key in _pendingProfileEditsBox.keys) {
+      tally(_pendingProfileEditsBox.get(key));
+    }
+    for (final key in _pendingServiceEditsBox.keys) {
+      tally(_pendingServiceEditsBox.get(key));
+    }
+    for (final key in _pendingServiceDeletesBox.keys) {
+      tally(_pendingServiceDeletesBox.get(key));
+    }
+    for (final key in _pendingMessagesBox.keys) {
+      tally(_pendingMessagesBox.get(key));
+    }
+    for (final key in _pendingHiringPostEditsBox.keys) {
+      tally(_pendingHiringPostEditsBox.get(key));
+    }
+    for (final key in _pendingHiringPostDeletesBox.keys) {
+      tally(_pendingHiringPostDeletesBox.get(key));
+    }
+    for (final key in _pendingApplicationsBox.keys) {
+      tally(_pendingApplicationsBox.get(key));
+    }
+    for (final key in _pendingApplicationStatusUpdatesBox.keys) {
+      tally(_pendingApplicationStatusUpdatesBox.get(key));
+    }
+    for (final key in _pendingFavoritesBox.keys) {
+      tally(_pendingFavoritesBox.get(key));
+    }
+
+    return (pending: pending, requiresAttention: requiresAttention);
+  }
+
+  // ── Phase 1: entity mirror helpers ────────────────────────────────────────
+  //
+  // Each entity is stored individually by its id so we can do O(1) upserts
+  // and deletes without re-serialising the entire list.
+
+  // — Listings mirror ———————————————————————————————————————————————————————
+
+  Future<void> upsertListingMirror(String id, String json) async {
+    await _ensureInitialized();
+    await _listingsMirrorBox.put(id, json);
+  }
+
+  Future<void> deleteListingMirror(String id) async {
+    await _ensureInitialized();
+    await _listingsMirrorBox.delete(id);
+  }
+
+  List<String> getAllListingsMirror() =>
+      _listingsMirrorBox.values.toList();
+
+  Future<void> clearListingsMirror() async {
+    await _ensureInitialized();
+    await _listingsMirrorBox.clear();
+  }
+
+  // — Services mirror ———————————————————————————————————————————————————————
+
+  Future<void> upsertServiceMirror(String id, String json) async {
+    await _ensureInitialized();
+    await _servicesMirrorBox.put(id, json);
+  }
+
+  Future<void> deleteServiceMirror(String id) async {
+    await _ensureInitialized();
+    await _servicesMirrorBox.delete(id);
+  }
+
+  List<String> getAllServicesMirror() =>
+      _servicesMirrorBox.values.toList();
+
+  Future<void> clearServicesMirror() async {
+    await _ensureInitialized();
+    await _servicesMirrorBox.clear();
+  }
+
+  // — Hiring posts mirror ───────────────────────────────────────────────────
+
+  Future<void> upsertHiringPostMirror(String id, String json) async {
+    await _ensureInitialized();
+    await _hiringPostsMirrorBox.put(id, json);
+  }
+
+  Future<void> deleteHiringPostMirror(String id) async {
+    await _ensureInitialized();
+    await _hiringPostsMirrorBox.delete(id);
+  }
+
+  List<String> getAllHiringPostsMirror() =>
+      _hiringPostsMirrorBox.values.toList();
+
+  Future<void> clearHiringPostsMirror() async {
+    await _ensureInitialized();
+    await _hiringPostsMirrorBox.clear();
+  }
+
+  // ── Phase 2: Favorites outbound queue ─────────────────────────────────────
+  // Key: listingId  Value: JSON SyncQueueEntry
+
+  Future<void> savePendingFavorite(String listingId, String payload) async {
+    await _ensureInitialized();
+    await _pendingFavoritesBox.put(listingId, payload);
+  }
+
+  String? readPendingFavorite(String listingId) =>
+      _pendingFavoritesBox.get(listingId);
+
+  Future<void> deletePendingFavorite(String listingId) async {
+    await _ensureInitialized();
+    await _pendingFavoritesBox.delete(listingId);
+  }
+
+  Future<List<String>> getPendingFavoriteIds() async {
+    await _ensureInitialized();
+    return _pendingFavoritesBox.keys.cast<String>().toList();
   }
 
   Future<void> _enforceImageCacheLimit() async {

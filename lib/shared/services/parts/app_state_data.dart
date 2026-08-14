@@ -4,129 +4,68 @@ part of '../app_state.dart';
 // ── Data loading, navigation & listings ───────────────────────────────────────
 
 extension AppStateData on KoolanAppState {
+
+  // ── MarketplaceRepository accessor ───────────────────────────────────────────
+
+  MarketplaceRepository? _ensureMarketplaceRepo() {
+    final repo = _repo ?? _anonRepo;
+    if (repo == null) return null;
+    _marketplaceRepo ??= MarketplaceRepository(supabaseRepo: repo);
+    return _marketplaceRepo;
+  }
+
+  // ── Local-first load + background sync ───────────────────────────────────────
+  //
+  // Strategy:
+  //   1. Immediately read the Hive mirror → render content (< 1 ms).
+  //   2. If no local data → set isLoadingData = true (full-screen spinner path).
+  //   3. Set isRefreshing = true → subtle background indicator.
+  //   4. Run delta/full fetch in background.
+  //   5. Merge results; notifyListeners() with surgical updates.
+  //   6. Clear isRefreshing; advance lastSuccessfulSyncAt.
+
   Future<void> loadAllData() async {
-    isLoadingData = true;
     dataError = null;
+
+    final marketRepo = _ensureMarketplaceRepo();
+
+    // ── Step 1: read from local mirror ───────────────────────────────────────
+    if (marketRepo != null) {
+      await _serveFromLocalMirror(marketRepo);
+    }
+
+    // ── Step 2: decide loading state ─────────────────────────────────────────
+    final hasLocalData = allListings.isNotEmpty ||
+        allServices.isNotEmpty ||
+        allHiringPosts.isNotEmpty;
+
+    if (!hasLocalData) {
+      // No cache at all → show full-screen spinner until first data arrives.
+      isLoadingData = true;
+    }
+    isRefreshing = true;
     notifyListeners();
+
+    // ── Step 3: background network sync ──────────────────────────────────────
     try {
       if (_repo == null) {
-        // No authenticated session — attempt a read-only repo using the anon
-        // key so guest users can still browse listings and services.
-        final client = AppSupabaseConfig.clientOrNull();
-        if (client == null) {
-          allListings = [];
-          chatSessions = [];
-          return;
-        }
-        final anonRepo = SupabaseRepository(client);
-        _anonRepo = anonRepo;
-        final listings = await anonRepo.fetchListings(
-          limit: SupabaseRepository.kPageSize,
-          offset: 0,
-        );
-        allListings = listings;
-        hasMoreListings = listings.length >= SupabaseRepository.kPageSize;
-        await app_local.LocalStorage.saveListingsCache(
-          listings.map((l) => l.toJson()).toList(),
-        );
-        try {
-          final services = await anonRepo.fetchServices(
-            limit: SupabaseRepository.kPageSize,
-            offset: 0,
-          );
-          allServices = services;
-          hasMoreServices = services.length >= SupabaseRepository.kPageSize;
-          await app_local.LocalStorage.saveServicesCache(
-            services.map((s) => s.toJson()).toList(),
-          );
-        } catch (e) {
-          if (kDebugMode) debugPrint('fetchServices (guest) failed: $e');
-        }
-        try {
-          final posts = await anonRepo.fetchHiringPosts(
-            limit: SupabaseRepository.kPageSize,
-            offset: 0,
-          );
-          allHiringPosts = posts;
-          hasMoreHiringPosts = posts.length >= SupabaseRepository.kPageSize;
-        } catch (e) {
-          if (kDebugMode) debugPrint('fetchHiringPosts (guest) failed: $e');
-        }
-        try {
-          homePromos = await anonRepo.fetchHomePromos();
-        } catch (e) {
-          if (kDebugMode) debugPrint('fetchHomePromos (guest) failed: $e');
-        }
-        chatSessions = [];
-        return;
+        await _guestLoadOrSync(marketRepo);
+      } else {
+        await _authedLoadOrSync(marketRepo);
       }
-      final listings = await _repo!.fetchListings(
-        limit: SupabaseRepository.kPageSize,
-        offset: 0,
-      );
-      allListings = listings;
-      hasMoreListings = listings.length >= SupabaseRepository.kPageSize;
-      await app_local.LocalStorage.saveListingsCache(
-        listings.map((l) => l.toJson()).toList(),
-      );
-      final services = await _repo!.fetchServices(
-        limit: SupabaseRepository.kPageSize,
-        offset: 0,
-      );
-      allServices = services;
-      hasMoreServices = services.length >= SupabaseRepository.kPageSize;
-      await app_local.LocalStorage.saveServicesCache(
-        services.map((s) => s.toJson()).toList(),
-      );
-      try {
-        final raw = await _repo!.fetchChatSessions();
-        chatSessions = await _enrichChatSessions(raw);
-      } catch (e) {
-        if (kDebugMode) debugPrint('fetchChatSessions failed: $e');
-      }
-      try {
-        final posts = await _repo!.fetchHiringPosts(
-          limit: SupabaseRepository.kPageSize,
-          offset: 0,
-        );
-        hasMoreHiringPosts = posts.length >= SupabaseRepository.kPageSize;
-        final myPostIds = posts
-            .where((p) => p.posterId == currentUser?.id)
-            .map((p) => p.id)
-            .toList();
-        final counts = await _repo!.fetchApplicantCounts(myPostIds);
-        allHiringPosts = posts.map((p) {
-          final count = counts[p.id] ?? 0;
-          return count > 0 ? p.copyWith(applicantCount: count) : p;
-        }).toList();
-      } catch (e) {
-        if (kDebugMode) debugPrint('fetchHiringPosts failed: $e');
-      }
-      try {
-        myApplications = await _repo!.fetchMyApplications();
-      } catch (e) {
-        if (kDebugMode) debugPrint('fetchMyApplications failed: $e');
-      }
-      try {
-        notifications = await _repo!.fetchNotifications();
-      } catch (e) {
-        if (kDebugMode) debugPrint('fetchNotifications failed: $e');
-      }
-      try {
-        homePromos = await _repo!.fetchHomePromos();
-      } catch (e) {
-        if (kDebugMode) debugPrint('fetchHomePromos failed: $e');
-      }
+      // Mark successful sync time.
+      final now = DateTime.now();
+      lastSuccessfulSyncAt = now;
+      await HiveSyncStore.instance.setLastSyncedAt(now);
     } on SocketException catch (e) {
-      if (kDebugMode) debugPrint('fetchListings offline (SocketException): $e');
-      await _serveListingsFromCache();
+      if (kDebugMode) debugPrint('[loadAllData] offline (SocketException): $e');
+      if (!hasLocalData) await _serveListingsFromCache();
     } on HandshakeException catch (e) {
-      if (kDebugMode) debugPrint('fetchListings offline (HandshakeException): $e');
-      await _serveListingsFromCache();
+      if (kDebugMode) debugPrint('[loadAllData] offline (HandshakeException): $e');
+      if (!hasLocalData) await _serveListingsFromCache();
     } catch (e) {
       final msg = e.toString().toLowerCase();
-      final isNetworkError =
-          msg.contains('network') ||
+      final isNetworkError = msg.contains('network') ||
           msg.contains('socket') ||
           msg.contains('connection') ||
           msg.contains('host lookup') ||
@@ -136,22 +75,256 @@ extension AppStateData on KoolanAppState {
           msg.contains('errno = 111');
 
       if (isNetworkError) {
-        if (kDebugMode) debugPrint('fetchListings network error: $e');
-        await _serveListingsFromCache();
+        if (kDebugMode) debugPrint('[loadAllData] network error: $e');
+        if (!hasLocalData) await _serveListingsFromCache();
       } else {
-        if (kDebugMode) debugPrint('fetchListings error: $e');
+        if (kDebugMode) debugPrint('[loadAllData] error: $e');
         reportDataError(e);
       }
     } finally {
       isLoadingData = false;
+      isRefreshing = false;
       notifyListeners();
     }
   }
 
-  Future<void> _serveListingsFromCache() async {
-    if (allListings.isNotEmpty || allServices.isNotEmpty) {
+  /// Reads entities from the Hive mirror without touching the network.
+  Future<void> _serveFromLocalMirror(MarketplaceRepository repo) async {
+    final userId = currentUser?.id;
+    // Favorites are best-effort here; we use an empty set if not yet loaded.
+    final savedIds = <String>{};
+
+    final localListings = await repo.loadListingsFromLocal(
+      currentUserId: userId,
+      savedIds: savedIds,
+    );
+    final localServices  = await repo.loadServicesFromLocal();
+    final localPosts     = await repo.loadHiringPostsFromLocal();
+
+    if (localListings.isNotEmpty) allListings = localListings;
+    if (localServices.isNotEmpty) allServices = localServices;
+    if (localPosts.isNotEmpty) allHiringPosts = localPosts;
+  }
+
+  // ── Guest path ────────────────────────────────────────────────────────────
+
+  Future<void> _guestLoadOrSync(MarketplaceRepository? marketRepo) async {
+    final client = AppSupabaseConfig.clientOrNull();
+    if (client == null) {
+      allListings = [];
+      chatSessions = [];
       return;
     }
+    final anonRepo = SupabaseRepository(client);
+    _anonRepo = anonRepo;
+    _marketplaceRepo = MarketplaceRepository(supabaseRepo: anonRepo);
+
+    final hasMirrorData = allListings.isNotEmpty;
+
+    if (hasMirrorData) {
+      await _syncInboundPriority1(_marketplaceRepo!, userId: null);
+    } else {
+      await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
+    }
+
+    try {
+      homePromos = await anonRepo.fetchHomePromos();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[loadAllData] fetchHomePromos (guest) failed: $e');
+    }
+    chatSessions = [];
+  }
+
+  // ── Authed path ───────────────────────────────────────────────────────────
+
+  Future<void> _authedLoadOrSync(MarketplaceRepository? marketRepo) async {
+    final repo = _repo!;
+    final userId = currentUser?.id;
+    final hasMirrorData = allListings.isNotEmpty;
+
+    if (hasMirrorData && marketRepo != null) {
+      // P1 → P2 → P3 prioritized inbound sync.
+      await _syncInboundPriority1(marketRepo, userId: userId);
+      notifyListeners();
+
+      await _syncInboundPriority2(repo, userId: userId);
+      notifyListeners();
+
+      await _syncInboundPriority3(repo);
+    } else if (marketRepo != null) {
+      await _coldSeedPriority1(repo, marketRepo);
+      notifyListeners();
+
+      await _syncInboundPriority2(repo, userId: userId);
+      await _syncInboundPriority3(repo);
+    }
+
+    try {
+      homePromos = await repo.fetchHomePromos();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[loadAllData] fetchHomePromos failed: $e');
+    }
+  }
+
+  // ── Prioritized inbound sync (Phase 2) ────────────────────────────────────
+
+  /// P1: listings, services, hiring — marketplace feed content.
+  Future<void> _syncInboundPriority1(
+    MarketplaceRepository marketRepo, {
+    String? userId,
+  }) async {
+    final mergedListings = await marketRepo.syncListingsDelta(
+      currentUserId: userId,
+      savedIds: const {},
+    );
+    _applyListingsMerge(mergedListings);
+
+    final mergedServices = await marketRepo.syncServicesDelta();
+    _applyServicesMerge(mergedServices);
+
+    final mergedPosts = await marketRepo.syncHiringPostsDelta();
+    _applyHiringPostsMerge(mergedPosts);
+  }
+
+  /// P2: favorites flags, own profile, applications.
+  Future<void> _syncInboundPriority2(
+    SupabaseRepository repo, {
+    String? userId,
+  }) async {
+    if (userId != null) {
+      try {
+        final savedIds = await repo.fetchFavoriteIds(userId);
+        _applySavedFlags(savedIds);
+      } catch (e) {
+        if (kDebugMode) debugPrint('[P2] fetchFavoriteIds failed: $e');
+      }
+    }
+    try {
+      final resolved = await repo.ensureProfile();
+      profile = resolved;
+      await app_local.LocalStorage.saveProfileCache(resolved.toJson());
+    } catch (e) {
+      if (kDebugMode) debugPrint('[P2] ensureProfile failed: $e');
+    }
+    try {
+      myApplications = await repo.fetchMyApplications();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[P2] fetchMyApplications failed: $e');
+    }
+  }
+
+  /// P3: notifications (non-blocking for feed render).
+  Future<void> _syncInboundPriority3(SupabaseRepository repo) async {
+    try {
+      notifications = await repo.fetchNotifications();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[P3] fetchNotifications failed: $e');
+    }
+  }
+
+  void _applySavedFlags(Set<String> savedIds) {
+    if (allListings.isEmpty) return;
+    allListings = allListings
+        .map((l) => l.copyWith(isSaved: savedIds.contains(l.id)))
+        .toList();
+  }
+
+  /// Cold cache seed with resumable offset persistence.
+  Future<void> _coldSeedPriority1(
+    SupabaseRepository repo,
+    MarketplaceRepository marketRepo,
+  ) async {
+    const listingsEntity = 'listings';
+    await HiveSyncStore.instance.setInProgressEntity(listingsEntity);
+    final listingsOffset =
+        HiveSyncStore.instance.getSeedOffset(listingsEntity) ?? 0;
+
+    try {
+      final listings = await repo.fetchListings(
+        limit: SupabaseRepository.kPageSize,
+        offset: listingsOffset,
+      );
+      allListings = listings;
+      hasMoreListings = listings.length >= SupabaseRepository.kPageSize;
+      await app_local.LocalStorage.saveListingsCache(
+        listings.map((l) => l.toJson()).toList(),
+      );
+      await marketRepo.seedListingsMirror(listings);
+      await HiveSyncStore.instance.clearSeedOffset(listingsEntity);
+    } catch (e) {
+      await HiveSyncStore.instance.setSeedOffset(listingsEntity, listingsOffset);
+      rethrow;
+    }
+
+    try {
+      final services = await repo.fetchServices(
+        limit: SupabaseRepository.kPageSize,
+        offset: 0,
+      );
+      allServices = services;
+      hasMoreServices = services.length >= SupabaseRepository.kPageSize;
+      await app_local.LocalStorage.saveServicesCache(
+        services.map((s) => s.toJson()).toList(),
+      );
+      await marketRepo.seedServicesMirror(services);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[coldSeed] fetchServices failed: $e');
+    }
+
+    try {
+      final userId = currentUser?.id;
+      final posts = await repo.fetchHiringPosts(
+        limit: SupabaseRepository.kPageSize,
+        offset: 0,
+      );
+      hasMoreHiringPosts = posts.length >= SupabaseRepository.kPageSize;
+      final myPostIds = posts
+          .where((p) => p.posterId == userId)
+          .map((p) => p.id)
+          .toList();
+      final counts = await repo.fetchApplicantCounts(myPostIds);
+      allHiringPosts = posts.map((p) {
+        final count = counts[p.id] ?? 0;
+        return count > 0 ? p.copyWith(applicantCount: count) : p;
+      }).toList();
+      await marketRepo.seedHiringPostsMirror(allHiringPosts);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[coldSeed] fetchHiringPosts failed: $e');
+    }
+
+    await HiveSyncStore.instance.setInProgressEntity(null);
+  }
+
+  // ── Surgical list update helpers ──────────────────────────────────────────
+  //
+  // Instead of replacing the entire list (which triggers a full rebuild of
+  // every card), these helpers apply only the items that changed.
+
+  void _applyListingsMerge(List<Listing> merged) {
+    if (merged.isEmpty) return;
+    allListings = merged;
+    hasMoreListings = merged.length >= SupabaseRepository.kPageSize;
+  }
+
+  void _applyServicesMerge(List<Service> merged) {
+    if (merged.isEmpty) return;
+    allServices = merged;
+    hasMoreServices = merged.length >= SupabaseRepository.kPageSize;
+  }
+
+  void _applyHiringPostsMerge(List<HiringPost> merged) {
+    if (merged.isEmpty) return;
+    allHiringPosts = merged;
+    hasMoreHiringPosts = merged.length >= SupabaseRepository.kPageSize;
+  }
+
+  // ── Legacy cache fallback (SharedPreferences) ────────────────────────────
+  //
+  // Used only when: (a) the mirror is empty, and (b) network fails.
+  // Once the mirror is seeded this path is never hit.
+
+  Future<void> _serveListingsFromCache() async {
+    if (allListings.isNotEmpty || allServices.isNotEmpty) return;
     final listingsCached = await app_local.LocalStorage.getListingsCache();
     if (listingsCached != null && listingsCached.isNotEmpty) {
       final userId = currentUser?.id;
@@ -181,7 +354,27 @@ extension AppStateData on KoolanAppState {
     }
   }
 
-  // ── Navigation actions ────────────────────────────────────────────────────────
+  // ── Lazy chat loader ──────────────────────────────────────────────────────
+  //
+  // Chat sessions are NOT loaded during app-open (they are O(N messages) and
+  // irrelevant to the marketplace feed).  Call this when the user enters the
+  // Messages tab.
+
+  Future<void> loadChatOnTabEntry() async {
+    // Already loaded this session — nothing to do.
+    if (chatSessions.isNotEmpty) return;
+    final repo = _repo;
+    if (repo == null) return;
+    try {
+      final raw = await repo.fetchChatSessions();
+      chatSessions = await _enrichChatSessions(raw);
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[loadChatOnTabEntry] failed: $e');
+    }
+  }
+
+  // ── Navigation actions ────────────────────────────────────────────────────
 
   void pushScreen(KoolanScreen screen) {
     navigationStack.add(screen);
@@ -202,10 +395,13 @@ extension AppStateData on KoolanAppState {
     if (rootTab is! HomeScreenRoute) {
       navigationStack.add(rootTab);
     }
+    if (rootTab is MessagesScreenRoute) {
+      unawaited(loadChatOnTabEntry());
+    }
     notifyListeners();
   }
 
-  // ── Filter actions ────────────────────────────────────────────────────────────
+  // ── Filter actions ────────────────────────────────────────────────────────
 
   void setCategory(String category) {
     selectedCategory = category;
@@ -217,7 +413,7 @@ extension AppStateData on KoolanAppState {
     notifyListeners();
   }
 
-  // ── Pagination: load more ─────────────────────────────────────────────────────
+  // ── Pagination: load more ─────────────────────────────────────────────────
 
   /// Appends the next page of listings to [allListings].
   Future<void> loadMoreListings() async {
@@ -291,7 +487,7 @@ extension AppStateData on KoolanAppState {
     }
   }
 
-  // ── Listing helpers ───────────────────────────────────────────────────────────
+  // ── Listing helpers ───────────────────────────────────────────────────────
 
   List<Listing> getFilteredListings() {
     return allListings.where((listing) {
@@ -425,7 +621,7 @@ extension AppStateData on KoolanAppState {
     notifyListeners();
   }
 
-  // ── Save / Bookmark ───────────────────────────────────────────────────────────
+  // ── Save / Bookmark ───────────────────────────────────────────────────────
 
   Future<void> toggleSaveListing(String listingId) async {
     final index = allListings.indexWhere((l) => l.id == listingId);
@@ -434,22 +630,25 @@ extension AppStateData on KoolanAppState {
     final newSaved = !listing.isSaved;
     allListings[index] = listing.copyWith(isSaved: newSaved);
     notifyListeners();
-    try {
-      if (_repo == null) {
-        dataError = s.errorSupabaseUnavailable;
-        notifyListeners();
-        return;
-      }
-      await _repo!.toggleFavorite(listingId, listing.isSaved);
-    } catch (e) {
-      allListings[index] = listing;
-      reportDataError(e);
+
+    final userId = currentUser?.id;
+    if (userId == null) {
+      dataError = s.errorSupabaseUnavailable;
       notifyListeners();
-      rethrow;
+      return;
     }
+
+    // Durable queue — survives restarts; SyncService retries with backoff.
+    await syncService.enqueueFavoriteToggle(
+      listingId: listingId,
+      isSaved: newSaved,
+      userId: userId,
+      localUpdatedAt: DateTime.now().toUtc(),
+    );
+    unawaited(refreshSyncQueueCounts());
   }
 
-  // ── Comparison ────────────────────────────────────────────────────────────────
+  // ── Comparison ────────────────────────────────────────────────────────────
 
   void toggleCompareMode() {
     compareModeEnabled = !compareModeEnabled;

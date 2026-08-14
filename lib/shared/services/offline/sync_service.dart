@@ -25,6 +25,7 @@ enum SyncEntityType {
   hiringPostDelete,
   application,
   applicationStatusUpdate,
+  favorite,
 }
 
 extension SyncEntityTypeExt on SyncEntityType {
@@ -39,11 +40,21 @@ extension SyncEntityTypeExt on SyncEntityType {
       case SyncEntityType.hiringPostDelete:   return 'hiring_post_delete';
       case SyncEntityType.application:        return 'application';
       case SyncEntityType.applicationStatusUpdate: return 'application_status_update';
+      case SyncEntityType.favorite:           return 'favorite';
     }
   }
 }
 
 // ── Sync queue entry ──────────────────────────────────────────────────────────
+
+/// Maximum number of sync attempts before an entry is moved to the
+/// [kStatusFailedRequiresAttention] terminal state.
+const int kMaxSyncAttempts = 8;
+
+const String kStatusPending                = 'pending';
+const String kStatusFailed                 = 'failed';
+const String kStatusFailedRequiresAttention = 'failed_requires_attention';
+const String kStatusSynced                 = 'synced';
 
 class SyncQueueEntry {
   const SyncQueueEntry({
@@ -53,6 +64,10 @@ class SyncQueueEntry {
     required this.payload,
     required this.localUpdatedAt,
     required this.syncStatus,
+    this.attemptCount = 0,
+    this.lastAttemptAt,
+    this.nextAttemptAt,
+    this.lastError,
   });
 
   final String id;
@@ -62,13 +77,48 @@ class SyncQueueEntry {
   final DateTime localUpdatedAt;
   final String syncStatus;
 
-  SyncQueueEntry copyWith({String? syncStatus}) => SyncQueueEntry(
+  /// How many times this entry has been attempted (including the current run).
+  final int attemptCount;
+
+  /// When the last attempt (successful or failed) was made.
+  final DateTime? lastAttemptAt;
+
+  /// Earliest time at which this entry should be retried.
+  /// The sync pass skips entries where nextAttemptAt is in the future.
+  final DateTime? nextAttemptAt;
+
+  /// Human-readable error from the last failure, for the debug overlay.
+  final String? lastError;
+
+  /// True when this entry has reached the terminal failure state.
+  bool get requiresAttention =>
+      syncStatus == kStatusFailedRequiresAttention;
+
+  /// True when the entry is not yet due for its next retry attempt.
+  bool get isSnoozed {
+    final next = nextAttemptAt;
+    if (next == null) return false;
+    return DateTime.now().toUtc().isBefore(next);
+  }
+
+  SyncQueueEntry copyWith({
+    String? syncStatus,
+    int? attemptCount,
+    DateTime? lastAttemptAt,
+    DateTime? nextAttemptAt,
+    String? lastError,
+  }) =>
+      SyncQueueEntry(
         id: id,
         entityType: entityType,
         entityId: entityId,
         payload: payload,
         localUpdatedAt: localUpdatedAt,
         syncStatus: syncStatus ?? this.syncStatus,
+        attemptCount: attemptCount ?? this.attemptCount,
+        lastAttemptAt: lastAttemptAt ?? this.lastAttemptAt,
+        nextAttemptAt: nextAttemptAt ?? this.nextAttemptAt,
+        lastError: lastError ?? this.lastError,
       );
 
   Map<String, dynamic> toJson() => {
@@ -78,6 +128,12 @@ class SyncQueueEntry {
         'payload': payload,
         'localUpdatedAt': localUpdatedAt.toUtc().toIso8601String(),
         'syncStatus': syncStatus,
+        'attemptCount': attemptCount,
+        if (lastAttemptAt != null)
+          'lastAttemptAt': lastAttemptAt!.toUtc().toIso8601String(),
+        if (nextAttemptAt != null)
+          'nextAttemptAt': nextAttemptAt!.toUtc().toIso8601String(),
+        if (lastError != null) 'lastError': lastError,
       };
 
   static SyncQueueEntry? fromJson(String jsonString, SyncEntityType entityType) {
@@ -92,7 +148,16 @@ class SyncQueueEntry {
         entityId: data['entityId'] as String,
         payload: Map<String, dynamic>.from(data['payload'] as Map<String, dynamic>),
         localUpdatedAt: ts,
-        syncStatus: data['syncStatus'] as String? ?? 'pending',
+        syncStatus: data['syncStatus'] as String? ?? kStatusPending,
+        // New fields — default gracefully when missing (old Hive entries).
+        attemptCount: (data['attemptCount'] as num?)?.toInt() ?? 0,
+        lastAttemptAt: data['lastAttemptAt'] != null
+            ? DateTime.tryParse(data['lastAttemptAt'] as String)?.toUtc()
+            : null,
+        nextAttemptAt: data['nextAttemptAt'] != null
+            ? DateTime.tryParse(data['nextAttemptAt'] as String)?.toUtc()
+            : null,
+        lastError: data['lastError'] as String?,
       );
     } catch (_) {
       return null;

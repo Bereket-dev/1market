@@ -757,6 +757,28 @@ class AppStrings {
         'Adeeggu si ku meel gaar ah uma heli karo. Fadlan isku day mar kale.',
       );
 
+  // ── Sync status banner (stale-while-revalidate) ────────────────────────────
+  String get syncBannerRefreshing => _t(
+        'Refreshing…',
+        'በማደስ ላይ…',
+        'Waa la cusboonaanayaa…',
+      );
+  String get syncBannerOffline => _t(
+        'Offline · showing saved listings',
+        'ከመስመር ውጭ · የተቀመጡ ዕቃዎችን እያሳየ',
+        'Offline · liiska keydsan ayaa muuqda',
+      );
+  String get syncBannerJustUpdated => _t(
+        'Updated just now',
+        'ሁሉ ዘምኗል',
+        'Waa la cusboonaanay hadda',
+      );
+  String syncBannerUpdatedMinutesAgo(int minutes) => _t(
+        'Updated $minutes min ago',
+        'ከ$minutes ደቂቃ በፊት ዘምኗል',
+        '$minutes daqiiqo kahor waa la cusboonaanay',
+      );
+
   // ── Category Picker Sheet ────────────────────────────────────────────────────
   String get pickerTitle => _t('What would you like to post?', 'ምን ማስታወቂያ ይለጥፋሉ?', 'Maxaad rabta inaad ku dajiso?');
   String get pickerCancel => _t('Cancel', 'ሰርዝ', 'Jooji');

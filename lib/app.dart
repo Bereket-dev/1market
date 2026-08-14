@@ -44,6 +44,7 @@ import 'features/listings/presentation/screens/my_listings_screen.dart';
 import 'features/profile/presentation/screens/public_profile_screen.dart';
 import 'shared/services/app_state.dart';
 import 'shared/models/app_strings.dart';
+import 'shared/widgets/sync_debug_overlay.dart';
 import 'shared/widgets/toast_banner.dart';
 part 'widgets/app_shell.dart';
 part 'widgets/app_nav.dart';

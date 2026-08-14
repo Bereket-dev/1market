@@ -3,6 +3,19 @@ part of '../supabase_repository.dart';
 // ── Listings ──────────────────────────────────────────────────────────
 
 extension SupabaseRepositoryListings on SupabaseRepository {
+  // ── List projection (card view) ────────────────────────────────────────────
+  //
+  // Narrow select used for the marketplace feed — drops heavy fields like
+  // spec labels, description, and translations so the delta payload is small.
+  static const _kListingListSelect =
+      'id, category, title, price, image_url, image_urls, location, '
+      'condition_or_status, seller_id, updated_at, is_hidden, deleted_at, '
+      'profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)';
+
+  /// Full row select for detail screens (all fields).
+  static const _kListingDetailSelect =
+      '*, profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)';
+
   // ── Listings ────────────────────────────────────────────────────────────────
 
   Future<List<Listing>> fetchListings({
@@ -12,7 +25,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
   }) async {
     final rows = await _client
         .from('listings')
-        .select('*, profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)')
+        .select(_kListingDetailSelect)
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
 
@@ -29,6 +42,30 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       ),
       context: 'listings',
     );
+  }
+
+  /// Narrow-select fetch used by delta sync — returns only card-relevant fields.
+  /// Includes rows updated OR soft-deleted since [cursor].
+  /// Pass [cursor] == null to fetch the first page without a time filter.
+  Future<List<Map<String, dynamic>>> fetchListingsDeltaRaw({
+    required DateTime? cursor,
+    int limit = 100,
+  }) async {
+    var query = _client
+        .from('listings')
+        .select(_kListingListSelect);
+
+    if (cursor != null) {
+      final iso = cursor.toUtc().toIso8601String();
+      // Rows whose updated_at or deleted_at moved past the cursor.
+      query = query.or('updated_at.gt.$iso,deleted_at.gt.$iso');
+    }
+
+    final rows = await query
+        .order('updated_at', ascending: true)
+        .limit(limit);
+
+    return (rows as List).cast<Map<String, dynamic>>();
   }
 
   Future<List<Service>> fetchServices({
@@ -48,6 +85,52 @@ extension SupabaseRepositoryListings on SupabaseRepository {
     );
   }
 
+  /// Delta fetch for services — returns narrow card-relevant fields.
+  Future<List<Map<String, dynamic>>> fetchServicesDeltaRaw({
+    required DateTime? cursor,
+    int limit = 100,
+  }) async {
+    const select =
+        'id, owner_id, title, category, price_range, location, availability, '
+        'image_url, image_urls, updated_at, deleted_at';
+
+    var query = _client.from('services').select(select);
+
+    if (cursor != null) {
+      final iso = cursor.toUtc().toIso8601String();
+      query = query.or('updated_at.gt.$iso,deleted_at.gt.$iso');
+    }
+
+    final rows = await query
+        .order('updated_at', ascending: true)
+        .limit(limit);
+
+    return (rows as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Delta fetch for hiring posts — returns narrow card-relevant fields.
+  Future<List<Map<String, dynamic>>> fetchHiringPostsDeltaRaw({
+    required DateTime? cursor,
+    int limit = 100,
+  }) async {
+    const select =
+        'id, poster_id, title, category, location, price_range, status, '
+        'image_url, image_urls, updated_at, deleted_at';
+
+    var query = _client.from('hiring_posts').select(select);
+
+    if (cursor != null) {
+      final iso = cursor.toUtc().toIso8601String();
+      query = query.or('updated_at.gt.$iso,deleted_at.gt.$iso');
+    }
+
+    final rows = await query
+        .order('updated_at', ascending: true)
+        .limit(limit);
+
+    return (rows as List).cast<Map<String, dynamic>>();
+  }
+
   Future<Set<String>> _fetchFavoriteIds(String userId) async {
     final rows = await _client
         .from('favorites')
@@ -57,6 +140,11 @@ extension SupabaseRepositoryListings on SupabaseRepository {
         .map((r) => (r as Map<String, dynamic>)['listing_id'] as String)
         .toSet();
   }
+
+  /// Public alias used by [AppStateData._authedLoadOrSync] to resolve
+  /// saved listing IDs before a delta merge.
+  Future<Set<String>> fetchFavoriteIds(String userId) =>
+      _fetchFavoriteIds(userId);
 
   Future<Listing> createListing({
     required String category,
@@ -107,7 +195,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
           'description_translations': <String, String>{},
           'image_urls': imageUrls,
         })
-        .select('*, profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)')
+        .select(_kListingDetailSelect)
         .single();
 
     return SafeParse.tryMap(

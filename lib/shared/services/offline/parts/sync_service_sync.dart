@@ -3,172 +3,195 @@ part of '../sync_service.dart';
 // ── Sync pass ──────────────────────────────────────────────────────────────
 
 extension SyncServiceSyncpass on SyncService {
-  // ── Sync pass ────────────────────────────────────────────────────────────────
+  // ── Entry point ───────────────────────────────────────────────────────────
 
   Future<void> _runSyncPass() async {
     final client = Supabase.instance.client;
     if (client.auth.currentSession == null) return;
 
-    // Flush any pending profile photo uploads first (avatar / banner).
+    final t0 = DateTime.now();
+
+    // ── P0: Media uploads (avatar, CV, listing images) ─────────────────────
     await _appState.flushPendingPhotoUploads();
     await _appState.flushPendingCvUploads();
     await _appState.flushPendingListingImages();
 
-    final entries = await _loadPendingQueueEntries();
-    for (final entry in entries) {
-      if (entry.syncStatus == 'synced' || entry.syncStatus == 'failed') {
-        continue;
+    // ── Load queue, grouped by priority ────────────────────────────────────
+    // P1: listings
+    // P2: favorites, profile
+    // P3: services, hiring posts, applications, chat
+    final p1 = await _loadPendingByTypes([
+      SyncEntityType.listing,
+    ]);
+    final p2 = await _loadPendingByTypes([
+      SyncEntityType.favorite,
+      SyncEntityType.profile,
+    ]);
+    final p3 = await _loadPendingByTypes([
+      SyncEntityType.service,
+      SyncEntityType.serviceDelete,
+      SyncEntityType.hiringPost,
+      SyncEntityType.hiringPostDelete,
+      SyncEntityType.application,
+      SyncEntityType.applicationStatusUpdate,
+      SyncEntityType.chatMessage,
+    ]);
+
+    // Process in order; stop at first permanent network failure.
+    for (final group in [p1, p2, p3]) {
+      for (final entry in group) {
+        final success = await _processEntry(client, entry);
+        if (!success) {
+          // Network down — bail out of entire pass; will retry on reconnect.
+          _appState.onSyncPassComplete(
+            duration: DateTime.now().difference(t0),
+            hadNetworkError: true,
+          );
+          await _store.clearExpiredConflicts();
+          return;
+        }
       }
-      final success = await _processEntry(client, entry);
-      if (!success) break;
     }
+
+    _appState.onSyncPassComplete(
+      duration: DateTime.now().difference(t0),
+      hadNetworkError: false,
+    );
     await _store.clearExpiredConflicts();
   }
 
-  Future<List<SyncQueueEntry>> _loadPendingQueueEntries() async {
+  // ── Queue loaders ─────────────────────────────────────────────────────────
+
+  Future<List<SyncQueueEntry>> _loadPendingByTypes(
+    List<SyncEntityType> types,
+  ) async {
     final entries = <SyncQueueEntry>[];
 
-    Future<void> discardCorrupt(
+    Future<void> load(
       SyncEntityType type,
-      String id,
+      Future<List<String>> Function() getIds,
       Future<void> Function(String) deleteFn,
-      String? payload,
+      String? Function(String) readFn,
     ) async {
-      if (payload == null) return;
-      final entry = SyncQueueEntry.fromJson(payload, type);
-      if (entry == null) {
-        await deleteFn(id);
-        onCorrupt?.call(type.nameValue, id);
-      } else {
+      final ids = await getIds();
+      for (final id in ids) {
+        final payload = readFn(id);
+        if (payload == null) continue;
+        final entry = SyncQueueEntry.fromJson(payload, type);
+        if (entry == null) {
+          await deleteFn(id);
+          onCorrupt?.call(type.nameValue, id);
+          continue;
+        }
+        // Skip terminal states.
+        if (entry.syncStatus == kStatusSynced ||
+            entry.syncStatus == kStatusFailedRequiresAttention) {
+          continue;
+        }
+        // Skip entries snoozed by nextAttemptAt.
+        if (entry.isSnoozed) continue;
         entries.add(entry);
       }
     }
 
-    final listingIds = await _store.getDraftListingIds();
-    for (final id in listingIds) {
-      await discardCorrupt(
-        SyncEntityType.listing,
-        id,
-        _store.deleteDraftListing,
-        _store.readDraftListing(id),
-      );
-    }
-
-    final profileIds = await _store.getPendingProfileEditIds();
-    for (final id in profileIds) {
-      await discardCorrupt(
-        SyncEntityType.profile,
-        id,
-        _store.deletePendingProfileEdit,
-        _store.readPendingProfileEdit(id),
-      );
-    }
-
-    final serviceIds = await _store.getPendingServiceEditIds();
-    for (final id in serviceIds) {
-      await discardCorrupt(
-        SyncEntityType.service,
-        id,
-        _store.deletePendingServiceEdit,
-        _store.readPendingServiceEdit(id),
-      );
-    }
-
-    final serviceDeleteIds = await _store.getPendingServiceDeleteIds();
-    for (final id in serviceDeleteIds) {
-      await discardCorrupt(
-        SyncEntityType.serviceDelete,
-        id,
-        _store.deletePendingServiceDelete,
-        _store.readPendingServiceDelete(id),
-      );
-    }
-
-    final messageIds = await _store.getPendingMessageIds();
-    for (final id in messageIds) {
-      await discardCorrupt(
-        SyncEntityType.chatMessage,
-        id,
-        _store.deletePendingMessage,
-        _store.readPendingMessage(id),
-      );
-    }
-
-    final hiringPostIds = await _store.getPendingHiringPostEditIds();
-    for (final id in hiringPostIds) {
-      await discardCorrupt(
-        SyncEntityType.hiringPost,
-        id,
-        _store.deletePendingHiringPostEdit,
-        _store.readPendingHiringPostEdit(id),
-      );
-    }
-
-    final hiringPostDeleteIds =
-        await _store.getPendingHiringPostDeleteIds();
-    for (final id in hiringPostDeleteIds) {
-      await discardCorrupt(
-        SyncEntityType.hiringPostDelete,
-        id,
-        _store.deletePendingHiringPostDelete,
-        _store.readPendingHiringPostDelete(id),
-      );
-    }
-
-    final applicationIds = await _store.getPendingApplicationIds();
-    for (final id in applicationIds) {
-      await discardCorrupt(
-        SyncEntityType.application,
-        id,
-        _store.deletePendingApplication,
-        _store.readPendingApplication(id),
-      );
-    }
-
-    final appStatusIds =
-        await _store.getPendingApplicationStatusUpdateIds();
-    for (final id in appStatusIds) {
-      await discardCorrupt(
-        SyncEntityType.applicationStatusUpdate,
-        id,
-        _store.deletePendingApplicationStatusUpdate,
-        _store.readPendingApplicationStatusUpdate(id),
-      );
+    for (final type in types) {
+      switch (type) {
+        case SyncEntityType.listing:
+          await load(
+            type,
+            _store.getDraftListingIds,
+            _store.deleteDraftListing,
+            _store.readDraftListing,
+          );
+        case SyncEntityType.profile:
+          await load(
+            type,
+            _store.getPendingProfileEditIds,
+            _store.deletePendingProfileEdit,
+            _store.readPendingProfileEdit,
+          );
+        case SyncEntityType.service:
+          await load(
+            type,
+            _store.getPendingServiceEditIds,
+            _store.deletePendingServiceEdit,
+            _store.readPendingServiceEdit,
+          );
+        case SyncEntityType.serviceDelete:
+          await load(
+            type,
+            _store.getPendingServiceDeleteIds,
+            _store.deletePendingServiceDelete,
+            _store.readPendingServiceDelete,
+          );
+        case SyncEntityType.chatMessage:
+          await load(
+            type,
+            _store.getPendingMessageIds,
+            _store.deletePendingMessage,
+            _store.readPendingMessage,
+          );
+        case SyncEntityType.hiringPost:
+          await load(
+            type,
+            _store.getPendingHiringPostEditIds,
+            _store.deletePendingHiringPostEdit,
+            _store.readPendingHiringPostEdit,
+          );
+        case SyncEntityType.hiringPostDelete:
+          await load(
+            type,
+            _store.getPendingHiringPostDeleteIds,
+            _store.deletePendingHiringPostDelete,
+            _store.readPendingHiringPostDelete,
+          );
+        case SyncEntityType.application:
+          await load(
+            type,
+            _store.getPendingApplicationIds,
+            _store.deletePendingApplication,
+            _store.readPendingApplication,
+          );
+        case SyncEntityType.applicationStatusUpdate:
+          await load(
+            type,
+            _store.getPendingApplicationStatusUpdateIds,
+            _store.deletePendingApplicationStatusUpdate,
+            _store.readPendingApplicationStatusUpdate,
+          );
+        case SyncEntityType.favorite:
+          await load(
+            type,
+            _store.getPendingFavoriteIds,
+            _store.deletePendingFavorite,
+            _store.readPendingFavorite,
+          );
+      }
     }
 
     entries.sort((a, b) => a.localUpdatedAt.compareTo(b.localUpdatedAt));
     return entries;
   }
 
+  // ── Process a single entry ────────────────────────────────────────────────
+
   Future<bool> _processEntry(
     SupabaseClient client,
     SyncQueueEntry entry,
   ) async {
-    // For deletes, skip the conflict-check — just execute unconditionally.
     final isDelete = entry.entityType == SyncEntityType.serviceDelete ||
         entry.entityType == SyncEntityType.hiringPostDelete;
 
-    // Status updates by the poster are always authoritative (RLS enforces that
-    // only the poster can write this). Skip the conflict check so a recent
-    // submission timestamp never causes the update to be silently discarded.
     final isAuthoritative =
         entry.entityType == SyncEntityType.applicationStatusUpdate;
 
-    // Skip conflict check for brand-new local items (local_* ids). They don't
-    // exist remotely yet, so there is nothing to conflict with.
     final isNewLocalItem = entry.entityId.startsWith('local_');
 
-    if (!isDelete && !isAuthoritative && !isNewLocalItem) {
+    // Favorites are idempotent — no conflict check needed.
+    final isFavorite = entry.entityType == SyncEntityType.favorite;
+
+    if (!isDelete && !isAuthoritative && !isNewLocalItem && !isFavorite) {
       final remoteUpdatedAt = await _fetchRemoteUpdatedAt(client, entry);
-      // Only treat as a conflict when the remote timestamp is *meaningfully*
-      // newer than what we saved locally (> 2 s tolerance covers clock skew
-      // and the lag between a successful insert and the next sync pass).
-      //
-      // Both sides are normalised to UTC before comparing.  localUpdatedAt is
-      // stored as a local-time DateTime (DateTime.now(), no Z suffix) so its
-      // .toUtc() call converts it correctly regardless of device timezone.
-      // remoteUpdatedAt comes from Supabase with a Z suffix so it is already
-      // UTC, but .toUtc() is a no-op in that case — safe to call always.
       if (remoteUpdatedAt != null &&
           remoteUpdatedAt.toUtc().isAfter(
             entry.localUpdatedAt.toUtc().add(const Duration(seconds: 2)),
@@ -179,22 +202,16 @@ extension SyncServiceSyncpass on SyncService {
     }
 
     try {
-      await _retryWithBackoff(() async {
-        await _pushEntry(client, entry);
-        await _deleteQueueEntry(entry);
-      });
-      // For existing items (real UUID), mark synced in-memory now.
-      // For new items (local_*), replaceServiceId / replaceHiringPostId
-      // already handled the synced state inside _pushEntry.
+      await _pushEntry(client, entry);
+      await _deleteQueueEntry(entry);
+
       if (!entry.entityId.startsWith('local_')) {
         _appState.markEntitySynced(entry.entityType, entry.entityId);
       }
-      // After a status update reaches Supabase, patch myApplications in-memory
-      // so the applicant sees the new status immediately without a reload.
+
       if (entry.entityType == SyncEntityType.applicationStatusUpdate) {
         final statusStr = entry.payload['status'] as String?;
-        final updatedAtStr =
-            entry.payload['status_updated_at'] as String?;
+        final updatedAtStr = entry.payload['status_updated_at'] as String?;
         if (statusStr != null) {
           _appState.onApplicationStatusSynced(
             applicationId: entry.entityId,
@@ -207,25 +224,110 @@ extension SyncServiceSyncpass on SyncService {
       }
       return true;
     } on SocketException catch (error) {
-      if (kDebugMode) debugPrint('Network error during sync: $error');
-      await _markEntryFailed(entry);
-      return false;
+      if (kDebugMode) debugPrint('[SyncService] Network error: $error');
+      await _recordAttemptAndScheduleRetry(entry, error.toString());
+      return false; // Stop the pass — no network
     } on TimeoutException catch (error) {
-      if (kDebugMode) debugPrint('Timeout during sync: $error');
-      await _markEntryFailed(entry);
+      if (kDebugMode) debugPrint('[SyncService] Timeout: $error');
+      await _recordAttemptAndScheduleRetry(entry, error.toString());
       return false;
     } catch (error) {
-      if (kDebugMode) debugPrint('Sync failure for ${entry.entityType.nameValue}: $error');
-      await _markEntryFailed(entry);
-      return false;
+      if (kDebugMode) {
+        debugPrint(
+          '[SyncService] Failure for ${entry.entityType.nameValue}: $error',
+        );
+      }
+      await _recordAttemptAndScheduleRetry(entry, error.toString());
+      // Non-network errors: continue processing other entries.
+      return true;
     }
   }
+
+  // ── Exponential backoff with jitter ───────────────────────────────────────
+  //
+  // Delay schedule (base): 10s, 30s, 1m, 5m, 15m, 15m, 15m, 15m
+  // Jitter: ±20% of base delay, random
+  // After kMaxSyncAttempts (8): status = failed_requires_attention
+
+  static final _kBackoffDelays = [
+    const Duration(seconds: 10),
+    const Duration(seconds: 30),
+    const Duration(minutes: 1),
+    const Duration(minutes: 5),
+    const Duration(minutes: 15),
+    const Duration(minutes: 15),
+    const Duration(minutes: 15),
+    const Duration(minutes: 15),
+  ];
+
+  /// Records a failed attempt on [entry] and persists a [nextAttemptAt]
+  /// delay. After [kMaxSyncAttempts] moves to [kStatusFailedRequiresAttention].
+  Future<void> _recordAttemptAndScheduleRetry(
+    SyncQueueEntry entry,
+    String error,
+  ) async {
+    final newCount = entry.attemptCount + 1;
+
+    if (newCount >= kMaxSyncAttempts) {
+      final terminal = entry.copyWith(
+        syncStatus: kStatusFailedRequiresAttention,
+        attemptCount: newCount,
+        lastAttemptAt: DateTime.now().toUtc(),
+        lastError: error,
+      );
+      await _updateQueueEntry(terminal);
+      // Notify AppState so the UI can surface the count.
+      _appState.onSyncEntryRequiresAttention(entry.entityType, entry.entityId);
+      if (kDebugMode) {
+        debugPrint(
+          '[SyncService] Entry ${entry.entityType.nameValue} ${entry.entityId} '
+          'requires attention after $newCount attempts.',
+        );
+      }
+      return;
+    }
+
+    // Pick base delay for this attempt index (clamp to last bucket).
+    final idx = (newCount - 1).clamp(0, _kBackoffDelays.length - 1);
+    final base = _kBackoffDelays[idx];
+
+    // Apply ±20% jitter.
+    final jitterMs = (base.inMilliseconds * 0.2 *
+            (DateTime.now().microsecond / 1000000 * 2 - 1))
+        .round();
+    final jittered = Duration(
+      milliseconds: (base.inMilliseconds + jitterMs).clamp(
+        (base.inMilliseconds * 0.8).round(),
+        (base.inMilliseconds * 1.2).round(),
+      ),
+    );
+
+    final nextAt = DateTime.now().toUtc().add(jittered);
+
+    final updated = entry.copyWith(
+      syncStatus: kStatusFailed,
+      attemptCount: newCount,
+      lastAttemptAt: DateTime.now().toUtc(),
+      nextAttemptAt: nextAt,
+      lastError: error,
+    );
+    await _updateQueueEntry(updated);
+    if (kDebugMode) {
+      debugPrint(
+        '[SyncService] Entry ${entry.entityType.nameValue} ${entry.entityId} '
+        'attempt $newCount/${kMaxSyncAttempts}, retry at $nextAt',
+      );
+    }
+  }
+
+  // ── Remote helpers ────────────────────────────────────────────────────────
 
   Future<DateTime?> _fetchRemoteUpdatedAt(
     SupabaseClient client,
     SyncQueueEntry entry,
   ) async {
     final table = _tableFor(entry.entityType);
+    if (table == null) return null;
     final response = await client
         .from(table)
         .select('updated_at')
@@ -235,18 +337,10 @@ extension SyncServiceSyncpass on SyncService {
     if (response is! Map<String, dynamic>) return null;
     final raw = response['updated_at'];
     if (raw is! String) return null;
-    // Supabase always returns updated_at with a Z suffix (UTC).
-    // DateTime.tryParse correctly marks these as UTC (isUtc == true).
-    // We call .toUtc() defensively in case a row somehow has a tz-naive value.
     return DateTime.tryParse(raw)?.toUtc();
   }
 
   Future<void> _pushEntry(SupabaseClient client, SyncQueueEntry entry) async {
-    // A 'local_*' id means this is a brand-new item that has never been
-    // inserted into Supabase. We must NOT send that id — let Supabase generate
-    // a real UUID. After the insert we capture the UUID and update the
-    // in-memory list so every subsequent operation (edit, delete) targets the
-    // correct row.
     final isLocalId = entry.entityId.startsWith('local_');
 
     switch (entry.entityType) {
@@ -260,7 +354,7 @@ extension SyncServiceSyncpass on SyncService {
         } else {
           await client.from('listings').insert(p);
         }
-        break;
+
       case SyncEntityType.profile:
         final p = Map<String, dynamic>.from(entry.payload);
         final exists =
@@ -270,7 +364,7 @@ extension SyncServiceSyncpass on SyncService {
         } else {
           await client.from('profiles').insert(p);
         }
-        break;
+
       case SyncEntityType.service:
         final p = Map<String, dynamic>.from(entry.payload);
         if (!isLocalId) p['id'] = entry.entityId;
@@ -279,36 +373,29 @@ extension SyncServiceSyncpass on SyncService {
         if (exists) {
           await client.from('services').update(p).eq('id', entry.entityId);
         } else {
-          // New service — let Supabase assign a real UUID.
           final row = await client
               .from('services')
               .insert(p)
               .select('id')
               .single();
           final realId = row['id'] as String;
-          if (isLocalId) {
-            _appState.replaceServiceId(entry.entityId, realId);
-          }
+          if (isLocalId) _appState.replaceServiceId(entry.entityId, realId);
         }
-        break;
+
       case SyncEntityType.serviceDelete:
-        // Hard-delete — if row doesn't exist, treat as already deleted (no-op).
         await client.from('services').delete().eq('id', entry.entityId);
-        break;
+
       case SyncEntityType.chatMessage:
         final p = Map<String, dynamic>.from(entry.payload);
         if (!isLocalId) p['id'] = entry.entityId;
         final exists =
             !isLocalId && await _remoteExists(client, 'chat_messages', entry.entityId);
         if (exists) {
-          await client
-              .from('chat_messages')
-              .update(p)
-              .eq('id', entry.entityId);
+          await client.from('chat_messages').update(p).eq('id', entry.entityId);
         } else {
           await client.from('chat_messages').insert(p);
         }
-        break;
+
       case SyncEntityType.hiringPost:
         final p = Map<String, dynamic>.from(entry.payload);
         if (!isLocalId) p['id'] = entry.entityId;
@@ -317,7 +404,6 @@ extension SyncServiceSyncpass on SyncService {
         if (exists) {
           await client.from('hiring_posts').update(p).eq('id', entry.entityId);
         } else {
-          // New hiring post — let Supabase assign a real UUID.
           final row = await client
               .from('hiring_posts')
               .insert(p)
@@ -328,10 +414,10 @@ extension SyncServiceSyncpass on SyncService {
             _appState.replaceHiringPostId(entry.entityId, realId);
           }
         }
-        break;
+
       case SyncEntityType.hiringPostDelete:
         await client.from('hiring_posts').delete().eq('id', entry.entityId);
-        break;
+
       case SyncEntityType.application:
         final p = Map<String, dynamic>.from(entry.payload);
         if (!isLocalId) p['id'] = entry.entityId;
@@ -342,14 +428,30 @@ extension SyncServiceSyncpass on SyncService {
         } else {
           await client.from('applications').insert(p);
         }
-        break;
+
       case SyncEntityType.applicationStatusUpdate:
-        // Only updates the status field — poster action only.
         await client
             .from('applications')
             .update(entry.payload)
             .eq('id', entry.entityId);
-        break;
+
+      case SyncEntityType.favorite:
+        final listingId = entry.payload['listing_id'] as String;
+        final userId    = entry.payload['user_id'] as String;
+        final isSaved   = entry.payload['is_saved'] as bool? ?? false;
+        if (isSaved) {
+          // Upsert so rapid toggling doesn't create duplicates.
+          await client.from('favorites').upsert({
+            'listing_id': listingId,
+            'user_id': userId,
+          });
+        } else {
+          await client
+              .from('favorites')
+              .delete()
+              .eq('listing_id', listingId)
+              .eq('user_id', userId);
+        }
     }
   }
 
@@ -363,34 +465,10 @@ extension SyncServiceSyncpass on SyncService {
     return row != null;
   }
 
-  Future<void> _retryWithBackoff(Future<void> Function() action) async {
-    const delays = [
-      Duration(seconds: 5),
-      Duration(seconds: 15),
-      Duration(seconds: 60),
-    ];
-    for (var attempt = 0; attempt < delays.length; attempt++) {
-      try {
-        await action();
-        return;
-      } catch (error) {
-        if (error is SocketException || error is TimeoutException) {
-          if (attempt == delays.length - 1) rethrow;
-          await Future<void>.delayed(delays[attempt]);
-          continue;
-        }
-        rethrow;
-      }
-    }
-  }
-
   Future<void> _discardEntry(
     SyncQueueEntry entry,
     DateTime remoteUpdatedAt,
   ) async {
-    // The remote record is newer — our local change is stale. Remove it from
-    // the queue. Notify via callback so the UI can show a SnackBar without
-    // using any popup or overlay pattern.
     await _deleteQueueEntry(entry);
     if (kDebugMode) {
       debugPrint(
@@ -402,39 +480,30 @@ extension SyncServiceSyncpass on SyncService {
     onDiscard?.call(entry.entityType.nameValue, entry.entityId);
   }
 
-  Future<void> _markEntryFailed(SyncQueueEntry entry) async {
-    await _updateQueueEntry(entry.copyWith(syncStatus: 'failed'));
-  }
+  // ── Queue CRUD ────────────────────────────────────────────────────────────
 
   Future<void> _deleteQueueEntry(SyncQueueEntry entry) async {
     switch (entry.entityType) {
       case SyncEntityType.listing:
         await _store.deleteDraftListing(entry.id);
-        break;
       case SyncEntityType.profile:
         await _store.deletePendingProfileEdit(entry.id);
-        break;
       case SyncEntityType.service:
         await _store.deletePendingServiceEdit(entry.id);
-        break;
       case SyncEntityType.serviceDelete:
         await _store.deletePendingServiceDelete(entry.id);
-        break;
       case SyncEntityType.chatMessage:
         await _store.deletePendingMessage(entry.id);
-        break;
       case SyncEntityType.hiringPost:
         await _store.deletePendingHiringPostEdit(entry.id);
-        break;
       case SyncEntityType.hiringPostDelete:
         await _store.deletePendingHiringPostDelete(entry.id);
-        break;
       case SyncEntityType.application:
         await _store.deletePendingApplication(entry.id);
-        break;
       case SyncEntityType.applicationStatusUpdate:
         await _store.deletePendingApplicationStatusUpdate(entry.id);
-        break;
+      case SyncEntityType.favorite:
+        await _store.deletePendingFavorite(entry.id);
     }
   }
 
@@ -443,35 +512,28 @@ extension SyncServiceSyncpass on SyncService {
     switch (entry.entityType) {
       case SyncEntityType.listing:
         await _store.saveDraftListing(entry.id, payload);
-        break;
       case SyncEntityType.profile:
         await _store.savePendingProfileEdit(entry.id, payload);
-        break;
       case SyncEntityType.service:
         await _store.savePendingServiceEdit(entry.id, payload);
-        break;
       case SyncEntityType.serviceDelete:
         await _store.savePendingServiceDelete(entry.id, payload);
-        break;
       case SyncEntityType.chatMessage:
         await _store.savePendingMessage(entry.id, payload);
-        break;
       case SyncEntityType.hiringPost:
         await _store.savePendingHiringPostEdit(entry.id, payload);
-        break;
       case SyncEntityType.hiringPostDelete:
         await _store.savePendingHiringPostDelete(entry.id, payload);
-        break;
       case SyncEntityType.application:
         await _store.savePendingApplication(entry.id, payload);
-        break;
       case SyncEntityType.applicationStatusUpdate:
         await _store.savePendingApplicationStatusUpdate(entry.id, payload);
-        break;
+      case SyncEntityType.favorite:
+        await _store.savePendingFavorite(entry.id, payload);
     }
   }
 
-  String _tableFor(SyncEntityType entityType) {
+  String? _tableFor(SyncEntityType entityType) {
     switch (entityType) {
       case SyncEntityType.listing:
         return 'listings';
@@ -488,6 +550,8 @@ extension SyncServiceSyncpass on SyncService {
       case SyncEntityType.application:
       case SyncEntityType.applicationStatusUpdate:
         return 'applications';
+      case SyncEntityType.favorite:
+        return null; // favorites use composite key — no single-row conflict check
     }
   }
 }

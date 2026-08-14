@@ -363,6 +363,7 @@ extension AppStateInit on KoolanAppState {
     notifyListeners();
     try {
       await syncService.init();
+      await refreshSyncQueueCounts();
     } catch (e) {
       if (kDebugMode) debugPrint('syncService.init() failed: $e');
     }

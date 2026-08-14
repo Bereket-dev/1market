@@ -18,7 +18,7 @@ extension SyncServiceEnqueuehelpers on SyncService {
       entityId: userId,
       payload: payload,
       localUpdatedAt: localUpdatedAt,
-      syncStatus: 'pending',
+      syncStatus: kStatusPending,
     );
     await _store.savePendingProfileEdit(userId, jsonEncode(entry.toJson()));
     requestSync();
@@ -36,7 +36,7 @@ extension SyncServiceEnqueuehelpers on SyncService {
       entityId: serviceId,
       payload: payload,
       localUpdatedAt: localUpdatedAt,
-      syncStatus: 'pending',
+      syncStatus: kStatusPending,
     );
     await _store.savePendingServiceEdit(serviceId, jsonEncode(entry.toJson()));
     requestSync();
@@ -51,7 +51,7 @@ extension SyncServiceEnqueuehelpers on SyncService {
       entityId: serviceId,
       payload: {'deleted_at': now.toIso8601String()},
       localUpdatedAt: now,
-      syncStatus: 'pending',
+      syncStatus: kStatusPending,
     );
     await _store.savePendingServiceDelete(
       serviceId,
@@ -74,7 +74,7 @@ extension SyncServiceEnqueuehelpers on SyncService {
       entityId: postId,
       payload: payload,
       localUpdatedAt: localUpdatedAt,
-      syncStatus: 'pending',
+      syncStatus: kStatusPending,
     );
     await _store.savePendingHiringPostEdit(
       postId,
@@ -92,7 +92,7 @@ extension SyncServiceEnqueuehelpers on SyncService {
       entityId: postId,
       payload: {'deleted_at': now.toIso8601String()},
       localUpdatedAt: now,
-      syncStatus: 'pending',
+      syncStatus: kStatusPending,
     );
     await _store.savePendingHiringPostDelete(
       postId,
@@ -115,7 +115,7 @@ extension SyncServiceEnqueuehelpers on SyncService {
       entityId: applicationId,
       payload: payload,
       localUpdatedAt: localUpdatedAt,
-      syncStatus: 'pending',
+      syncStatus: kStatusPending,
     );
     await _store.savePendingApplication(
       applicationId,
@@ -140,12 +140,41 @@ extension SyncServiceEnqueuehelpers on SyncService {
         'updated_at': localUpdatedAt.toIso8601String(),
       },
       localUpdatedAt: localUpdatedAt,
-      syncStatus: 'pending',
+      syncStatus: kStatusPending,
     );
     await _store.savePendingApplicationStatusUpdate(
       applicationId,
       jsonEncode(entry.toJson()),
     );
+    requestSync();
+  }
+
+  // ── Favorite toggle queue helper ─────────────────────────────────────────────
+  //
+  // Favorites are idempotent: only the latest intent for a given listingId
+  // matters. Enqueueing a new intent overwrites the previous one (same key =
+  // listingId) so rapid on/off toggles collapse to a single write.
+
+  Future<void> enqueueFavoriteToggle({
+    required String listingId,
+    required bool isSaved,          // true = add, false = remove
+    required String userId,
+    required DateTime localUpdatedAt,
+  }) async {
+    await _store.initialize();
+    final entry = SyncQueueEntry(
+      id: listingId,
+      entityType: SyncEntityType.favorite,
+      entityId: listingId,
+      payload: {
+        'listing_id': listingId,
+        'user_id': userId,
+        'is_saved': isSaved,
+      },
+      localUpdatedAt: localUpdatedAt,
+      syncStatus: kStatusPending,
+    );
+    await _store.savePendingFavorite(listingId, jsonEncode(entry.toJson()));
     requestSync();
   }
 
