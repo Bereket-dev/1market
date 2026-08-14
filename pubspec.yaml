@@ -153,22 +153,18 @@ flutter_launcher_icons:
 # Run: flutter pub get && flutter pub run flutter_native_splash:create
 # To revert: flutter pub run flutter_native_splash:remove
 flutter_native_splash:
-  # Background colour matches the brand blue used on the launcher icon.
+  # Solid brand background — logo PNG is transparent and centred, not full-bleed.
   color: "#00288E"
-  # Centred logo shown on the splash — place artwork here before generating.
-  # The image should be ~288×288 px (1x) for a comfortable safe zone.
+  # 288×288 transparent PNG — centred logo, not full-bleed.
   image: assets/brand/splash_logo.png
-  # Dark-mode variant (same logo, darker bg)
+  android_gravity: center
   color_dark: "#001A5C"
   image_dark: assets/brand/splash_logo.png
-  # Android 12+ (SplashScreen API)
   android_12:
     color: "#00288E"
-    image: assets/brand/splash_logo.png
+    image: assets/brand/splash_logo_android12.png
     color_dark: "#001A5C"
-    image_dark: assets/brand/splash_logo.png
+    image_dark: assets/brand/splash_logo_android12.png
     icon_background_color: "#00288E"
     icon_background_color_dark: "#001A5C"
-  # Keep splash visible until Flutter calls FlutterNativeSplash.remove()
-  # — not used in this project; the splash hides when the first frame renders.
   fullscreen: false

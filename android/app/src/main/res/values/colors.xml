@@ -2,5 +2,6 @@
 <resources>
     <!-- Notification icon tint colour — matches Koolan primary brand blue -->
     <color name="notification_color">#1E40AF</color>
-	<color name="ic_launcher_background">#00288E</color>
+    <color name="ic_launcher_background">#00288E</color>
+    <color name="splash_background">#00288E</color>
 </resources>
