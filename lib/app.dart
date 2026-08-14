@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/bootstrap/service_bootstrap.dart';
+import 'core/config/supabase_config.dart';
 import 'core/constants/colors.dart';
 import 'core/errors/error_reporter.dart';
 import 'core/router/routes.dart';
@@ -121,7 +122,8 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   Future<void> _handleColdStartDeepLink() async {
     await Future<void>.delayed(Duration.zero);
     try {
-      final client = Supabase.instance.client;
+      final client = AppSupabaseConfig.clientOrNull();
+      if (client == null) return;
       final session = client.auth.currentSession;
       if (session != null &&
           _appState.onboardingPhase == OnboardingPhase.initializing) {

@@ -91,6 +91,21 @@ flutter {
     source = "../.."
 }
 
+// Sync client-safe keys from project-root .env → assets/config/local.env
+tasks.register("syncLocalEnv") {
+    doLast {
+        exec {
+            workingDir = rootProject.projectDir.parentFile
+            commandLine("dart", "run", "tool/sync_local_env.dart")
+        }
+    }
+}
+tasks.configureEach {
+    if (name == "preBuild") {
+        dependsOn("syncLocalEnv")
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation(platform("com.google.firebase:firebase-bom:34.16.0"))

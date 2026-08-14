@@ -4,13 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase configuration.
 ///
-/// Reads values from `--dart-define` compile-time variables first.
-/// Falls back to `.env` file (dotenv) so local debug runs without extra flags,
-/// but the `.env` file is NOT bundled as a Flutter asset in release builds.
-///
-/// CI / Play Store builds must pass:
-///   --dart-define=SUPABASE_URL=...
-///   --dart-define=SUPABASE_ANON_KEY=...
+/// Priority: `--dart-define` (CI overrides) → bundled [assets/config/local.env]
+/// (URL + anon key + OAuth client IDs). The anon key is **not** a secret — it is
+/// meant to ship in client apps and is protected by Supabase Row Level Security.
+/// Never put the **service-role** key in the app.
 class AppSupabaseConfig {
   // ── Compile-time constants (injected via --dart-define) ───────────────────
   static const String _defineUrl =
@@ -30,9 +27,7 @@ class AppSupabaseConfig {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  /// Returns the dart-define value if non-empty, otherwise falls back to
-  /// dotenv (debug only). On release builds the .env is not bundled, so
-  /// dotenv will simply return null/empty — that's intentional.
+  /// Returns dart-define when set, otherwise the bundled asset (local.env).
   static String _env(String define, String dotenvKey) {
     if (define.isNotEmpty) return define;
     // dotenv is only loaded in debug runs; safe to call regardless.
@@ -97,8 +92,11 @@ class AppSupabaseConfig {
   /// Logs the effective config source in debug builds.
   static void debugLogSource() {
     if (!kDebugMode) return;
-    final source = _defineUrl.isNotEmpty ? '--dart-define' : '.env / unset';
+    final source = _defineUrl.isNotEmpty
+        ? '--dart-define'
+        : (url.isNotEmpty ? 'assets/config/local.env' : 'unset');
     debugPrint('[Config] Supabase URL source: $source');
     debugPrint('[Config] isConfigured: $isConfigured');
+    debugPrint('[Config] isAvailable: ${isAvailable()}');
   }
 }

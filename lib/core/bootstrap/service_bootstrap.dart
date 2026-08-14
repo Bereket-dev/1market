@@ -48,15 +48,20 @@ class ServiceBootstrap {
       }
     }
 
-    // 2. dotenv — optional local helper. Release APKs must NOT ship `.env`
-    //    as an asset; use `--dart-define-from-file=.env` for local runs.
-    if (kDebugMode && !_dotenvLoaded) {
+    // 2. Bundled client config (Supabase URL + anon key + OAuth IDs).
+    //    Synced from project-root .env → assets/config/local.env before builds.
+    if (!_dotenvLoaded) {
       try {
-        await dotenv.load(fileName: '.env');
+        await dotenv.load(fileName: 'assets/config/local.env');
         _dotenvLoaded = true;
-        debugPrint('[bootstrap] .env loaded (debug)');
-      } catch (_) {
-        // Expected when using dart-define only.
+        if (kDebugMode) debugPrint('[bootstrap] local.env loaded from assets');
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint(
+            '[bootstrap] local.env not loaded ($e)\n'
+            '  Run: dart run tool/sync_local_env.dart',
+          );
+        }
       }
     }
 
@@ -85,7 +90,11 @@ class ServiceBootstrap {
         }
       }
     } else if (kDebugMode) {
-      debugPrint('[bootstrap] Supabase config missing');
+      debugPrint(
+        '[bootstrap] Supabase config missing — run:\n'
+        '  dart run tool/sync_local_env.dart\n'
+        '  (requires project-root .env with SUPABASE_URL and SUPABASE_ANON_KEY)',
+      );
     }
 
     // 4. Local notifications

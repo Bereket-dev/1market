@@ -100,8 +100,11 @@ flutter:
   assets:
     - assets/brand/
     - assets/promo/
-    # Do NOT ship .env — secrets must not land in the APK.
-    # Local runs: `flutter run --dart-define-from-file=.env`
+    - assets/config/local.env
+    # Client-safe Supabase/OAuth keys — synced from project-root .env via
+    # `dart run tool/sync_local_env.dart` (runs automatically before Android builds).
+    # The anon key is public by design (RLS protects data); never bundle the
+    # service-role key.
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

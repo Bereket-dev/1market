@@ -39,6 +39,7 @@ Pods/
 .env
 .env.*
 !.env.example
+assets/config/local.env
 
 # Local planning docs (not for remote)
 docs/release_prep_plan.md
