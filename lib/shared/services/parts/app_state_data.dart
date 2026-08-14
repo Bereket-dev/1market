@@ -10,7 +10,10 @@ extension AppStateData on KoolanAppState {
   MarketplaceRepository? _ensureMarketplaceRepo() {
     final repo = _repo ?? _anonRepo;
     if (repo == null) return null;
-    _marketplaceRepo ??= MarketplaceRepository(supabaseRepo: repo);
+    _marketplaceRepo ??= MarketplaceRepository(
+      supabaseRepo: repo,
+      observability: syncObservability,
+    );
     return _marketplaceRepo;
   }
 
@@ -120,7 +123,10 @@ extension AppStateData on KoolanAppState {
     }
     final anonRepo = SupabaseRepository(client);
     _anonRepo = anonRepo;
-    _marketplaceRepo = MarketplaceRepository(supabaseRepo: anonRepo);
+    _marketplaceRepo = MarketplaceRepository(
+      supabaseRepo: anonRepo,
+      observability: syncObservability,
+    );
 
     final hasMirrorData = allListings.isNotEmpty;
 
@@ -183,25 +189,62 @@ extension AppStateData on KoolanAppState {
   // ── Prioritized inbound sync (Phase 2) ────────────────────────────────────
 
   /// P1: listings, services, hiring — marketplace feed content.
+  ///
+  /// When a user city is known from the profile and [forceRefresh] is false,
+  /// uses [MarketplaceRepository.syncWithRegionalPriority] to prefetch the
+  /// user's city first, then nearby cities, then all regions.
+  ///
+  /// Falls back to individual delta syncs when city is unknown or the user
+  /// explicitly requests a full refresh.
   Future<void> _syncInboundPriority1(
     MarketplaceRepository marketRepo, {
     String? userId,
     bool forceRefresh = false,
   }) async {
-    final mergedListings = await marketRepo.syncListingsDelta(
-      currentUserId: userId,
-      savedIds: const {},
-      forceRefresh: forceRefresh,
-    );
-    _applyListingsMerge(mergedListings);
+    // Use the profile's city field as the regional anchor.
+    // profile is loaded in P2, so it may be null on first ever launch —
+    // _regionalTiers defaults to Jigjiga in that case.
+    final userCity = profile?.city;
 
-    final mergedServices =
-        await marketRepo.syncServicesDelta(forceRefresh: forceRefresh);
-    _applyServicesMerge(mergedServices);
+    if (userCity != null && !forceRefresh) {
+      // Tiered regional sync: city → nearby → all.
+      await marketRepo.syncWithRegionalPriority(
+        userCity: userCity,
+        currentUserId: userId,
+        savedIds: const {},
+        forceRefresh: false,
+      );
 
-    final mergedPosts =
-        await marketRepo.syncHiringPostsDelta(forceRefresh: forceRefresh);
-    _applyHiringPostsMerge(mergedPosts);
+      // After regional sync the local mirror is up to date; read it back.
+      final mergedListings = await marketRepo.loadListingsFromLocal(
+        currentUserId: userId,
+        savedIds: const {},
+      );
+      _applyListingsMerge(mergedListings);
+
+      final mergedServices = await marketRepo.loadServicesFromLocal();
+      _applyServicesMerge(mergedServices);
+
+      final mergedPosts = await marketRepo.loadHiringPostsFromLocal();
+      _applyHiringPostsMerge(mergedPosts);
+    } else {
+      // No city known (first launch, guest, or force-refresh) — standard
+      // unfiltered delta sync.
+      final mergedListings = await marketRepo.syncListingsDelta(
+        currentUserId: userId,
+        savedIds: const {},
+        forceRefresh: forceRefresh,
+      );
+      _applyListingsMerge(mergedListings);
+
+      final mergedServices =
+          await marketRepo.syncServicesDelta(forceRefresh: forceRefresh);
+      _applyServicesMerge(mergedServices);
+
+      final mergedPosts =
+          await marketRepo.syncHiringPostsDelta(forceRefresh: forceRefresh);
+      _applyHiringPostsMerge(mergedPosts);
+    }
   }
 
   /// P2: favorites flags, own profile, applications.
@@ -311,6 +354,25 @@ extension AppStateData on KoolanAppState {
     }
 
     await HiveSyncStore.instance.setInProgressEntity(null);
+
+    // ── Phase 4: bootstrap the version cursor ─────────────────────────────
+    //
+    // After a cold seed the local mirror is populated but getSyncVersion()
+    // returns null, so syncViaCursorVersion() always falls back to the
+    // updated_at path.  Seeding version = 0 here means the very next sync
+    // will call get_changes_since(0), receive all current changes, and
+    // advance the cursor to the latest version — activating the monotonic
+    // version-cursor path from that point onwards.
+    //
+    // Only seed if no version is already stored so we never overwrite a
+    // valid high-water mark from a previous session.
+    final existingVersion = HiveSyncStore.instance.getSyncVersion();
+    if (existingVersion == null) {
+      await HiveSyncStore.instance.setSyncVersion(0);
+      if (kDebugMode) {
+        debugPrint('[coldSeed] seeded sync_version=0 — version cursor active on next sync');
+      }
+    }
   }
 
   // ── Surgical list update helpers ──────────────────────────────────────────

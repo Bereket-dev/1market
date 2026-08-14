@@ -8,6 +8,7 @@ import '../models/chat.dart';
 import '../models/hiring_post.dart';
 import '../models/home_promo.dart';
 import '../models/listing.dart';
+import '../models/marketplace_change.dart';
 import '../models/profile.dart';
 import '../models/service.dart';
 import '../models/service_review.dart';

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,7 @@ import 'image_prefetch_service.dart';
 import 'offline/hive_sync_store.dart';
 import 'search_index_service.dart';
 import 'supabase_repository.dart';
+import 'sync_status.dart';
 
 /// Phase 1: local-first marketplace data layer.
 ///
@@ -25,14 +27,26 @@ import 'supabase_repository.dart';
 ///   • Search index: index every upserted row so the local token search works.
 ///   • Cache eviction: enforce mirror caps after each batch upsert.
 ///
+/// Phase 4 additions:
+///   • Version cursor: prefer the monotonic marketplace_changes log over the
+///     per-entity updated_at cursors. All three entity types share a single
+///     global cursor so one RPC call covers the whole feed.
+///
 /// The repository is a pure data helper — it has no ChangeNotifier and no
 /// knowledge of UI state.  AppState calls into it and calls notifyListeners()
 /// at the right moments.
 class MarketplaceRepository {
-  MarketplaceRepository({required SupabaseRepository supabaseRepo})
-      : _remote = supabaseRepo;
+  MarketplaceRepository({
+    required SupabaseRepository supabaseRepo,
+    this.observability,
+  }) : _remote = supabaseRepo;
 
   final SupabaseRepository _remote;
+
+  /// Optional sink for bandwidth observability.  When non-null, every batch
+  /// of rows fetched from Supabase is measured and reported via
+  /// [SyncObservabilityStatus.addBytesDownloaded].
+  final SyncObservabilityStatus? observability;
   final HiveSyncStore _store = HiveSyncStore.instance;
 
   // ── Entity names used as cursor / TTL keys ───────────────────────────────
@@ -40,7 +54,10 @@ class MarketplaceRepository {
   static const _kServices    = 'services';
   static const _kHiringPosts = 'hiring_posts';
 
-  static const _kDeltaBatchSize = 100;
+  static const _kDeltaBatchSize  = 100;
+
+  // ── Phase 4: version-cursor batch size ───────────────────────────────────
+  static const _kChangesBatchSize = 500;
 
   // ── Phase 3: Freshness TTLs ───────────────────────────────────────────────
   //
@@ -49,6 +66,26 @@ class MarketplaceRepository {
   static const _kListingsTtl    = Duration(minutes: 5);
   static const _kServicesTtl    = Duration(minutes: 10);
   static const _kHiringPostsTtl = Duration(minutes: 10);
+
+  // ── Phase 4: concurrency guard for the shared version-cursor pass ────────
+  //
+  // Only one `syncViaCursorVersion` call runs at a time.  Any concurrent
+  // caller waits on the same Completer instead of issuing a duplicate RPC.
+  Completer<bool>? _versionSyncCompleter;
+
+  // ── Bandwidth byte counter ────────────────────────────────────────────────
+
+  /// Estimates the wire size of [rows] by JSON-encoding them and reports the
+  /// byte count to [observability] when it is non-null.
+  ///
+  /// Uses UTF-8 character count as a proxy for bytes (accurate for ASCII data;
+  /// a small over-estimate for multi-byte characters, which is acceptable for
+  /// observability purposes).
+  void _countBytes(List<Map<String, dynamic>> rows) {
+    if (observability == null) return;
+    final bytes = jsonEncode(rows).length;
+    observability!.addBytesDownloaded(bytes);
+  }
 
   /// Returns true if the entity was fetched within its TTL and forceRefresh
   /// is false — meaning delta sync can be skipped this pass.
@@ -102,6 +139,232 @@ class MarketplaceRepository {
     );
   }
 
+  // ── Phase 4: Global version-cursor sync ──────────────────────────────────
+
+  /// Syncs all three entity types in a single pass using the monotonic
+  /// marketplace_changes version cursor.
+  ///
+  /// Returns `true` when the version cursor existed (> 0) and was used,
+  /// `false` when there is no version cursor so callers must fall back to the
+  /// per-entity updated_at cursor.
+  ///
+  /// Concurrent callers share one in-flight pass: only the first caller
+  /// actually issues RPC calls; the rest await the same [Completer].
+  ///
+  /// Pass [forceRefresh] = true to bypass the TTL check that would otherwise
+  /// skip a version-cursor pass when all entities are still fresh.
+  ///
+  /// [userCity] is accepted for API uniformity but is not applied inside the
+  /// version-cursor pass — the changes log is region-agnostic. City filtering
+  /// is only applied in the updated_at delta fallback path.
+  Future<bool> syncViaCursorVersion({
+    bool forceRefresh = false,
+    String? userCity,
+  }) async {
+    // If a version-cursor pass is already in flight, piggyback on it.
+    final existing = _versionSyncCompleter;
+    if (existing != null && !existing.isCompleted) {
+      return existing.future;
+    }
+
+    final completer = Completer<bool>();
+    _versionSyncCompleter = completer;
+
+    try {
+      final result = await _syncViaVersionCursor(forceRefresh: forceRefresh);
+      completer.complete(result);
+    } catch (e, st) {
+      completer.completeError(e, st);
+    }
+
+    return completer.future;
+  }
+
+  /// Internal implementation of the version-cursor sync pass.
+  ///
+  /// Fetches from marketplace_changes in batches of [_kChangesBatchSize],
+  /// dispatches each change to the appropriate merge helper, advances the
+  /// version cursor and per-entity timestamp cursors.
+  Future<bool> _syncViaVersionCursor({bool forceRefresh = false}) async {
+    final storedVersion = _store.getSyncVersion();
+
+    // No version cursor yet — tell the caller to use updated_at fallback.
+    if (storedVersion == null || storedVersion <= 0) return false;
+
+    // If none of the entities need refreshing, skip the network pass.
+    final allFresh = !forceRefresh &&
+        _isFresh(_kListings,    _kListingsTtl,    forceRefresh: false) &&
+        _isFresh(_kServices,    _kServicesTtl,    forceRefresh: false) &&
+        _isFresh(_kHiringPosts, _kHiringPostsTtl, forceRefresh: false);
+
+    if (allFresh) {
+      if (kDebugMode) {
+        debugPrint('[MarketplaceRepo] version cursor: all entities fresh — skipping');
+      }
+      return true;
+    }
+
+    if (kDebugMode) {
+      debugPrint('[MarketplaceRepo] version cursor sync starting from v$storedVersion');
+    }
+
+    var version = storedVersion;
+    var totalChanges = 0;
+
+    // Track per-entity max changedAt for updating the timestamp cursors.
+    DateTime? maxListingChangedAt;
+    DateTime? maxServiceChangedAt;
+    DateTime? maxHiringPostChangedAt;
+
+    try {
+      while (true) {
+        final changes = await _remote.getChangesSince(
+          sinceVersion: version,
+          limit: _kChangesBatchSize,
+        );
+
+        if (changes.isEmpty) break;
+
+        totalChanges += changes.length;
+
+        // Count bandwidth for this batch (non-null payloads only; tombstones
+        // are tiny and skipped for simplicity).
+        final payloads = changes
+            .where((c) => c.payload != null)
+            .map((c) => c.payload!)
+            .toList();
+        if (payloads.isNotEmpty) _countBytes(payloads);
+
+        if (kDebugMode) {
+          final estimatedBytes = changes.length * 300;
+          debugPrint(
+            '[MarketplaceRepo] version cursor: received ${changes.length} changes '
+            '(~$estimatedBytes bytes estimated), v${changes.first.version}..v${changes.last.version}',
+          );
+        }
+
+        // Bucket the changes by entity type so we can call the right merge.
+        final listingRows    = <Map<String, dynamic>>[];
+        final serviceRows    = <Map<String, dynamic>>[];
+        final hiringPostRows = <Map<String, dynamic>>[];
+
+        for (final change in changes) {
+          final isDelete = change.operation == 'DELETE' || change.payload == null;
+
+          switch (change.entityType) {
+            case 'listing':
+              if (isDelete) {
+                await _store.deleteListingMirror(change.entityId);
+                await SearchIndexService.instance.removeEntity(change.entityId);
+                if (kDebugMode) {
+                  debugPrint('[MarketplaceRepo] Tombstoned listing ${change.entityId} (version cursor)');
+                }
+              } else {
+                listingRows.add(change.payload!);
+              }
+              // Track max changedAt for this entity type.
+              if (maxListingChangedAt == null ||
+                  change.changedAt.isAfter(maxListingChangedAt)) {
+                maxListingChangedAt = change.changedAt;
+              }
+
+            case 'service':
+              if (isDelete) {
+                await _store.deleteServiceMirror(change.entityId);
+                await SearchIndexService.instance.removeEntity(change.entityId);
+                if (kDebugMode) {
+                  debugPrint('[MarketplaceRepo] Tombstoned service ${change.entityId} (version cursor)');
+                }
+              } else {
+                serviceRows.add(change.payload!);
+              }
+              if (maxServiceChangedAt == null ||
+                  change.changedAt.isAfter(maxServiceChangedAt)) {
+                maxServiceChangedAt = change.changedAt;
+              }
+
+            case 'hiring_post':
+              if (isDelete) {
+                await _store.deleteHiringPostMirror(change.entityId);
+                await SearchIndexService.instance.removeEntity(change.entityId);
+                if (kDebugMode) {
+                  debugPrint('[MarketplaceRepo] Tombstoned hiring post ${change.entityId} (version cursor)');
+                }
+              } else {
+                hiringPostRows.add(change.payload!);
+              }
+              if (maxHiringPostChangedAt == null ||
+                  change.changedAt.isAfter(maxHiringPostChangedAt)) {
+                maxHiringPostChangedAt = change.changedAt;
+              }
+
+            default:
+              if (kDebugMode) {
+                debugPrint('[MarketplaceRepo] unknown entity_type: ${change.entityType}');
+              }
+          }
+        }
+
+        // Merge non-deleted payloads through the existing merge helpers so all
+        // eviction / search-index logic is applied consistently.
+        if (listingRows.isNotEmpty) {
+          await _mergeListingsDelta(listingRows);
+          _scheduleImagePrefetch(listingRows);
+        }
+        if (serviceRows.isNotEmpty) {
+          await _mergeServicesDelta(serviceRows);
+          _scheduleImagePrefetch(serviceRows);
+        }
+        if (hiringPostRows.isNotEmpty) {
+          await _mergeHiringPostsDelta(hiringPostRows);
+          _scheduleImagePrefetch(hiringPostRows);
+        }
+
+        // Advance the version cursor to the highest version seen.
+        final maxVersion = changes.map((c) => c.version).reduce(
+          (a, b) => a > b ? a : b,
+        );
+        if (maxVersion > version) {
+          version = maxVersion;
+          await _store.setSyncVersion(version);
+        }
+
+        // Stop when the batch was smaller than the page size — no more rows.
+        if (changes.length < _kChangesBatchSize) break;
+      }
+
+      // After a successful pass, advance the per-entity timestamp cursors so
+      // the updated_at fallback stays accurate.
+      final now = DateTime.now().toUtc();
+      if (maxListingChangedAt != null) {
+        await _store.setSyncCursor(_kListings, maxListingChangedAt);
+        await _store.setLastFetchedAt(_kListings, now);
+      }
+      if (maxServiceChangedAt != null) {
+        await _store.setSyncCursor(_kServices, maxServiceChangedAt);
+        await _store.setLastFetchedAt(_kServices, now);
+      }
+      if (maxHiringPostChangedAt != null) {
+        await _store.setSyncCursor(_kHiringPosts, maxHiringPostChangedAt);
+        await _store.setLastFetchedAt(_kHiringPosts, now);
+      }
+
+      if (kDebugMode && totalChanges > 0) {
+        debugPrint(
+          '[MarketplaceRepo] version cursor sync complete: '
+          '$totalChanges total changes applied, now at v$version',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MarketplaceRepo] version cursor sync interrupted: $e');
+      }
+      rethrow;
+    }
+
+    return true;
+  }
+
   // ── Delta sync ───────────────────────────────────────────────────────────
 
   /// Delta-syncs listings from Supabase using the stored cursor.
@@ -110,11 +373,28 @@ class MarketplaceRepository {
   /// Advances the cursor to the max updated_at seen in this batch.
   ///
   /// Pass [forceRefresh] = true (e.g. pull-to-refresh) to bypass the TTL.
+  ///
+  /// When [userCity] is non-null, the updated_at delta query is filtered to
+  /// rows whose location contains that city. Pass null (the default) to fetch
+  /// all regions — preserving the existing behaviour.
   Future<List<Listing>> syncListingsDelta({
     required String? currentUserId,
     required Set<String> savedIds,
     bool forceRefresh = false,
+    String? userCity,
   }) async {
+    // Phase 4: try the global version-cursor pass first.
+    final usedVersionCursor = await syncViaCursorVersion(
+      forceRefresh: forceRefresh,
+      userCity: userCity,
+    );
+    if (usedVersionCursor) {
+      return loadListingsFromLocal(
+        currentUserId: currentUserId,
+        savedIds: savedIds,
+      );
+    }
+
     // Phase 3: skip if data is fresh and no forced refresh requested.
     if (_isFresh(_kListings, _kListingsTtl, forceRefresh: forceRefresh)) {
       if (kDebugMode) {
@@ -135,8 +415,10 @@ class MarketplaceRepository {
         final rows = await _remote.fetchListingsDeltaRaw(
           cursor: cursor,
           limit: _kDeltaBatchSize,
+          userCity: userCity,
         );
         if (rows.isEmpty) break;
+        _countBytes(rows);
 
         await _mergeListingsDelta(rows);
         _scheduleImagePrefetch(rows);
@@ -147,16 +429,23 @@ class MarketplaceRepository {
         final maxUpdatedAt = _maxUpdatedAt(rows);
         if (maxUpdatedAt != null) {
           cursor = maxUpdatedAt;
-          await _store.setSyncCursor(_kListings, maxUpdatedAt);
+          // Only advance the global cursor when not filtering by city —
+          // a city-filtered pass doesn't guarantee all rows up to that
+          // timestamp have been seen.
+          if (userCity == null) {
+            await _store.setSyncCursor(_kListings, maxUpdatedAt);
+          }
         }
 
         if (rows.length < _kDeltaBatchSize) break;
       }
 
-      // Advance lastFetchedAt so subsequent syncs respect TTL.
-      await _store.setLastFetchedAt(_kListings, DateTime.now().toUtc());
-      await _store.clearRecordsFetchedThisSession(_kListings);
-      await _store.setInProgressEntity(null);
+      if (userCity == null) {
+        // Advance lastFetchedAt so subsequent syncs respect TTL.
+        await _store.setLastFetchedAt(_kListings, DateTime.now().toUtc());
+        await _store.clearRecordsFetchedThisSession(_kListings);
+        await _store.setInProgressEntity(null);
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint(
@@ -176,7 +465,22 @@ class MarketplaceRepository {
   /// Delta-syncs services.
   ///
   /// Pass [forceRefresh] = true to bypass the TTL.
-  Future<List<Service>> syncServicesDelta({bool forceRefresh = false}) async {
+  ///
+  /// When [userCity] is non-null, filters the delta query to rows whose
+  /// location contains that city. Pass null (default) for all regions.
+  Future<List<Service>> syncServicesDelta({
+    bool forceRefresh = false,
+    String? userCity,
+  }) async {
+    // Phase 4: try the global version-cursor pass first.
+    final usedVersionCursor = await syncViaCursorVersion(
+      forceRefresh: forceRefresh,
+      userCity: userCity,
+    );
+    if (usedVersionCursor) {
+      return loadServicesFromLocal();
+    }
+
     if (_isFresh(_kServices, _kServicesTtl, forceRefresh: forceRefresh)) {
       if (kDebugMode) {
         debugPrint('[MarketplaceRepo] services within TTL — skipping delta');
@@ -193,8 +497,10 @@ class MarketplaceRepository {
         final rows = await _remote.fetchServicesDeltaRaw(
           cursor: cursor,
           limit: _kDeltaBatchSize,
+          userCity: userCity,
         );
         if (rows.isEmpty) break;
+        _countBytes(rows);
 
         await _mergeServicesDelta(rows);
         _scheduleImagePrefetch(rows);
@@ -205,15 +511,19 @@ class MarketplaceRepository {
         final maxUpdatedAt = _maxUpdatedAt(rows);
         if (maxUpdatedAt != null) {
           cursor = maxUpdatedAt;
-          await _store.setSyncCursor(_kServices, maxUpdatedAt);
+          if (userCity == null) {
+            await _store.setSyncCursor(_kServices, maxUpdatedAt);
+          }
         }
 
         if (rows.length < _kDeltaBatchSize) break;
       }
 
-      await _store.setLastFetchedAt(_kServices, DateTime.now().toUtc());
-      await _store.clearRecordsFetchedThisSession(_kServices);
-      await _store.setInProgressEntity(null);
+      if (userCity == null) {
+        await _store.setLastFetchedAt(_kServices, DateTime.now().toUtc());
+        await _store.clearRecordsFetchedThisSession(_kServices);
+        await _store.setInProgressEntity(null);
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint(
@@ -230,9 +540,22 @@ class MarketplaceRepository {
   /// Delta-syncs hiring posts.
   ///
   /// Pass [forceRefresh] = true to bypass the TTL.
+  ///
+  /// When [userCity] is non-null, filters the delta query to rows whose
+  /// location contains that city. Pass null (default) for all regions.
   Future<List<HiringPost>> syncHiringPostsDelta({
     bool forceRefresh = false,
+    String? userCity,
   }) async {
+    // Phase 4: try the global version-cursor pass first.
+    final usedVersionCursor = await syncViaCursorVersion(
+      forceRefresh: forceRefresh,
+      userCity: userCity,
+    );
+    if (usedVersionCursor) {
+      return loadHiringPostsFromLocal();
+    }
+
     if (_isFresh(_kHiringPosts, _kHiringPostsTtl, forceRefresh: forceRefresh)) {
       if (kDebugMode) {
         debugPrint('[MarketplaceRepo] hiring posts within TTL — skipping delta');
@@ -249,8 +572,10 @@ class MarketplaceRepository {
         final rows = await _remote.fetchHiringPostsDeltaRaw(
           cursor: cursor,
           limit: _kDeltaBatchSize,
+          userCity: userCity,
         );
         if (rows.isEmpty) break;
+        _countBytes(rows);
 
         await _mergeHiringPostsDelta(rows);
         _scheduleImagePrefetch(rows);
@@ -261,15 +586,19 @@ class MarketplaceRepository {
         final maxUpdatedAt = _maxUpdatedAt(rows);
         if (maxUpdatedAt != null) {
           cursor = maxUpdatedAt;
-          await _store.setSyncCursor(_kHiringPosts, maxUpdatedAt);
+          if (userCity == null) {
+            await _store.setSyncCursor(_kHiringPosts, maxUpdatedAt);
+          }
         }
 
         if (rows.length < _kDeltaBatchSize) break;
       }
 
-      await _store.setLastFetchedAt(_kHiringPosts, DateTime.now().toUtc());
-      await _store.clearRecordsFetchedThisSession(_kHiringPosts);
-      await _store.setInProgressEntity(null);
+      if (userCity == null) {
+        await _store.setLastFetchedAt(_kHiringPosts, DateTime.now().toUtc());
+        await _store.clearRecordsFetchedThisSession(_kHiringPosts);
+        await _store.setInProgressEntity(null);
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint(
@@ -281,6 +610,83 @@ class MarketplaceRepository {
     }
 
     return loadHiringPostsFromLocal();
+  }
+
+  // ── Phase 4.2: Regional priority sync ────────────────────────────────────
+
+  /// Returns location strings to prefetch in priority order.
+  ///
+  /// Tier 1: user's own city (if known), defaulting to Jigjiga.
+  /// Tier 2: nearby Somali Region cities (Dire Dawa, Harar).
+  /// Tier 3: other major cities (Addis Ababa, Djibouti).
+  ///
+  /// The user's city is always first; other cities follow in tier order,
+  /// skipping the user's city to avoid duplication.
+  static List<String> _regionalTiers(String? userCity) {
+    const tier1Default = 'Jigjiga';
+    const tier2 = ['Dire Dawa', 'Harar'];
+    const tier3 = ['Addis Ababa', 'Djibouti'];
+
+    final city = userCity ?? tier1Default;
+    final others = [...tier2, ...tier3].where((c) => c != city).toList();
+    return [city, ...others];
+  }
+
+  /// Runs a tiered regional sync, making local data available in priority order:
+  ///
+  ///   Pass 1 — user's own city (or Jigjiga default) — loads fastest.
+  ///   Pass 2 — nearby cities (Dire Dawa, Harar) — medium priority.
+  ///   Pass 3 — no city filter (all regions, delta only, respects TTL).
+  ///
+  /// Passes 1 and 2 filter by city and do not advance the global sync cursor
+  /// (so Pass 3 still fetches the full un-filtered delta). Pass 3 uses the
+  /// standard no-filter path, which does advance cursors and TTL stamps.
+  ///
+  /// [currentUserId] and [savedIds] are forwarded to the listing loader so
+  /// saved/owned flags are applied correctly.
+  Future<void> syncWithRegionalPriority({
+    required String? userCity,
+    required String? currentUserId,
+    required Set<String> savedIds,
+    bool forceRefresh = false,
+  }) async {
+    final tiers = _regionalTiers(userCity);
+
+    if (kDebugMode) {
+      debugPrint('[MarketplaceRepo] regional sync tiers: $tiers');
+    }
+
+    // Pass 1: user's city (tier[0]).
+    // Pass 2: remaining cities from tier 2 (tiers[1..]).
+    // These passes do NOT advance global cursors (userCity != null path).
+    for (final city in tiers) {
+      await syncListingsDelta(
+        currentUserId: currentUserId,
+        savedIds: savedIds,
+        forceRefresh: forceRefresh,
+        userCity: city,
+      );
+      await syncServicesDelta(forceRefresh: forceRefresh, userCity: city);
+      await syncHiringPostsDelta(forceRefresh: forceRefresh, userCity: city);
+
+      if (kDebugMode) {
+        debugPrint('[MarketplaceRepo] regional pass done for city: $city');
+      }
+    }
+
+    // Pass 3: no city filter — fetches all remaining regions and advances
+    // the global updated_at cursors + TTL stamps.
+    if (kDebugMode) {
+      debugPrint('[MarketplaceRepo] regional pass 3: full delta (no city filter)');
+    }
+    await syncListingsDelta(
+      currentUserId: currentUserId,
+      savedIds: savedIds,
+      forceRefresh: forceRefresh,
+      userCity: null,
+    );
+    await syncServicesDelta(forceRefresh: forceRefresh, userCity: null);
+    await syncHiringPostsDelta(forceRefresh: forceRefresh, userCity: null);
   }
 
   // ── Merge logic ──────────────────────────────────────────────────────────
@@ -362,6 +768,12 @@ class MarketplaceRepository {
   /// [SupabaseRepository.fetchListings]).  Used when the mirror is empty
   /// and a full load was already performed by [loadAllData].
   Future<void> seedListingsMirror(List<Listing> listings) async {
+    if (listings.isNotEmpty) {
+      final bytes = jsonEncode(
+        listings.map((l) => l.toJson()).toList(),
+      ).length;
+      observability?.addBytesDownloaded(bytes);
+    }
     for (final l in listings) {
       await _store.upsertListingMirror(l.id, jsonEncode(l.toJson()));
     }
@@ -377,6 +789,12 @@ class MarketplaceRepository {
   }
 
   Future<void> seedServicesMirror(List<Service> services) async {
+    if (services.isNotEmpty) {
+      final bytes = jsonEncode(
+        services.map((s) => s.toJson()).toList(),
+      ).length;
+      observability?.addBytesDownloaded(bytes);
+    }
     for (final s in services) {
       await _store.upsertServiceMirror(s.id, jsonEncode(s.toJson()));
     }
@@ -391,6 +809,12 @@ class MarketplaceRepository {
   }
 
   Future<void> seedHiringPostsMirror(List<HiringPost> posts) async {
+    if (posts.isNotEmpty) {
+      final bytes = jsonEncode(
+        posts.map((p) => p.toJson()).toList(),
+      ).length;
+      observability?.addBytesDownloaded(bytes);
+    }
     for (final p in posts) {
       await _store.upsertHiringPostMirror(p.id, jsonEncode(p.toJson()));
     }

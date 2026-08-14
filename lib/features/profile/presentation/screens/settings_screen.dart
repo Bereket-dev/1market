@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/errors/error_mapper.dart';
 import '../../../../core/router/routes.dart';
@@ -251,6 +252,14 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 : (v) => _onMessagesToggle(v, appState),
           ),
           const SizedBox(height: 32),
+
+          // ── Sync debug (debug builds only) ────────────────────────────────
+          if (kDebugMode) ...[
+            _SectionLabel('Developer'),
+            const SizedBox(height: 10),
+            _SyncDebugSection(appState: appState),
+            const SizedBox(height: 32),
+          ],
 
           // ── Sign out ──────────────────────────────────────────────────────
           ElevatedButton.icon(

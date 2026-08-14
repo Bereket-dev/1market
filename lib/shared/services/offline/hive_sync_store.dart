@@ -684,6 +684,38 @@ class HiveSyncStore {
         'sync_fetched_at_$entity', ts.toUtc().toIso8601String());
   }
 
+  // ── Phase 4: monotonic sync_version cursor ────────────────────────────────
+  //
+  // Key in _metaBox:
+  //   sync_version   → the highest version seen from marketplace_changes
+  //
+  // Stored as a string to stay consistent with every other meta value in this
+  // box.  The RPC uses a bigserial PK so int fits in a Dart int on all
+  // platforms (JavaScript safe-integer range: ±2^53 − 1).
+
+  static const _kSyncVersion = 'sync_version';
+
+  /// Returns the last applied [marketplace_changes] version, or null when the
+  /// client has never performed a version-cursor sync.
+  int? getSyncVersion() {
+    final raw = _metaBox.get(_kSyncVersion);
+    if (raw == null) return null;
+    return int.tryParse(raw);
+  }
+
+  /// Persists [version] as the new high-water mark for the version cursor.
+  Future<void> setSyncVersion(int version) async {
+    await _ensureInitialized();
+    await _metaBox.put(_kSyncVersion, version.toString());
+  }
+
+  /// Removes the stored version cursor, forcing the next sync to perform a
+  /// full cold-seed pass (or start from version 0).
+  Future<void> clearSyncVersion() async {
+    await _ensureInitialized();
+    await _metaBox.delete(_kSyncVersion);
+  }
+
   // ── Phase 3: Local search index box ───────────────────────────────────────
   //
   // Key:   token (lowercase word)

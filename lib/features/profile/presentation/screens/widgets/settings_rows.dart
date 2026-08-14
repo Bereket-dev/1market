@@ -34,6 +34,7 @@ class _SettingsRow extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    // ignore: unused_element_parameter — optional trailing label for future rows
     this.trailingText,
     this.onTap,
   });
@@ -304,6 +305,183 @@ class _ContactInfoRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Debug sync section (only visible in debug builds) ────────────────────────
+//
+// Shows aggregate sync metrics from [KoolanAppState.syncObservability] so
+// developers can verify the Phase 4 version-cursor path, bandwidth targets,
+// and queue health without opening a separate debug overlay.
+//
+// Wrapped in an [if (kDebugMode)] in the calling widget tree — this class
+// itself does not guard, so the tree-shaker can eliminate it in release
+// builds.
+
+class _SyncDebugSection extends StatelessWidget {
+  const _SyncDebugSection({required this.appState});
+
+  final KoolanAppState appState;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return ListenableBuilder(
+      listenable: appState.syncObservability,
+      builder: (context, _) {
+        final obs = appState.syncObservability;
+
+        String fmt(int bytes) {
+          if (bytes < 1024) return '$bytes B';
+          if (bytes < 1024 * 1024) {
+            return '${(bytes / 1024).toStringAsFixed(1)} KB';
+          }
+          return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+        }
+
+        final rows = <_DebugRow>[
+          _DebugRow(
+            label: 'Last sync',
+            value: obs.lastSyncLabel,
+            icon: Icons.check_circle_outline,
+          ),
+          _DebugRow(
+            label: 'Duration',
+            value: obs.lastSyncDuration != null
+                ? '${obs.lastSyncDuration!.inMilliseconds} ms'
+                : '—',
+            icon: Icons.timer_outlined,
+          ),
+          _DebugRow(
+            label: 'Downloaded',
+            value: fmt(obs.bytesDownloaded),
+            icon: Icons.download_outlined,
+          ),
+          _DebugRow(
+            label: 'Uploaded',
+            value: fmt(obs.bytesUploaded),
+            icon: Icons.upload_outlined,
+          ),
+          _DebugRow(
+            label: 'Pending ops',
+            value: obs.pendingOperations.toString(),
+            icon: Icons.pending_outlined,
+          ),
+          _DebugRow(
+            label: 'Failed ops',
+            value: obs.failedOperations.toString(),
+            icon: Icons.error_outline,
+            isError: obs.hasFailures,
+          ),
+        ];
+
+        return Card(
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: cs.outlineVariant.withValues(alpha: 0.5),
+              width: 1,
+            ),
+          ),
+          elevation: 0,
+          color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.bug_report_outlined,
+                        size: 16, color: cs.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'SYNC DEBUG',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                        color: cs.primary,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (appState.isRefreshing)
+                      SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: cs.primary,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ...rows.map((row) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Icon(
+                            row.icon,
+                            size: 14,
+                            color: row.isError
+                                ? cs.error
+                                : cs.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${row.label}: ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            row.value,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: row.isError ? cs.error : cs.onSurface,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () => appState.syncObservability.reset(),
+                  child: Text(
+                    'Reset counters',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: cs.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DebugRow {
+  final String label;
+  final String value;
+  final IconData icon;
+  final bool isError;
+
+  const _DebugRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.isError = false,
+  });
 }
 
 // ── Category label helper ─────────────────────────────────────────────────────

@@ -49,9 +49,14 @@ extension SupabaseRepositoryListings on SupabaseRepository {
   /// Narrow-select fetch used by delta sync — returns only card-relevant fields.
   /// Includes rows updated OR soft-deleted since [cursor].
   /// Pass [cursor] == null to fetch the first page without a time filter.
+  ///
+  /// When [userCity] is non-null, filters to rows whose location contains
+  /// that city name (case-insensitive). This is used for regional-priority
+  /// sync passes to load the user's city first.
   Future<List<Map<String, dynamic>>> fetchListingsDeltaRaw({
     required DateTime? cursor,
     int limit = 100,
+    String? userCity,
   }) async {
     var query = _client
         .from('listings')
@@ -61,6 +66,10 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       final iso = cursor.toUtc().toIso8601String();
       // Rows whose updated_at or deleted_at moved past the cursor.
       query = query.or('updated_at.gt.$iso,deleted_at.gt.$iso');
+    }
+
+    if (userCity != null) {
+      query = query.ilike('location', '%$userCity%');
     }
 
     final rows = await query
@@ -88,9 +97,13 @@ extension SupabaseRepositoryListings on SupabaseRepository {
   }
 
   /// Delta fetch for services — returns narrow card-relevant fields.
+  ///
+  /// When [userCity] is non-null, filters to rows whose location contains
+  /// that city name (case-insensitive).
   Future<List<Map<String, dynamic>>> fetchServicesDeltaRaw({
     required DateTime? cursor,
     int limit = 100,
+    String? userCity,
   }) async {
     const select =
         'id, owner_id, title, category, price_range, location, availability, '
@@ -103,6 +116,10 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       query = query.or('updated_at.gt.$iso,deleted_at.gt.$iso');
     }
 
+    if (userCity != null) {
+      query = query.ilike('location', '%$userCity%');
+    }
+
     final rows = await query
         .order('updated_at', ascending: true)
         .limit(limit);
@@ -111,9 +128,13 @@ extension SupabaseRepositoryListings on SupabaseRepository {
   }
 
   /// Delta fetch for hiring posts — returns narrow card-relevant fields.
+  ///
+  /// When [userCity] is non-null, filters to rows whose location contains
+  /// that city name (case-insensitive).
   Future<List<Map<String, dynamic>>> fetchHiringPostsDeltaRaw({
     required DateTime? cursor,
     int limit = 100,
+    String? userCity,
   }) async {
     const select =
         'id, poster_id, title, category, location, price_range, status, '
@@ -126,11 +147,57 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       query = query.or('updated_at.gt.$iso,deleted_at.gt.$iso');
     }
 
+    if (userCity != null) {
+      query = query.ilike('location', '%$userCity%');
+    }
+
     final rows = await query
         .order('updated_at', ascending: true)
         .limit(limit);
 
     return (rows as List).cast<Map<String, dynamic>>();
+  }
+
+  // ── Phase 4: monotonic version-cursor sync ─────────────────────────────────
+
+  /// Calls the [get_changes_since] Postgres RPC and returns the raw response
+  /// decoded as a list of [MarketplaceChange] objects.
+  ///
+  /// [sinceVersion] is the highest version the client has already applied.
+  /// The RPC returns all rows with version > [sinceVersion], up to [limit].
+  ///
+  /// Returns an empty list when there are no new changes.
+  /// The caller is responsible for advancing the stored version cursor
+  /// (see [HiveSyncStore.setSyncVersion]).
+  Future<List<MarketplaceChange>> getChangesSince({
+    required int sinceVersion,
+    int limit = 500,
+  }) async {
+    final response = await _client.rpc(
+      'get_changes_since',
+      params: {
+        'since_version': sinceVersion,
+        'row_limit': limit,
+      },
+    );
+
+    if (response == null) return const [];
+
+    // The RPC returns a JSONB array; Supabase Dart may decode it as a
+    // List<dynamic> or as a single dynamic value — handle both.
+    final List<dynamic> rows;
+    if (response is List) {
+      rows = response;
+    } else {
+      // Unexpected shape — log in debug and return empty.
+      assert(false, '[getChangesSince] unexpected RPC response type: ${response.runtimeType}');
+      return const [];
+    }
+
+    return rows
+        .cast<Map<String, dynamic>>()
+        .map(MarketplaceChange.fromJson)
+        .toList();
   }
 
   Future<Set<String>> _fetchFavoriteIds(String userId) async {

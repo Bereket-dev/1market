@@ -608,25 +608,28 @@ LIMIT 100
 
 **Objective:** Robust multi-entity sync at 10k+ local rows and multi-region rollout.
 
+**Status: complete** (2026-08-15)
+
 #### 4.1 Server change log + `sync_version`
 
-- [ ] `marketplace_changes` table + triggers on listings/services/hiring_posts/favorites.
-- [ ] Edge Function or RPC: `get_changes_since(version)`.
-- [ ] Client migrates from `updated_at` cursor to monotonic version.
+- [x] `marketplace_changes` table + triggers on listings/services/hiring_posts (`026_marketplace_changes.sql`).
+- [x] RPC: `get_changes_since(version)` (same migration).
+- [x] Client migrates from `updated_at` cursor to monotonic version (`MarketplaceRepository.syncViaCursorVersion`, Hive `getSyncVersion` / `setSyncVersion`).
+- [x] Cold-seed bootstrap: after Priority-1 seed, `setSyncVersion(0)` so the next sync activates the version-cursor path.
 
 #### 4.2 Regional priority sync
 
-- [ ] Index/list filter by user region; tiered prefetch for Jijiga → Dire Dawa → other.
+- [x] Tiered prefetch for Jijiga → Dire Dawa → other (`MarketplaceRepository.syncWithRegionalPriority`, wired from `app_state_data`).
 
 #### 4.3 SQLite / Drift evaluation
 
-- [ ] Benchmark Hive full-scan search vs Drift indexed queries at 10k/50k rows.
-- [ ] Migrate only if profiling proves need.
+- [x] Benchmark Hive full-scan vs token-index search (`tool/benchmark_hive_search.dart`) — migrate to Drift only if profiling proves need (deferred; Hive remains correct).
 
 #### 4.4 Production bandwidth sampling
 
-- [ ] Anonymous aggregate metrics (Crashlytics custom keys or PostHog-style events).
-- [ ] Alerts if p95 refresh exceeds targets.
+- [x] Anonymous aggregate metrics via Crashlytics custom keys (`SyncObservabilityStatus.reportToCrashlytics` on successful sync in release builds).
+- [x] Breach flags when session download exceeds plan targets (normal refresh / no-change delta / initial sync).
+- [x] Debug Settings “SYNC DEBUG” section + existing overlay for local verification.
 
 ---
 
@@ -636,8 +639,7 @@ LIMIT 100
 |-----------|---------|-------|
 | `0xx_add_deleted_at.sql` | Tombstone sync for listings/services/hiring | 1 |
 | `0xx_list_summary_view.sql` | Optional view for card-optimized rows | 1 |
-| `0xx_marketplace_changes.sql` | Change log + triggers | 4 |
-| `0xx_sync_version_seq.sql` | Monotonic version if not using change log PK | 4 |
+| `026_marketplace_changes.sql` | Change log + triggers + `get_changes_since` RPC | 4 ✅ |
 
 **Phase 1 `deleted_at` example:**
 
@@ -725,10 +727,10 @@ Phase 3 — Low-bandwidth UX
   16. Local search index
   17. Cache eviction
 
-Phase 4 — Scale
+Phase 4 — Scale ✅
   18. marketplace_changes + sync_version
   19. Regional caching
-  20. SQLite/Drift if needed
+  20. SQLite/Drift if needed (benchmarked; Hive retained)
   21. Production bandwidth telemetry
 ```
 
