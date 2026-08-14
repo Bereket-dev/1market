@@ -24,7 +24,7 @@ extension AppStateData on KoolanAppState {
   //   5. Merge results; notifyListeners() with surgical updates.
   //   6. Clear isRefreshing; advance lastSuccessfulSyncAt.
 
-  Future<void> loadAllData() async {
+  Future<void> loadAllData({bool forceRefresh = false}) async {
     dataError = null;
 
     final marketRepo = _ensureMarketplaceRepo();
@@ -49,9 +49,9 @@ extension AppStateData on KoolanAppState {
     // ── Step 3: background network sync ──────────────────────────────────────
     try {
       if (_repo == null) {
-        await _guestLoadOrSync(marketRepo);
+        await _guestLoadOrSync(marketRepo, forceRefresh: forceRefresh);
       } else {
-        await _authedLoadOrSync(marketRepo);
+        await _authedLoadOrSync(marketRepo, forceRefresh: forceRefresh);
       }
       // Mark successful sync time.
       final now = DateTime.now();
@@ -108,7 +108,10 @@ extension AppStateData on KoolanAppState {
 
   // ── Guest path ────────────────────────────────────────────────────────────
 
-  Future<void> _guestLoadOrSync(MarketplaceRepository? marketRepo) async {
+  Future<void> _guestLoadOrSync(
+    MarketplaceRepository? marketRepo, {
+    bool forceRefresh = false,
+  }) async {
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       allListings = [];
@@ -122,7 +125,11 @@ extension AppStateData on KoolanAppState {
     final hasMirrorData = allListings.isNotEmpty;
 
     if (hasMirrorData) {
-      await _syncInboundPriority1(_marketplaceRepo!, userId: null);
+      await _syncInboundPriority1(
+        _marketplaceRepo!,
+        userId: null,
+        forceRefresh: forceRefresh,
+      );
     } else {
       await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
     }
@@ -137,14 +144,21 @@ extension AppStateData on KoolanAppState {
 
   // ── Authed path ───────────────────────────────────────────────────────────
 
-  Future<void> _authedLoadOrSync(MarketplaceRepository? marketRepo) async {
+  Future<void> _authedLoadOrSync(
+    MarketplaceRepository? marketRepo, {
+    bool forceRefresh = false,
+  }) async {
     final repo = _repo!;
     final userId = currentUser?.id;
     final hasMirrorData = allListings.isNotEmpty;
 
     if (hasMirrorData && marketRepo != null) {
       // P1 → P2 → P3 prioritized inbound sync.
-      await _syncInboundPriority1(marketRepo, userId: userId);
+      await _syncInboundPriority1(
+        marketRepo,
+        userId: userId,
+        forceRefresh: forceRefresh,
+      );
       notifyListeners();
 
       await _syncInboundPriority2(repo, userId: userId);
@@ -172,17 +186,21 @@ extension AppStateData on KoolanAppState {
   Future<void> _syncInboundPriority1(
     MarketplaceRepository marketRepo, {
     String? userId,
+    bool forceRefresh = false,
   }) async {
     final mergedListings = await marketRepo.syncListingsDelta(
       currentUserId: userId,
       savedIds: const {},
+      forceRefresh: forceRefresh,
     );
     _applyListingsMerge(mergedListings);
 
-    final mergedServices = await marketRepo.syncServicesDelta();
+    final mergedServices =
+        await marketRepo.syncServicesDelta(forceRefresh: forceRefresh);
     _applyServicesMerge(mergedServices);
 
-    final mergedPosts = await marketRepo.syncHiringPostsDelta();
+    final mergedPosts =
+        await marketRepo.syncHiringPostsDelta(forceRefresh: forceRefresh);
     _applyHiringPostsMerge(mergedPosts);
   }
 
@@ -410,6 +428,51 @@ extension AppStateData on KoolanAppState {
 
   void setSearchQuery(String query) {
     searchQuery = query;
+    // Kick off an async index search; result stored in searchIndexResults.
+    // getFilteredListings() will use the cached result on next build().
+    unawaited(_updateSearchResults(query));
+    notifyListeners();
+  }
+
+  // ── Phase 3: Search index integration ────────────────────────────────────
+  //
+  // [searchIndexResults] and [lastIndexedQuery] are declared on KoolanAppState
+  // (extensions can't hold instance fields in Dart).  The async query result
+  // is cached there so the synchronous getFilteredListings() can use it.
+
+  Future<void> _updateSearchResults(String query) async {
+    if (query.trim().isEmpty) {
+      searchIndexResults = null;
+      lastIndexedQuery = '';
+      notifyListeners();
+      return;
+    }
+    try {
+      final ids = await SearchIndexService.instance.query(query);
+      searchIndexResults = ids.isEmpty ? null : ids;
+      lastIndexedQuery = query;
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AppState] search index query failed: $e');
+      searchIndexResults = null;
+      notifyListeners();
+    }
+  }
+
+  // ── Data Saver toggle (Phase 3) ───────────────────────────────────────────
+
+  /// Toggles the Data Saver mode and persists the preference.
+  ///
+  /// When enabled:
+  ///   • ImagePrefetchService skips all background prefetch.
+  ///   • Sync interval is extended (gated by NetworkMonitor).
+  Future<void> toggleDataSaver() async {
+    dataSaverEnabled = !dataSaverEnabled;
+    ImagePrefetchService.instance.dataSaverEnabled = dataSaverEnabled;
+    if (dataSaverEnabled) {
+      ImagePrefetchService.instance.cancelAll();
+    }
+    await app_local.LocalStorage.saveDataSaverEnabled(dataSaverEnabled);
     notifyListeners();
   }
 
@@ -489,17 +552,34 @@ extension AppStateData on KoolanAppState {
 
   // ── Listing helpers ───────────────────────────────────────────────────────
 
+  /// Returns filtered listings using the local search index when a query is
+  /// active. The index result is cached asynchronously via [setSearchQuery];
+  /// when the cache is stale (race between typing and index result) it falls
+  /// back to in-memory substring filtering so the UI is never blank.
   List<Listing> getFilteredListings() {
-    return allListings.where((listing) {
-      final matchesCategory =
-          selectedCategory == 'ALL' || listing.category == selectedCategory;
-      final q = searchQuery.toLowerCase();
-      final matchesQuery =
-          q.isEmpty ||
-          listing.title.toLowerCase().contains(q) ||
-          listing.location.toLowerCase().contains(q) ||
-          listing.description.toLowerCase().contains(q);
-      return matchesCategory && matchesQuery;
+    // Category filter — always applied in memory.
+    Iterable<Listing> base = allListings;
+    if (selectedCategory != 'ALL') {
+      base = base.where((l) => l.category == selectedCategory);
+    }
+
+    final q = searchQuery.trim();
+    if (q.isEmpty) return base.toList();
+
+    // Use index results when the cached query matches the current query.
+    final cached = searchIndexResults;
+    if (cached != null && lastIndexedQuery == q) {
+      return base.where((l) => cached.contains(l.id)).toList();
+    }
+
+    // Fallback: synchronous substring search (covers initial keystrokes before
+    // the async index result arrives).
+    final lower = q.toLowerCase();
+    return base.where((l) {
+      return l.title.toLowerCase().contains(lower) ||
+          l.location.toLowerCase().contains(lower) ||
+          l.category.toLowerCase().contains(lower) ||
+          l.description.toLowerCase().contains(lower);
     }).toList();
   }
 

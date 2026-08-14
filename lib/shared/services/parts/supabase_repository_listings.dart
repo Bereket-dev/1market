@@ -7,10 +7,12 @@ extension SupabaseRepositoryListings on SupabaseRepository {
   //
   // Narrow select used for the marketplace feed — drops heavy fields like
   // spec labels, description, and translations so the delta payload is small.
+  // seller phone is omitted here (card UI never shows it); detail screen uses
+  // _kListingDetailSelect which fetches the full profiles join.
   static const _kListingListSelect =
       'id, category, title, price, image_url, image_urls, location, '
       'condition_or_status, seller_id, updated_at, is_hidden, deleted_at, '
-      'profiles!seller_id(display_name, avatar_url, phone, rating, reviews_count)';
+      'profiles!seller_id(display_name, avatar_url, rating, reviews_count)';
 
   /// Full row select for detail screens (all fields).
   static const _kListingDetailSelect =

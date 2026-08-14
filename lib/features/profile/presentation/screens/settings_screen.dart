@@ -191,6 +191,16 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             value: appState.isDarkMode,
             onChanged: (_) => appState.toggleDarkMode(),
           ),
+          const SizedBox(height: 8),
+
+          // ── Data Saver (Phase 3) ──────────────────────────────────────────
+          _SettingsToggleRow(
+            icon: Icons.data_saver_on_outlined,
+            title: s.settingsDataSaver,
+            subtitle: s.settingsDataSaverSubtitle,
+            value: appState.dataSaverEnabled,
+            onChanged: (_) => appState.toggleDataSaver(),
+          ),
           const SizedBox(height: 24),
 
           // ── Contact & location ─────────────────────────────────────────────

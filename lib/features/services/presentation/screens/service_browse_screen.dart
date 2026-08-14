@@ -46,7 +46,7 @@ class _ServiceBrowseScreenState extends State<ServiceBrowseScreen> {
     }
   }
 
-  Future<void> _onRefresh() => KoolanAppStateScope.of(context).loadAllData();
+  Future<void> _onRefresh() => KoolanAppStateScope.of(context).loadAllData(forceRefresh: true);
 
   List<Service> _filter(List<Service> all) {
     return all.where((s) {

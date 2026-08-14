@@ -44,7 +44,7 @@ class _HiringBrowseScreenState extends State<HiringBrowseScreen> {
     }
   }
 
-  Future<void> _onRefresh() => KoolanAppStateScope.of(context).loadAllData();
+  Future<void> _onRefresh() => KoolanAppStateScope.of(context).loadAllData(forceRefresh: true);
 
   List<HiringPost> _filter(List<HiringPost> all) {
     return all.where((p) {

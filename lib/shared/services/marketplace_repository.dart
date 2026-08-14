@@ -8,6 +8,7 @@ import '../models/listing.dart';
 import '../models/service.dart';
 import 'image_prefetch_service.dart';
 import 'offline/hive_sync_store.dart';
+import 'search_index_service.dart';
 import 'supabase_repository.dart';
 
 /// Phase 1: local-first marketplace data layer.
@@ -17,6 +18,12 @@ import 'supabase_repository.dart';
 ///   2. Delta-sync changed/deleted rows from Supabase using an updated_at
 ///      cursor, merge results into Hive, advance the cursor.
 ///   3. Keep AppState lists up-to-date by returning the merged result.
+///
+/// Phase 3 additions:
+///   • Freshness TTLs: skip delta sync when data was fetched within the TTL
+///     unless [forceRefresh] is true (pull-to-refresh).
+///   • Search index: index every upserted row so the local token search works.
+///   • Cache eviction: enforce mirror caps after each batch upsert.
 ///
 /// The repository is a pure data helper — it has no ChangeNotifier and no
 /// knowledge of UI state.  AppState calls into it and calls notifyListeners()
@@ -28,12 +35,29 @@ class MarketplaceRepository {
   final SupabaseRepository _remote;
   final HiveSyncStore _store = HiveSyncStore.instance;
 
-  // ── Entity names used as cursor keys ────────────────────────────────────
+  // ── Entity names used as cursor / TTL keys ───────────────────────────────
   static const _kListings    = 'listings';
   static const _kServices    = 'services';
   static const _kHiringPosts = 'hiring_posts';
 
   static const _kDeltaBatchSize = 100;
+
+  // ── Phase 3: Freshness TTLs ───────────────────────────────────────────────
+  //
+  // Default TTLs per entity type.  Pull-to-refresh bypasses these by passing
+  // forceRefresh: true.
+  static const _kListingsTtl    = Duration(minutes: 5);
+  static const _kServicesTtl    = Duration(minutes: 10);
+  static const _kHiringPostsTtl = Duration(minutes: 10);
+
+  /// Returns true if the entity was fetched within its TTL and forceRefresh
+  /// is false — meaning delta sync can be skipped this pass.
+  bool _isFresh(String entity, Duration ttl, {required bool forceRefresh}) {
+    if (forceRefresh) return false;
+    final last = _store.getLastFetchedAt(entity);
+    if (last == null) return false;
+    return DateTime.now().toUtc().difference(last) < ttl;
+  }
 
   // ── Local read ────────────────────────────────────────────────────────────
 
@@ -84,10 +108,24 @@ class MarketplaceRepository {
   ///
   /// Returns the merged list sorted by updated_at descending (newest first).
   /// Advances the cursor to the max updated_at seen in this batch.
+  ///
+  /// Pass [forceRefresh] = true (e.g. pull-to-refresh) to bypass the TTL.
   Future<List<Listing>> syncListingsDelta({
     required String? currentUserId,
     required Set<String> savedIds,
+    bool forceRefresh = false,
   }) async {
+    // Phase 3: skip if data is fresh and no forced refresh requested.
+    if (_isFresh(_kListings, _kListingsTtl, forceRefresh: forceRefresh)) {
+      if (kDebugMode) {
+        debugPrint('[MarketplaceRepo] listings within TTL — skipping delta');
+      }
+      return loadListingsFromLocal(
+        currentUserId: currentUserId,
+        savedIds: savedIds,
+      );
+    }
+
     await _store.setInProgressEntity(_kListings);
     var sessionFetched = _store.getRecordsFetchedThisSession(_kListings);
     var cursor = _store.getSyncCursor(_kListings);
@@ -115,6 +153,8 @@ class MarketplaceRepository {
         if (rows.length < _kDeltaBatchSize) break;
       }
 
+      // Advance lastFetchedAt so subsequent syncs respect TTL.
+      await _store.setLastFetchedAt(_kListings, DateTime.now().toUtc());
       await _store.clearRecordsFetchedThisSession(_kListings);
       await _store.setInProgressEntity(null);
     } catch (e) {
@@ -134,7 +174,16 @@ class MarketplaceRepository {
   }
 
   /// Delta-syncs services.
-  Future<List<Service>> syncServicesDelta() async {
+  ///
+  /// Pass [forceRefresh] = true to bypass the TTL.
+  Future<List<Service>> syncServicesDelta({bool forceRefresh = false}) async {
+    if (_isFresh(_kServices, _kServicesTtl, forceRefresh: forceRefresh)) {
+      if (kDebugMode) {
+        debugPrint('[MarketplaceRepo] services within TTL — skipping delta');
+      }
+      return loadServicesFromLocal();
+    }
+
     await _store.setInProgressEntity(_kServices);
     var sessionFetched = _store.getRecordsFetchedThisSession(_kServices);
     var cursor = _store.getSyncCursor(_kServices);
@@ -162,6 +211,7 @@ class MarketplaceRepository {
         if (rows.length < _kDeltaBatchSize) break;
       }
 
+      await _store.setLastFetchedAt(_kServices, DateTime.now().toUtc());
       await _store.clearRecordsFetchedThisSession(_kServices);
       await _store.setInProgressEntity(null);
     } catch (e) {
@@ -178,7 +228,18 @@ class MarketplaceRepository {
   }
 
   /// Delta-syncs hiring posts.
-  Future<List<HiringPost>> syncHiringPostsDelta() async {
+  ///
+  /// Pass [forceRefresh] = true to bypass the TTL.
+  Future<List<HiringPost>> syncHiringPostsDelta({
+    bool forceRefresh = false,
+  }) async {
+    if (_isFresh(_kHiringPosts, _kHiringPostsTtl, forceRefresh: forceRefresh)) {
+      if (kDebugMode) {
+        debugPrint('[MarketplaceRepo] hiring posts within TTL — skipping delta');
+      }
+      return loadHiringPostsFromLocal();
+    }
+
     await _store.setInProgressEntity(_kHiringPosts);
     var sessionFetched = _store.getRecordsFetchedThisSession(_kHiringPosts);
     var cursor = _store.getSyncCursor(_kHiringPosts);
@@ -206,6 +267,7 @@ class MarketplaceRepository {
         if (rows.length < _kDeltaBatchSize) break;
       }
 
+      await _store.setLastFetchedAt(_kHiringPosts, DateTime.now().toUtc());
       await _store.clearRecordsFetchedThisSession(_kHiringPosts);
       await _store.setInProgressEntity(null);
     } catch (e) {
@@ -224,9 +286,11 @@ class MarketplaceRepository {
   // ── Merge logic ──────────────────────────────────────────────────────────
 
   /// Merge rules (applied to each row in [delta]):
-  ///   • deleted_at IS NOT NULL  → remove from mirror.
-  ///   • is_hidden == true       → remove from mirror (moderation).
-  ///   • otherwise               → upsert (insert or overwrite) in mirror.
+  ///   • deleted_at IS NOT NULL  → remove from mirror + search index.
+  ///   • is_hidden == true       → remove from mirror + search index.
+  ///   • otherwise               → upsert (insert or overwrite) in mirror + index.
+  ///
+  /// Calls [HiveSyncStore.enforceListingsMirrorCap] after the batch.
   Future<void> _mergeListingsDelta(List<Map<String, dynamic>> delta) async {
     for (final row in delta) {
       final id = row['id'] as String?;
@@ -237,11 +301,15 @@ class MarketplaceRepository {
 
       if (isDeleted || isHidden) {
         await _store.deleteListingMirror(id);
+        await SearchIndexService.instance.removeEntity(id);
         if (kDebugMode) debugPrint('[MarketplaceRepo] Tombstoned listing $id');
       } else {
         await _store.upsertListingMirror(id, jsonEncode(row));
+        await SearchIndexService.instance.indexListingJson(row);
       }
     }
+    // Enforce listing cap after every batch (Phase 3).
+    await _store.enforceListingsMirrorCap();
   }
 
   Future<void> _mergeServicesDelta(List<Map<String, dynamic>> delta) async {
@@ -255,11 +323,15 @@ class MarketplaceRepository {
       // owner can still manage them.  We only tombstone hard-deletes.
       if (isDeleted) {
         await _store.deleteServiceMirror(id);
+        await SearchIndexService.instance.removeEntity(id);
         if (kDebugMode) debugPrint('[MarketplaceRepo] Tombstoned service $id');
       } else {
         await _store.upsertServiceMirror(id, jsonEncode(row));
+        await SearchIndexService.instance.indexServiceJson(row);
       }
     }
+    // Enforce services mirror cap (Phase 3).
+    await _store.enforceServicesMirrorCap();
   }
 
   Future<void> _mergeHiringPostsDelta(
@@ -273,11 +345,15 @@ class MarketplaceRepository {
 
       if (isDeleted) {
         await _store.deleteHiringPostMirror(id);
+        await SearchIndexService.instance.removeEntity(id);
         if (kDebugMode) debugPrint('[MarketplaceRepo] Tombstoned hiring post $id');
       } else {
         await _store.upsertHiringPostMirror(id, jsonEncode(row));
+        await SearchIndexService.instance.indexHiringPostJson(row);
       }
     }
+    // Enforce hiring posts mirror cap (Phase 3).
+    await _store.enforceHiringPostsMirrorCap();
   }
 
   // ── Seeding (first launch / cache miss) ──────────────────────────────────

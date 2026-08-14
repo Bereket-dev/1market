@@ -106,6 +106,7 @@ class _SettingsRow extends StatelessWidget {
 class _SettingsToggleRow extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final bool value;
   final bool busy;
   final bool enabled;
@@ -114,6 +115,7 @@ class _SettingsToggleRow extends StatelessWidget {
   const _SettingsToggleRow({
     required this.icon,
     required this.title,
+    this.subtitle,
     required this.value,
     this.busy = false,
     this.enabled = true,
@@ -141,9 +143,23 @@ class _SettingsToggleRow extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14)),
+                child: subtitle != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(subtitle!,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: cs.onSurfaceVariant
+                                      .withValues(alpha: 0.7))),
+                        ],
+                      )
+                    : Text(title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14)),
               ),
               if (busy)
                 const SizedBox(

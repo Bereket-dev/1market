@@ -35,6 +35,9 @@ import 'recommendation_engine.dart';
 import 'supabase_repository.dart';
 import 'translation_service.dart';
 import 'cv_upload_service.dart';
+import 'image_prefetch_service.dart';
+import 'network_monitor.dart';
+import 'search_index_service.dart';
 
 part 'parts/app_state_profile.dart';
 part 'parts/app_state_init.dart';
@@ -267,6 +270,11 @@ class KoolanAppState extends ChangeNotifier {
   bool _fcmListenersAttached = false;
   StreamSubscription<String>? _fcmTokenRefreshSub;
 
+  // ── Data Saver (Phase 3) ──────────────────────────────────────────────────────
+  /// When true: thumbnails only, no background prefetch, longer sync interval,
+  /// chat media tap-to-load. Persisted across launches via LocalStorage.
+  bool dataSaverEnabled = false;
+
   // ── Filters ───────────────────────────────────────────────────────────────────
   String selectedCategory = 'ALL';
   String searchQuery = '';
@@ -339,6 +347,12 @@ class KoolanAppState extends ChangeNotifier {
 
   /// In-memory reviews cache keyed by userId.
   final Map<String, List<ServiceReview>> _userReviewsCache = {};
+
+  // ── Phase 3: local search index cache ─────────────────────────────────────────
+  // Holds the last async index query result so getFilteredListings() can use
+  // it synchronously inside build().  Reset when searchQuery changes.
+  Set<String>? searchIndexResults;
+  String lastIndexedQuery = '';
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
 

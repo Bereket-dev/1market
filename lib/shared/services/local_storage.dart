@@ -325,6 +325,23 @@ class LocalStorage {
     return _memoryStore[_notifPriceAlertsKey] as bool? ?? false;
   }
 
+  static const _dataSaverKey = 'koolan_data_saver_enabled';
+
+  static Future<void> saveDataSaverEnabled(bool value) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setBool(_dataSaverKey, value);
+    } else {
+      _memoryStore[_dataSaverKey] = value;
+    }
+  }
+
+  static Future<bool> getDataSaverEnabled() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) return prefs.getBool(_dataSaverKey) ?? false;
+    return _memoryStore[_dataSaverKey] as bool? ?? false;
+  }
+
   // ── Location CTA snooze ──────────────────────────────────────────────────────
   // Stores the UTC Unix-ms timestamp until which the location CTA is snoozed.
   // 0 (or absent) means "show immediately".

@@ -24,6 +24,13 @@ extension AppStateInit on KoolanAppState {
       notifMessagesEnabled = await app_local.LocalStorage.getNotifMessagesEnabled();
       notifPriceAlerts     = await app_local.LocalStorage.getNotifPriceAlerts();
 
+      // Restore Data Saver preference and propagate to ImagePrefetchService.
+      dataSaverEnabled = await app_local.LocalStorage.getDataSaverEnabled();
+      ImagePrefetchService.instance.dataSaverEnabled = dataSaverEnabled;
+
+      // Start NetworkMonitor so quality classification is ready before sync.
+      await NetworkMonitor.instance.initialize();
+
       // Wait for Supabase to confirm the auth state (initialSession event).
       await _sessionReadyCompleter.future.timeout(
         const Duration(seconds: 5),

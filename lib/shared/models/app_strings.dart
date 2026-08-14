@@ -1615,4 +1615,44 @@ class AppStrings {
   String get reportMenuLabel =>
       _t('Report', 'ሪፖርት አድርግ', 'Warbixin');
 
+  // ── Phase 3: Data Saver ───────────────────────────────────────────────────
+
+  String get settingsDataSaverSection =>
+      _t('Data & Storage', 'ዳታ እና ማከማቻ', 'Xogta iyo kaydinta');
+
+  String get settingsDataSaver =>
+      _t('Data Saver', 'ዳታ ቆጣቢ', 'Badbaadiye xog');
+
+  String get settingsDataSaverSubtitle => _t(
+    'Use thumbnails only, skip background downloads',
+    'ትናንሽ ምስሎችን ብቻ ተጠቀም፣ ዳራ ላይ ያሉ ማውረዶችን ዝለል',
+    'Isticmaal sawirro yar oo keliya, ka bood soo dejinta gadaasha',
+  );
+
+  String get settingsDataSaverOn =>
+      _t('Data Saver is on', 'ዳታ ቆጣቢ ነቅቷል', 'Badbaadiyaha xogtu waa furan yahay');
+
+  String get settingsDataSaverOff =>
+      _t('Data Saver is off', 'ዳታ ቆጣቢ ጠፍቷል', 'Badbaadiyaha xogtu waa xidhan yahay');
+
+  // ── Phase 3: Sync issues (requires-attention entries) ────────────────────
+
+  String get settingsSyncIssuesSection =>
+      _t('Sync', 'ሲንክ', 'Waafajinta');
+
+  String settingsSyncIssuesBadge(int count) => _t(
+    '$count pending',
+    '$count በመጠባበቅ ላይ',
+    '$count sugaya',
+  );
+
+  String get settingsSyncIssuesTitle =>
+      _t('Sync issues', 'የሲንክ ችግሮች', 'Dhibaatooyin waafajinta');
+
+  String get settingsSyncIssuesSubtitle => _t(
+    'Some changes could not be uploaded. Tap to retry or discard.',
+    'አንዳንድ ለውጦች ሊስቀልቁ አልቻሉም። ለሙከራ ወይም ለሰርዛ ይጫኑ።',
+    'Qaar ka mid ah isbedelada lama soo gelicarin. Taabo si aad isku daydo ama tirtirto.',
+  );
+
 }

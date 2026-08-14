@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -638,7 +639,7 @@ class HiveSyncStore {
 
     final accessTimes = <String, int>{};
     for (final key in entries.keys) {
-      final metaKey = ' meta_$key';
+      final metaKey = 'meta_$key';
       final lastAccess = int.tryParse(_imageCacheBox.get(metaKey) ?? '') ?? 0;
       accessTimes[key as String] = lastAccess;
     }
@@ -660,7 +661,223 @@ class HiveSyncStore {
       if (value == null) continue;
       totalBytes -= value.length;
       await _imageCacheBox.delete(key);
-      await _imageCacheBox.delete(' meta_$key');
+      await _imageCacheBox.delete('meta_$key');
+    }
+  }
+
+  // ── Phase 3: Freshness TTLs ────────────────────────────────────────────────
+  //
+  // Keys in _metaBox:
+  //   sync_fetched_at_listings      → ISO-8601 of last successful entity fetch
+  //   sync_fetched_at_services      → same
+  //   sync_fetched_at_hiring_posts  → same
+
+  DateTime? getLastFetchedAt(String entity) {
+    final raw = _metaBox.get('sync_fetched_at_$entity');
+    if (raw == null) return null;
+    return DateTime.tryParse(raw)?.toUtc();
+  }
+
+  Future<void> setLastFetchedAt(String entity, DateTime ts) async {
+    await _ensureInitialized();
+    await _metaBox.put(
+        'sync_fetched_at_$entity', ts.toUtc().toIso8601String());
+  }
+
+  // ── Phase 3: Local search index box ───────────────────────────────────────
+  //
+  // Key:   token (lowercase word)
+  // Value: JSON-encoded List<String> of entity IDs containing that token.
+
+  Box<String>? _searchIndexBox;
+
+  Future<Box<String>> _getSearchIndexBox() async {
+    if (_searchIndexBox != null && _searchIndexBox!.isOpen) {
+      return _searchIndexBox!;
+    }
+    await _ensureInitialized();
+    _searchIndexBox = await Hive.openBox<String>('search_index_box');
+    return _searchIndexBox!;
+  }
+
+  Future<void> upsertSearchTokens(String entityId, List<String> tokens) async {
+    final box = await _getSearchIndexBox();
+    for (final token in tokens) {
+      final existing = box.get(token);
+      Set<String> ids;
+      if (existing == null) {
+        ids = {};
+      } else {
+        try {
+          ids = Set<String>.from(jsonDecode(existing) as List);
+        } catch (_) {
+          ids = {};
+        }
+      }
+      ids.add(entityId);
+      await box.put(token, jsonEncode(ids.toList()));
+    }
+  }
+
+  Future<void> removeSearchTokens(String entityId) async {
+    final box = await _getSearchIndexBox();
+    final keysToUpdate = <String>[];
+    for (final key in box.keys) {
+      final raw = box.get(key as String);
+      if (raw == null) continue;
+      try {
+        final ids = List<String>.from(jsonDecode(raw) as List);
+        if (ids.contains(entityId)) keysToUpdate.add(key);
+      } catch (_) {}
+    }
+    for (final key in keysToUpdate) {
+      final raw = box.get(key);
+      if (raw == null) continue;
+      try {
+        final ids = List<String>.from(jsonDecode(raw) as List)
+          ..remove(entityId);
+        if (ids.isEmpty) {
+          await box.delete(key);
+        } else {
+          await box.put(key, jsonEncode(ids));
+        }
+      } catch (_) {}
+    }
+  }
+
+  /// Returns the union of entity-ID sets for all [tokens] (OR search).
+  /// Empty token list → empty result.
+  Future<Set<String>> searchTokens(List<String> tokens) async {
+    if (tokens.isEmpty) return {};
+    final box = await _getSearchIndexBox();
+    final result = <String>{};
+    for (final token in tokens) {
+      final raw = box.get(token);
+      if (raw == null) continue;
+      try {
+        result.addAll(List<String>.from(jsonDecode(raw) as List));
+      } catch (_) {}
+    }
+    return result;
+  }
+
+  Future<void> clearSearchIndex() async {
+    final box = await _getSearchIndexBox();
+    await box.clear();
+  }
+
+  // ── Phase 3: Listings mirror eviction (max 500 rows / 50 MB metadata) ─────
+
+  static const int kMaxListingsMirrorCount = 500;
+  static const int kMaxListingsMirrorBytes = 50 * 1024 * 1024; // 50 MB
+
+  /// Enforces the row-count and byte-size caps on the listings mirror.
+  /// Oldest entries (by key insertion order) are evicted first.
+  Future<void> enforceListingsMirrorCap() async {
+    await _ensureInitialized();
+
+    int totalBytes = 0;
+    for (final v in _listingsMirrorBox.values) {
+      totalBytes += v.length;
+    }
+    final count = _listingsMirrorBox.length;
+
+    if (count <= kMaxListingsMirrorCount &&
+        totalBytes <= kMaxListingsMirrorBytes) {
+      return;
+    }
+
+    final keys = _listingsMirrorBox.keys.cast<String>().toList();
+    int idx = 0;
+    while ((keys.length - idx > kMaxListingsMirrorCount ||
+            totalBytes > kMaxListingsMirrorBytes) &&
+        idx < keys.length) {
+      final key = keys[idx];
+      final v = _listingsMirrorBox.get(key);
+      if (v != null) totalBytes -= v.length;
+      await _listingsMirrorBox.delete(key);
+      idx++;
+    }
+
+    if (idx > 0 && kDebugMode) {
+      debugPrint('[HiveSyncStore] evicted $idx listings from mirror '
+          '(now ${keys.length - idx} rows)');
+    }
+  }
+
+  // ── Phase 3: Services mirror eviction (max 300 rows / 30 MB metadata) ─────
+
+  static const int kMaxServicesMirrorCount = 300;
+  static const int kMaxServicesMirrorBytes = 30 * 1024 * 1024; // 30 MB
+
+  /// Enforces the row-count and byte-size caps on the services mirror.
+  Future<void> enforceServicesMirrorCap() async {
+    await _ensureInitialized();
+
+    int totalBytes = 0;
+    for (final v in _servicesMirrorBox.values) {
+      totalBytes += v.length;
+    }
+    final count = _servicesMirrorBox.length;
+
+    if (count <= kMaxServicesMirrorCount &&
+        totalBytes <= kMaxServicesMirrorBytes) {
+      return;
+    }
+
+    final keys = _servicesMirrorBox.keys.cast<String>().toList();
+    int idx = 0;
+    while ((keys.length - idx > kMaxServicesMirrorCount ||
+            totalBytes > kMaxServicesMirrorBytes) &&
+        idx < keys.length) {
+      final key = keys[idx];
+      final v = _servicesMirrorBox.get(key);
+      if (v != null) totalBytes -= v.length;
+      await _servicesMirrorBox.delete(key);
+      idx++;
+    }
+
+    if (idx > 0 && kDebugMode) {
+      debugPrint('[HiveSyncStore] evicted $idx services from mirror '
+          '(now ${keys.length - idx} rows)');
+    }
+  }
+
+  // ── Phase 3: Hiring posts mirror eviction (max 300 rows / 30 MB metadata) ─
+
+  static const int kMaxHiringPostsMirrorCount = 300;
+  static const int kMaxHiringPostsMirrorBytes = 30 * 1024 * 1024; // 30 MB
+
+  /// Enforces the row-count and byte-size caps on the hiring posts mirror.
+  Future<void> enforceHiringPostsMirrorCap() async {
+    await _ensureInitialized();
+
+    int totalBytes = 0;
+    for (final v in _hiringPostsMirrorBox.values) {
+      totalBytes += v.length;
+    }
+    final count = _hiringPostsMirrorBox.length;
+
+    if (count <= kMaxHiringPostsMirrorCount &&
+        totalBytes <= kMaxHiringPostsMirrorBytes) {
+      return;
+    }
+
+    final keys = _hiringPostsMirrorBox.keys.cast<String>().toList();
+    int idx = 0;
+    while ((keys.length - idx > kMaxHiringPostsMirrorCount ||
+            totalBytes > kMaxHiringPostsMirrorBytes) &&
+        idx < keys.length) {
+      final key = keys[idx];
+      final v = _hiringPostsMirrorBox.get(key);
+      if (v != null) totalBytes -= v.length;
+      await _hiringPostsMirrorBox.delete(key);
+      idx++;
+    }
+
+    if (idx > 0 && kDebugMode) {
+      debugPrint('[HiveSyncStore] evicted $idx hiring posts from mirror '
+          '(now ${keys.length - idx} rows)');
     }
   }
 }

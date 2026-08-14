@@ -242,7 +242,7 @@ class _ShellScaffoldState extends State<_ShellScaffold> {
     if (mounted) setState(() => _activeToastMessage = null);
   }
 
-  Future<void> _onRefresh() => widget.appState.loadAllData();
+  Future<void> _onRefresh() => widget.appState.loadAllData(forceRefresh: true);
 
   @override
   Widget build(BuildContext context) {

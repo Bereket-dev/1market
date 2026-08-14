@@ -57,7 +57,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 
   Future<void> _onRefresh() async {
-    await KoolanAppStateScope.of(context).loadAllData();
+    await KoolanAppStateScope.of(context).loadAllData(forceRefresh: true);
   }
 
   // ── Filter actions ────────────────────────────────────────────────────────
