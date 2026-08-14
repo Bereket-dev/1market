@@ -115,7 +115,11 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
         await PermissionService.requestLocationPermissionAndGetPosition();
 
     // Request notification permission (token stored later in _initPushNotifications).
-    await PermissionService.requestNotificationPermissionAndGetToken();
+    final token =
+        await PermissionService.requestNotificationPermissionAndGetToken();
+    if (token == null) {
+      await state.toggleNotifPush(false);
+    }
 
     if (!mounted) return;
     setState(() => _isRequesting = false);

@@ -77,6 +77,10 @@ extension AppStateInit on KoolanAppState {
 
       if (resolvedProfile != null) {
         profile = resolvedProfile;
+        notifMessagesEnabled = resolvedProfile.notifMessagesEnabled;
+        await app_local.LocalStorage.saveNotifMessagesEnabled(
+          resolvedProfile.notifMessagesEnabled,
+        );
         if (resolvedProfile.language != null) {
           locale = resolvedProfile.language!;
           await app_local.LocalStorage.saveLanguage(locale);
@@ -172,6 +176,10 @@ extension AppStateInit on KoolanAppState {
     profile = await _repo!.ensureProfile();
     if (profile != null) {
       await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+      notifMessagesEnabled = profile!.notifMessagesEnabled;
+      await app_local.LocalStorage.saveNotifMessagesEnabled(
+        profile!.notifMessagesEnabled,
+      );
     }
 
     final locallyDone = await app_local.LocalStorage.isOnboardingComplete();
@@ -208,6 +216,10 @@ extension AppStateInit on KoolanAppState {
       profile = await _repo!.ensureProfile();
       if (profile != null) {
         await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+        notifMessagesEnabled = profile!.notifMessagesEnabled;
+        await app_local.LocalStorage.saveNotifMessagesEnabled(
+          profile!.notifMessagesEnabled,
+        );
         if (profile!.language != null) {
           locale = profile!.language!;
           await app_local.LocalStorage.saveLanguage(locale);
@@ -360,67 +372,139 @@ extension AppStateInit on KoolanAppState {
     unawaited(_initPushNotifications());
   }
 
+  Future<void> _unregisterPushToken() async {
+    await PermissionService.disablePushOnDevice(
+      messagesEnabled: notifMessagesEnabled,
+    );
+    if (_repo != null) {
+      try {
+        await _repo!.updateProfile({
+          'fcm_token': null,
+          'notif_push_enabled': false,
+        });
+        if (kDebugMode) debugPrint('[FCM] Token cleared from Supabase profile');
+      } catch (e) {
+        if (kDebugMode) debugPrint('[FCM] clear token failed: $e');
+      }
+    }
+  }
+
+  Future<void> _registerPushToken() async {
+    if (!notifPushEnabled) return;
+
+    final token = await PermissionService.enablePushOnDevice(
+      messagesEnabled: notifMessagesEnabled,
+    );
+    if (token == null) {
+      notifPushEnabled = false;
+      await app_local.LocalStorage.saveNotifPushEnabled(false);
+      notifyListeners();
+      return;
+    }
+
+    if (_repo != null) {
+      try {
+        await _repo!.updateProfile({
+          'fcm_token': token,
+          'notif_push_enabled': true,
+        });
+        if (kDebugMode) debugPrint('[FCM] Token saved to Supabase profile');
+      } catch (e) {
+        if (kDebugMode) debugPrint('[FCM] save token failed: $e');
+      }
+    }
+  }
+
+  void _attachFcmListeners() {
+    if (_fcmListenersAttached) return;
+    _fcmListenersAttached = true;
+
+    _fcmTokenRefreshSub?.cancel();
+    _fcmTokenRefreshSub =
+        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      if (kDebugMode) debugPrint('[FCM] Token refreshed: $newToken');
+      if (!notifPushEnabled || _repo == null) return;
+      try {
+        await _repo!.updateProfile({'fcm_token': newToken});
+      } catch (e) {
+        if (kDebugMode) debugPrint('[FCM] token refresh save failed: $e');
+      }
+    });
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (kDebugMode) {
+        debugPrint('[FCM] Foreground message: ${message.messageId}');
+      }
+      if (!PermissionService.shouldDeliverPush(
+        message,
+        pushEnabled: notifPushEnabled,
+        messagesEnabled: notifMessagesEnabled,
+      )) {
+        return;
+      }
+      PermissionService.showForegroundNotification(
+        message,
+        messagesEnabled: notifMessagesEnabled,
+      );
+      if (_repo != null) {
+        _repo!.fetchNotifications().then((list) {
+          notifications = list;
+          notifyListeners();
+        }).catchError((e) {
+          if (kDebugMode) {
+            debugPrint(
+              '[FCM] fetchNotifications on foreground message failed: $e',
+            );
+          }
+        });
+      }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (kDebugMode) {
+        debugPrint('[FCM] Notification opened app: ${message.messageId}');
+      }
+      _navigateFromPushPayload(message.data);
+      if (_repo != null) {
+        _repo!.fetchNotifications().then((list) {
+          notifications = list;
+          notifyListeners();
+        }).catchError((e) {
+          if (kDebugMode) {
+            debugPrint('[FCM] fetchNotifications after tap failed: $e');
+          }
+        });
+      }
+    });
+  }
+
   Future<void> _initPushNotifications() async {
     try {
-      final token = await PermissionService
-          .requestNotificationPermissionAndGetToken();
-      if (token == null) return;
+      _attachFcmListeners();
 
-      // Persist token to Supabase profile so the Edge Function can target this device.
-      if (_repo != null) {
-        await _repo!.updateProfile({'fcm_token': token});
-        if (kDebugMode) debugPrint('[FCM] Token saved to Supabase profile');
+      if (!notifPushEnabled) {
+        await _unregisterPushToken();
+        return;
       }
 
-      // Keep token fresh — save new token whenever Firebase rotates it.
-      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-        if (kDebugMode) debugPrint('[FCM] Token refreshed: $newToken');
-        if (_repo != null) {
-          await _repo!.updateProfile({'fcm_token': newToken});
-        }
-      });
-
-      // Show foreground messages as local heads-up notifications and refresh
-      // the in-app notification list.
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        if (kDebugMode) debugPrint('[FCM] Foreground message: ${message.messageId}');
-        PermissionService.showForegroundNotification(message);
-        if (_repo != null) {
-          _repo!.fetchNotifications().then((list) {
-            notifications = list;
-            notifyListeners();
-          }).catchError((e) {
-            if (kDebugMode) debugPrint('[FCM] fetchNotifications on foreground message failed: $e');
-          });
-        }
-      });
-
-      // Deep-link when user taps a push while the app is in background.
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        if (kDebugMode) debugPrint('[FCM] Notification opened app: ${message.messageId}');
-        _navigateFromPushPayload(message.data);
-        if (_repo != null) {
-          _repo!.fetchNotifications().then((list) {
-            notifications = list;
-            notifyListeners();
-          }).catchError((e) {
-            if (kDebugMode) debugPrint('[FCM] fetchNotifications after tap failed: $e');
-          });
-        }
-      });
+      await _registerPushToken();
 
       // Also handle the case where the app was fully terminated and launched
       // via a notification tap.
       final initial = await FirebaseMessaging.instance.getInitialMessage();
       if (initial != null) {
-        if (kDebugMode) debugPrint('[FCM] App launched from notification: ${initial.messageId}');
+        if (kDebugMode) {
+          debugPrint('[FCM] App launched from notification: ${initial.messageId}');
+        }
         _navigateFromPushPayload(initial.data);
         if (_repo != null) {
           try {
             notifications = await _repo!.fetchNotifications();
             notifyListeners();
           } catch (e) {
-            if (kDebugMode) debugPrint('[FCM] fetchNotifications on launch failed: $e');
+            if (kDebugMode) {
+              debugPrint('[FCM] fetchNotifications on launch failed: $e');
+            }
           }
         }
       }

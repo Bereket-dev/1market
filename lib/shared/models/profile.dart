@@ -14,6 +14,8 @@ class UserProfile with SyncableEntity {
   final bool onboardingComplete;
   final double rating;
   final int reviewsCount;
+  final bool notifPushEnabled;
+  final bool notifMessagesEnabled;
   @override
   final DateTime localUpdatedAt;
   @override
@@ -36,6 +38,8 @@ class UserProfile with SyncableEntity {
     this.onboardingComplete = false,
     this.rating = 5.0,
     this.reviewsCount = 0,
+    this.notifPushEnabled = true,
+    this.notifMessagesEnabled = true,
     DateTime? localUpdatedAt,
     this.remoteUpdatedAt,
     this.syncStatus = SyncStatus.synced,
@@ -56,6 +60,8 @@ class UserProfile with SyncableEntity {
       onboardingComplete: json['onboarding_complete'] as bool? ?? false,
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewsCount: json['reviews_count'] as int? ?? 0,
+      notifPushEnabled: json['notif_push_enabled'] as bool? ?? true,
+      notifMessagesEnabled: json['notif_messages_enabled'] as bool? ?? true,
       localUpdatedAt: updatedAt ?? DateTime.now(),
       remoteUpdatedAt: updatedAt,
       syncStatus: SyncStatus.synced,
@@ -75,6 +81,8 @@ class UserProfile with SyncableEntity {
     'onboarding_complete': onboardingComplete,
     'rating': rating,
     'reviews_count': reviewsCount,
+    'notif_push_enabled': notifPushEnabled,
+    'notif_messages_enabled': notifMessagesEnabled,
   };
 
   UserProfile copyWith({
@@ -89,6 +97,8 @@ class UserProfile with SyncableEntity {
     bool? onboardingComplete,
     double? rating,
     int? reviewsCount,
+    bool? notifPushEnabled,
+    bool? notifMessagesEnabled,
     SyncStatus? syncStatus,
     DateTime? localUpdatedAt,
   }) {
@@ -105,6 +115,8 @@ class UserProfile with SyncableEntity {
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       rating: rating ?? this.rating,
       reviewsCount: reviewsCount ?? this.reviewsCount,
+      notifPushEnabled: notifPushEnabled ?? this.notifPushEnabled,
+      notifMessagesEnabled: notifMessagesEnabled ?? this.notifMessagesEnabled,
       syncStatus: syncStatus ?? this.syncStatus,
       localUpdatedAt: localUpdatedAt ?? this.localUpdatedAt,
       remoteUpdatedAt: remoteUpdatedAt,

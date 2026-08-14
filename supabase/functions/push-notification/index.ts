@@ -10,7 +10,7 @@
 //   FIREBASE_PRIVATE_KEY     — the private_key value (with \n as literal newlines)
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { create, getNumericDate } from 'npm:djwt@2.8';
+import { SignJWT, importPKCS8 } from 'npm:jose@5';
 
 // ── Environment ───────────────────────────────────────────────────────────────
 
@@ -26,35 +26,17 @@ const FCM_ENDPOINT = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messa
 // ── JWT helper (Google OAuth2 access token) ───────────────────────────────────
 
 async function getAccessToken(): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
+  const privateKey = await importPKCS8(PRIVATE_KEY, 'RS256');
 
-  // Import the PEM private key.
-  const keyData = PRIVATE_KEY
-    .replace('-----BEGIN PRIVATE KEY-----', '')
-    .replace('-----END PRIVATE KEY-----', '')
-    .replace(/\s/g, '');
-
-  const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    binaryKey,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-
-  const jwt = await create(
-    { alg: 'RS256', typ: 'JWT' },
-    {
-      iss: CLIENT_EMAIL,
-      scope: 'https://www.googleapis.com/auth/firebase.messaging',
-      aud: 'https://oauth2.googleapis.com/token',
-      exp: getNumericDate(3600),
-      iat: getNumericDate(0),
-    },
-    cryptoKey,
-  );
+  const jwt = await new SignJWT({
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+  })
+    .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+    .setIssuer(CLIENT_EMAIL)
+    .setAudience('https://oauth2.googleapis.com/token')
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(privateKey);
 
   const resp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -81,7 +63,13 @@ async function sendPush(
   data: Record<string, string>,
   accessToken: string,
   imageUrl?: string,
+  notificationType?: string,
 ): Promise<SendResult> {
+  const channelId =
+    notificationType === 'new_message'
+      ? 'koolan_messages_channel'
+      : 'koolan_channel';
+
   const payload = {
     message: {
       token,
@@ -96,7 +84,7 @@ async function sendPush(
       android: {
         priority: 'high',
         notification: {
-          channel_id: 'koolan_channel',
+          channel_id: channelId,
           sound: 'default',
           default_vibrate_timings: true,
           // Android also needs the image here for the expanded notification.
@@ -152,6 +140,7 @@ Deno.serve(async (req) => {
       record: {
         id: string;
         user_id: string;
+        type: string;
         title: string;
         body: string;
         payload: Record<string, unknown>;
@@ -166,7 +155,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('fcm_token')
+      .select('fcm_token, notif_push_enabled, notif_messages_enabled')
       .eq('id', record.user_id)
       .maybeSingle();
 
@@ -176,12 +165,26 @@ Deno.serve(async (req) => {
       return new Response('no token', { status: 200 });
     }
 
+    if (profile.notif_push_enabled === false) {
+      console.log(`[push] Push disabled for user ${record.user_id} — skipping`);
+      return new Response('push disabled', { status: 200 });
+    }
+
+    if (
+      record.type === 'new_message' &&
+      profile.notif_messages_enabled === false
+    ) {
+      console.log(`[push] Message push disabled for user ${record.user_id} — skipping`);
+      return new Response('messages disabled', { status: 200 });
+    }
+
     // Stringify all payload values (FCM data must be string→string).
     const data: Record<string, string> = {};
     for (const [k, v] of Object.entries(record.payload ?? {})) {
       data[k] = String(v);
     }
     data['notification_id'] = record.id;
+    data['type'] = record.type;
 
     // Extract image URL from payload for rich push display.
     // Treat empty string as missing (nearby trigger stores '' when no photo).
@@ -199,6 +202,7 @@ Deno.serve(async (req) => {
       data,
       accessToken,
       imageUrl,
+      record.type,
     );
 
     // Drop dead tokens so the next device login can claim a fresh one and

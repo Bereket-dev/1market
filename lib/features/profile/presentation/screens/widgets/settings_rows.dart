@@ -107,40 +107,54 @@ class _SettingsToggleRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final bool busy;
+  final bool enabled;
+  final ValueChanged<bool>? onChanged;
 
   const _SettingsToggleRow({
     required this.icon,
     required this.title,
     required this.value,
-    required this.onChanged,
+    this.busy = false,
+    this.enabled = true,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Card(
-      margin: EdgeInsets.zero,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: cs.primary.withValues(alpha: 0.1),
-              child: Icon(icon, color: cs.primary, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14)),
-            ),
-            Switch(value: value, onChanged: onChanged),
-          ],
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: Card(
+        margin: EdgeInsets.zero,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: cs.primary.withValues(alpha: 0.1),
+                child: Icon(icon, color: cs.primary, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+              if (busy)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Switch(value: value, onChanged: enabled ? onChanged : null),
+            ],
+          ),
         ),
       ),
     );

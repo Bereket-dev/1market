@@ -44,6 +44,12 @@ part 'parts/app_state_chat.dart';
 part 'parts/app_state_wizard.dart';
 part 'parts/app_state_auth.dart';
 
+enum NotifPushToggleResult {
+  enabled,
+  disabled,
+  permissionDenied,
+}
+
 enum OnboardingPhase {
   initializing,
   auth,
@@ -243,6 +249,8 @@ class KoolanAppState extends ChangeNotifier {
   bool notifPushEnabled    = true;
   bool notifMessagesEnabled = true;
   bool notifPriceAlerts    = false;
+  bool _fcmListenersAttached = false;
+  StreamSubscription<String>? _fcmTokenRefreshSub;
 
   // ── Filters ───────────────────────────────────────────────────────────────────
   String selectedCategory = 'ALL';
@@ -321,6 +329,7 @@ class KoolanAppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    unawaited(_fcmTokenRefreshSub?.cancel());
     syncService.dispose();
     super.dispose();
   }

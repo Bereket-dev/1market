@@ -14,8 +14,103 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
   bool _isSigningOut = false;
+  bool _pushToggleBusy = false;
+  bool _messagesToggleBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context
+          .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+          .notifier!
+          .refreshNotificationPermissionState();
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context
+          .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+          .notifier!
+          .refreshNotificationPermissionState()
+          .then((_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  Future<void> _onPushToggle(bool value, KoolanAppState appState) async {
+    if (_pushToggleBusy) return;
+    setState(() => _pushToggleBusy = true);
+    try {
+      if (!value) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(appState.s.settingsPushDisableTitle),
+            content: Text(appState.s.settingsPushDisableBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(appState.s.commonCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(appState.s.settingsOpenNotificationSettings),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+      }
+
+      final result = await appState.toggleNotifPush(value);
+      if (!mounted) return;
+
+      switch (result) {
+        case NotifPushToggleResult.permissionDenied:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(appState.s.settingsPushPermissionDenied),
+              action: SnackBarAction(
+                label: appState.s.settingsOpenNotificationSettings,
+                onPressed: appState.openNotificationSettings,
+              ),
+            ),
+          );
+        case NotifPushToggleResult.disabled:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(appState.s.settingsPushDisabledHint)),
+          );
+        case NotifPushToggleResult.enabled:
+          break;
+      }
+    } finally {
+      if (mounted) setState(() => _pushToggleBusy = false);
+    }
+  }
+
+  Future<void> _onMessagesToggle(bool value, KoolanAppState appState) async {
+    if (_messagesToggleBusy) return;
+    setState(() => _messagesToggleBusy = true);
+    try {
+      await appState.toggleNotifMessages(value);
+    } finally {
+      if (mounted) setState(() => _messagesToggleBusy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +225,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.notifications_outlined,
             title: s.settingsPushEnabled,
             value: appState.notifPushEnabled,
-            onChanged: appState.toggleNotifPush,
+            busy: _pushToggleBusy,
+            onChanged: _pushToggleBusy ? null : (v) => _onPushToggle(v, appState),
           ),
           const SizedBox(height: 8),
 
@@ -138,7 +234,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.chat_bubble_outline,
             title: s.settingsNewMessages,
             value: appState.notifMessagesEnabled,
-            onChanged: appState.toggleNotifMessages,
+            busy: _messagesToggleBusy,
+            enabled: appState.notifPushEnabled,
+            onChanged: !appState.notifPushEnabled || _messagesToggleBusy
+                ? null
+                : (v) => _onMessagesToggle(v, appState),
           ),
           const SizedBox(height: 32),
 

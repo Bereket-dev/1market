@@ -561,6 +561,31 @@ class AppStrings {
       _t('Push Notifications', 'ፑሽ ማሳወቂያዎች', 'Ogeysiisyada push');
   String get settingsNewMessages =>
       _t('New Messages', 'አዲስ መልዕክቶች', 'Farriimaha cusub');
+  String get settingsPushPermissionDenied => _t(
+    'Notification permission was denied. Enable notifications in your device settings to receive alerts.',
+    'የማሳወቂያ ፈቃድ ተከልክሏል። ማሳወቂያዎችን ለመቀበል በመሣሪያዎ ቅንብሮች ውስጥ ያንቁ።',
+    'Ogolaanshaha ogeysiiska waa la diiday. Ku dhex fur dejinta telefoonka si aad u hesho ogeysiisyada.',
+  );
+  String get settingsPushDisableTitle => _t(
+    'Turn off notifications?',
+    'ማሳወቂያዎችን ማጥፋት ይፈልጋሉ?',
+    'Dami ogeysiisyada?',
+  );
+  String get settingsPushDisableBody => _t(
+    'Android and iPhone do not let apps revoke notification permission automatically. We will open your device notification settings so you can turn them off there.',
+    'Android እና iPhone ማሳወቂያ ፈቃድን በራስ-ሰር ለመሰረዝ አይፈቅዱም። ማሳወቂያዎችን ለመכבות የመሣሪያዎን የማሳወቂያ ቅንብሮች እናስከፍተዎታለን።',
+    'Android iyo iPhone ma ogolaan in app-ku si toos ah u damiyo ogeysiiska. Waxaan kuu furi doonaa dejinta ogeysiiska telefoonka si aad halkaas uga damiso.',
+  );
+  String get settingsPushDisabledHint => _t(
+    'Push delivery stopped in Koolan. Turn notifications off in the screen that just opened to fully disable them on this device.',
+    'የፑሽ ማድረስ በ Koolan ቆሟል። በዚህ መሣሪያ ላይ ሙሉ በሙሉ ለመכבות የተከፈተውን የማሳወቂያ ቅንብር ያጥፉ።',
+    'Gaarsiinta push-ka Koolan waa istaagtay. Ku dami ogeysiiska shaashadda hadda la furay si aad si buuxda u damiso telefoonkan.',
+  );
+  String get settingsOpenNotificationSettings => _t(
+    'Open settings',
+    'ቅንብሮችን ክፈት',
+    'Fur dejinta',
+  );
   String get settingsPriceAlerts =>
       _t('Price Alerts', 'የዋጋ ማስጠንቀቂያዎች', 'Digniin qiimeed');
   String get settingsTheme => _t('Theme', 'ገጽታ', 'Muuqaalka');

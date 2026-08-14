@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -153,6 +155,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
         debugPrint('[KoolanApp] App foregrounded — triggering sync');
       }
       _appState.syncService.requestSync();
+      unawaited(_appState.refreshNotificationPermissionState());
     }
   }
 

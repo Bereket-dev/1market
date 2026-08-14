@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Handles all device-level permission requests and hardware data fetches:
 /// - FCM push notification permission + token retrieval
@@ -20,6 +22,15 @@ class PermissionService {
   static const _kChannelId = 'koolan_channel';
   static const _kChannelName = 'Koolan Notifications';
   static const _kChannelDesc = 'Marketplace updates, messages, and alerts';
+  static const _kMessagesChannelId = 'koolan_messages_channel';
+  static const _kMessagesChannelName = 'New Messages';
+  static const _kMessagesChannelDesc = 'Chat and direct message alerts';
+
+  static AndroidFlutterLocalNotificationsPlugin? get _androidPlugin =>
+      Platform.isAndroid
+          ? localNotifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          : null;
 
   /// The [FlutterLocalNotificationsPlugin] singleton initialised in main().
   static final FlutterLocalNotificationsPlugin localNotifications =
@@ -44,22 +55,44 @@ class PermissionService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
-    // Create the Android high-importance channel.
+    // Create the Android notification channels.
     if (Platform.isAndroid) {
-      await localNotifications
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(
-            const AndroidNotificationChannel(
-              _kChannelId,
-              _kChannelName,
-              description: _kChannelDesc,
-              importance: Importance.high,
-              playSound: true,
-              enableVibration: true,
-            ),
-          );
+      await _ensureAndroidChannel(
+        id: _kChannelId,
+        name: _kChannelName,
+        description: _kChannelDesc,
+        enabled: true,
+      );
+      await _ensureAndroidChannel(
+        id: _kMessagesChannelId,
+        name: _kMessagesChannelName,
+        description: _kMessagesChannelDesc,
+        enabled: true,
+      );
     }
+  }
+
+  static Future<void> _ensureAndroidChannel({
+    required String id,
+    required String name,
+    required String description,
+    required bool enabled,
+  }) async {
+    final plugin = _androidPlugin;
+    if (plugin == null) return;
+
+    // Channels are immutable for importance — delete and recreate to toggle.
+    await plugin.deleteNotificationChannel(id);
+    await plugin.createNotificationChannel(
+      AndroidNotificationChannel(
+        id,
+        name,
+        description: description,
+        importance: enabled ? Importance.high : Importance.none,
+        playSound: enabled,
+        enableVibration: enabled,
+      ),
+    );
   }
 
   static void _onNotificationTapped(NotificationResponse response) {
@@ -69,37 +102,134 @@ class PermissionService {
 
   // ── FCM setup ──────────────────────────────────────────────────────────────
 
-  /// Requests notification permission (Android 13+ / iOS) and returns the
-  /// FCM device token, or null if permission was denied or an error occurred.
-  static Future<String?> requestNotificationPermissionAndGetToken() async {
+  /// Opens this app's notification page in system Settings.
+  static Future<void> openNotificationSettings() async {
     try {
-      final messaging = FirebaseMessaging.instance;
+      await AppSettings.openAppSettings(type: AppSettingsType.notification);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[PermissionService] openNotificationSettings error: $e');
+      }
+      await openAppSettings();
+    }
+  }
 
-      final settings = await messaging.requestPermission(
+  /// Returns whether the OS currently allows notifications for this app.
+  static Future<bool> isNotificationPermissionGranted() async {
+    try {
+      if (Platform.isAndroid) {
+        final plugin = _androidPlugin;
+        final enabled = await plugin?.areNotificationsEnabled();
+        if (enabled != null) return enabled;
+
+        final status = await Permission.notification.status;
+        return status.isGranted;
+      }
+
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[PermissionService] notification permission check error: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Requests OS notification permission. Returns true when granted.
+  static Future<bool> requestOsNotificationPermission() async {
+    try {
+      if (Platform.isAndroid) {
+        final plugin = _androidPlugin;
+        if (plugin != null) {
+          final granted = await plugin.requestNotificationsPermission();
+          if (granted != null) return granted;
+        }
+
+        final status = await Permission.notification.request();
+        return status.isGranted;
+      }
+
+      final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
         provisional: false,
       );
-
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (e) {
       if (kDebugMode) {
-        debugPrint(
-          '[PermissionService] Notification auth status: ${settings.authorizationStatus}',
-        );
+        debugPrint('[PermissionService] requestOsNotificationPermission error: $e');
       }
+      return false;
+    }
+  }
 
-      if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        return null;
-      }
+  /// Enables or disables Android delivery channels (master + messages).
+  static Future<void> setAndroidChannelsEnabled({
+    required bool pushEnabled,
+    required bool messagesEnabled,
+  }) async {
+    if (!Platform.isAndroid) return;
+    await _ensureAndroidChannel(
+      id: _kChannelId,
+      name: _kChannelName,
+      description: _kChannelDesc,
+      enabled: pushEnabled,
+    );
+    await _ensureAndroidChannel(
+      id: _kMessagesChannelId,
+      name: _kMessagesChannelName,
+      description: _kMessagesChannelDesc,
+      enabled: pushEnabled && messagesEnabled,
+    );
+  }
 
-      // Foreground messages on iOS need explicit opt-in.
-      await messaging.setForegroundNotificationPresentationOptions(
+  /// Stops receiving remote pushes on this device and suppresses foreground alerts.
+  static Future<void> disablePushOnDevice({
+    required bool messagesEnabled,
+  }) async {
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(false);
+      await FirebaseMessaging.instance.deleteToken();
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: false,
+        badge: false,
+        sound: false,
+      );
+      await setAndroidChannelsEnabled(pushEnabled: false, messagesEnabled: false);
+      await localNotifications.cancelAll();
+      if (kDebugMode) debugPrint('[PermissionService] Push disabled on device');
+    } catch (e) {
+      if (kDebugMode) debugPrint('[PermissionService] disablePushOnDevice error: $e');
+    }
+  }
+
+  /// Re-enables FCM and requests OS permission. Returns a token when granted.
+  static Future<String?> enablePushOnDevice({
+    required bool messagesEnabled,
+  }) async {
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
+
+      final granted = await requestOsNotificationPermission();
+      if (!granted) return null;
+
+      await setAndroidChannelsEnabled(
+        pushEnabled: true,
+        messagesEnabled: messagesEnabled,
+      );
+
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
         sound: true,
       );
 
-      final token = await messaging.getToken();
+      final token = await FirebaseMessaging.instance.getToken();
       if (kDebugMode) {
         debugPrint(
           '[PermissionService] FCM token ${token == null ? "missing" : "obtained"}',
@@ -107,9 +237,43 @@ class PermissionService {
       }
       return token;
     } catch (e) {
-      if (kDebugMode) debugPrint('[PermissionService] FCM permission/token error: $e');
+      if (kDebugMode) debugPrint('[PermissionService] enablePushOnDevice error: $e');
       return null;
     }
+  }
+
+  /// Toggles only the messages channel on Android (iOS uses server-side filter).
+  static Future<void> setMessageNotificationsEnabled(bool enabled) async {
+    if (!Platform.isAndroid) return;
+    final pushGranted = await isNotificationPermissionGranted();
+    await _ensureAndroidChannel(
+      id: _kMessagesChannelId,
+      name: _kMessagesChannelName,
+      description: _kMessagesChannelDesc,
+      enabled: pushGranted && enabled,
+    );
+  }
+
+  /// Whether an incoming FCM message should be surfaced on this device.
+  static bool shouldDeliverPush(
+    RemoteMessage message, {
+    required bool pushEnabled,
+    required bool messagesEnabled,
+  }) {
+    if (!pushEnabled) return false;
+
+    final type = message.data['type'] as String?;
+    final screen = message.data['screen'] as String?;
+    final isMessage = type == 'new_message' || screen == 'chat';
+    if (isMessage && !messagesEnabled) return false;
+
+    return true;
+  }
+
+  /// Requests notification permission (Android 13+ / iOS) and returns the
+  /// FCM device token, or null if permission was denied or an error occurred.
+  static Future<String?> requestNotificationPermissionAndGetToken() async {
+    return enablePushOnDevice(messagesEnabled: true);
   }
 
   /// Shows an FCM message as a local notification while the app is foregrounded.
@@ -117,13 +281,25 @@ class PermissionService {
   ///
   /// Falls back to [message.data] fields when the FCM message has no
   /// [notification] payload (data-only messages sent from the Edge Function).
-  static Future<void> showForegroundNotification(RemoteMessage message) async {
+  static Future<void> showForegroundNotification(
+    RemoteMessage message, {
+    required bool messagesEnabled,
+  }) async {
     // Prefer the notification payload; fall back to data fields.
     final title = message.notification?.title ?? message.data['title'] as String?;
     final body  = message.notification?.body  ?? message.data['body']  as String?;
 
     // Nothing to show if we have no title and no body.
     if (title == null && body == null) return;
+
+    final type = message.data['type'] as String?;
+    final screen = message.data['screen'] as String?;
+    final isMessage = type == 'new_message' || screen == 'chat';
+    final channelId = isMessage ? _kMessagesChannelId : _kChannelId;
+    final channelName = isMessage ? _kMessagesChannelName : _kChannelName;
+    final channelDesc = isMessage ? _kMessagesChannelDesc : _kChannelDesc;
+
+    if (isMessage && !messagesEnabled) return;
 
     // Prefer FCM's native image URL, then the data payload used by the
     // Edge Function (listing photo).
@@ -156,9 +332,9 @@ class PermissionService {
     }
 
     final androidDetails = AndroidNotificationDetails(
-      _kChannelId,
-      _kChannelName,
-      channelDescription: _kChannelDesc,
+      channelId,
+      channelName,
+      channelDescription: channelDesc,
       importance: Importance.high,
       priority: Priority.high,
       playSound: true,

@@ -297,17 +297,93 @@ extension AppStateProfile on KoolanAppState {
 
   // ── Notification preferences ──────────────────────────────────────────────────
 
-  void toggleNotifPush(bool value) {
-    notifPushEnabled = value;
-    app_local.LocalStorage.saveNotifPushEnabled(value);
-    notifyListeners();
+  /// Reconcile app prefs with OS permission (e.g. after returning from Settings).
+  Future<void> refreshNotificationPermissionState() async {
+    final osGranted = await PermissionService.isNotificationPermissionGranted();
+
+    if (!osGranted) {
+      if (notifPushEnabled) {
+        notifPushEnabled = false;
+        await app_local.LocalStorage.saveNotifPushEnabled(false);
+      }
+      await _unregisterPushToken();
+      notifyListeners();
+      return;
+    }
+
+    if (notifPushEnabled) {
+      await PermissionService.setAndroidChannelsEnabled(
+        pushEnabled: true,
+        messagesEnabled: notifMessagesEnabled,
+      );
+      await _registerPushToken();
+    } else {
+      await PermissionService.setMessageNotificationsEnabled(
+        notifMessagesEnabled,
+      );
+    }
   }
 
-  void toggleNotifMessages(bool value) {
-    notifMessagesEnabled = value;
-    app_local.LocalStorage.saveNotifMessagesEnabled(value);
+  /// Returns [NotifPushToggleResult.permissionDenied] when the OS blocks alerts.
+  /// When disabling, opens the system notification settings screen.
+  Future<NotifPushToggleResult> toggleNotifPush(bool value) async {
+    if (value) {
+      final token = await PermissionService.enablePushOnDevice(
+        messagesEnabled: notifMessagesEnabled,
+      );
+      if (token == null) {
+        notifPushEnabled = false;
+        await app_local.LocalStorage.saveNotifPushEnabled(false);
+        notifyListeners();
+        return NotifPushToggleResult.permissionDenied;
+      }
+
+      notifPushEnabled = true;
+      await app_local.LocalStorage.saveNotifPushEnabled(true);
+      notifyListeners();
+
+      if (_repo != null) {
+        try {
+          await _repo!.updateProfile({
+            'fcm_token': token,
+            'notif_push_enabled': true,
+          });
+        } catch (e) {
+          if (kDebugMode) debugPrint('[FCM] save token on enable failed: $e');
+        }
+      }
+      return NotifPushToggleResult.enabled;
+    }
+
+    notifPushEnabled = false;
+    await app_local.LocalStorage.saveNotifPushEnabled(false);
     notifyListeners();
+    await _unregisterPushToken();
+    await PermissionService.openNotificationSettings();
+    return NotifPushToggleResult.disabled;
   }
+
+  Future<void> toggleNotifMessages(bool value) async {
+    notifMessagesEnabled = value;
+    await app_local.LocalStorage.saveNotifMessagesEnabled(value);
+    profile = profile?.copyWith(notifMessagesEnabled: value);
+    notifyListeners();
+
+    await PermissionService.setMessageNotificationsEnabled(value);
+
+    if (_repo != null) {
+      try {
+        await _repo!.updateProfile({'notif_messages_enabled': value});
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[FCM] save notif_messages_enabled failed: $e');
+        }
+      }
+    }
+  }
+
+  Future<void> openNotificationSettings() =>
+      PermissionService.openNotificationSettings();
 
   void toggleNotifPriceAlerts(bool value) {
     notifPriceAlerts = value;
