@@ -79,8 +79,6 @@ class AppStrings {
       _t('Phone number is required', 'ስልክ ቁጥር ያስፈልጋል', 'Lambarka telefoonka waa lagama maarmaan');
   String get wizardPhonePromptSave =>
       _t('Save & Continue', 'አስቀምጥ እና ቀጥል', 'Keydi oo sii wad');
-  String get wizardPhonePromptSkip =>
-      _t('Skip for now', 'አሁን ዝለል', 'Hadda ka bood');
 
   // ── Profile setup (OAuth users missing name/phone) ────────────────────────
   String get profileSetupTitle =>

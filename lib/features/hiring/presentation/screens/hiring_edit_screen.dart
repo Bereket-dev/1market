@@ -180,8 +180,11 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
+            // Use ctx — not the outer context — so the colorScheme lookup
+            // stays within the dialog's own element and doesn't touch a
+            // screen element that may already be deactivated.
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
             child: Text(s.hiringDeleteConfirmButton),
           ),
