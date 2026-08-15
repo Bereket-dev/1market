@@ -44,7 +44,8 @@ create index if not exists idx_marketplace_changes_entity
 -- Row-Level Security: allow anon/authed reads; only triggers write.
 alter table public.marketplace_changes enable row level security;
 
-create policy if not exists "marketplace_changes_read"
+drop policy if exists "marketplace_changes_read" on public.marketplace_changes;
+create policy "marketplace_changes_read"
   on public.marketplace_changes
   for select
   using (true);
