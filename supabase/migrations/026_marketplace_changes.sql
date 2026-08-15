@@ -137,53 +137,51 @@ create or replace function public.get_changes_since(
   row_limit     int default 500
 )
 returns jsonb
-language plpgsql
-security definer
+language sql
 stable
+security definer
 set search_path = public
 as $$
-declare
-  v_changes jsonb;
-begin
-  select jsonb_agg(
-    jsonb_build_object(
-      'version',      mc.version,
-      'entity_type',  mc.entity_type,
-      'entity_id',    mc.entity_id,
-      'operation',    mc.operation,
-      'changed_at',   mc.changed_at,
-      'payload',      case mc.entity_type
-        when 'listing' then (
-          select row_to_json(l)::jsonb
-          from public.listings l
-          where l.id = mc.entity_id
-          limit 1
-        )
-        when 'service' then (
-          select row_to_json(s)::jsonb
-          from public.services s
-          where s.id = mc.entity_id
-          limit 1
-        )
-        when 'hiring_post' then (
-          select row_to_json(h)::jsonb
-          from public.hiring_posts h
-          where h.id = mc.entity_id
-          limit 1
-        )
-        else null
-      end
-    )
-    order by mc.version asc
+  select coalesce(
+    jsonb_agg(change_row order by version asc),
+    '[]'::jsonb
   )
-  into v_changes
-  from public.marketplace_changes mc
-  where mc.version > since_version
-  order by mc.version asc
-  limit row_limit;
-
-  return coalesce(v_changes, '[]'::jsonb);
-end;
+  from (
+    select
+      mc.version,
+      jsonb_build_object(
+        'version',     mc.version,
+        'entity_type', mc.entity_type,
+        'entity_id',   mc.entity_id,
+        'operation',   mc.operation,
+        'changed_at',  mc.changed_at,
+        'payload',     case mc.entity_type
+          when 'listing' then (
+            select row_to_json(l)::jsonb
+            from public.listings l
+            where l.id = mc.entity_id
+            limit 1
+          )
+          when 'service' then (
+            select row_to_json(s)::jsonb
+            from public.services s
+            where s.id = mc.entity_id
+            limit 1
+          )
+          when 'hiring_post' then (
+            select row_to_json(h)::jsonb
+            from public.hiring_posts h
+            where h.id = mc.entity_id
+            limit 1
+          )
+          else null
+        end
+      ) as change_row
+    from public.marketplace_changes mc
+    where mc.version > since_version
+    order by mc.version asc
+    limit greatest(row_limit, 1)
+  ) capped;
 $$;
 
 -- Grant execute to anon and authenticated roles.
