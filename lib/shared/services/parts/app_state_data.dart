@@ -446,14 +446,10 @@ extension AppStateData on KoolanAppState {
   // Messages tab.
 
   Future<void> loadChatOnTabEntry() async {
-    // Already loaded this session — nothing to do.
-    if (chatSessions.isNotEmpty) return;
-    final repo = _repo;
-    if (repo == null) return;
+    // Always refresh so unread badges stay current when returning to Messages.
+    if (_repo == null) return;
     try {
-      final raw = await repo.fetchChatSessions();
-      chatSessions = await _enrichChatSessions(raw);
-      notifyListeners();
+      await refreshChatSessions();
     } catch (e) {
       if (kDebugMode) debugPrint('[loadChatOnTabEntry] failed: $e');
     }

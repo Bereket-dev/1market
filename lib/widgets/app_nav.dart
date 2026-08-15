@@ -168,6 +168,9 @@ class _BottomNavBar extends StatelessWidget {
           }
 
           final selected = _isSelected(current, tab.route);
+          final isMessages = tab.route is MessagesScreenRoute;
+          final unreadChats =
+              isMessages ? appState.totalUnreadChatCount : 0;
           return Expanded(
             child: InkWell(
               onTap: () {
@@ -191,13 +194,25 @@ class _BottomNavBar extends StatelessWidget {
                 children: [
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 180),
-                    child: Icon(
-                      selected ? tab.selectedIcon : tab.unselectedIcon,
-                      key: ValueKey(selected),
-                      color: selected
-                          ? cs.primary
-                          : cs.onSurfaceVariant.withOpacity(0.55),
-                      size: 24,
+                    child: Badge(
+                      key: ValueKey('$selected-$unreadChats'),
+                      isLabelVisible: unreadChats > 0,
+                      backgroundColor: cs.primary,
+                      textColor: cs.onPrimary,
+                      label: Text(
+                        unreadChats > 99 ? '99+' : '$unreadChats',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      child: Icon(
+                        selected ? tab.selectedIcon : tab.unselectedIcon,
+                        color: selected
+                            ? cs.primary
+                            : cs.onSurfaceVariant.withOpacity(0.55),
+                        size: 24,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),

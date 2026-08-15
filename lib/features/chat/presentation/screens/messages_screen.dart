@@ -76,9 +76,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final state = KoolanAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     final filtered = _filtered(state.chatSessions);
-    final unreadTotal = state.chatSessions
-        .where((s) => !s.isArchived && s.unreadCount > 0)
-        .fold<int>(0, (sum, s) => sum + s.unreadCount);
+    final unreadTotal = state.totalUnreadChatCount;
 
     return Scaffold(
       body: Column(
@@ -223,11 +221,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: filtered.length,
-                    separatorBuilder: (context2, idx) =>
-                        const SizedBox(height: 16),
+                    separatorBuilder: (context2, idx) => Divider(
+                      height: 1,
+                      indent: 72,
+                      color: cs.outlineVariant.withValues(alpha: 0.35),
+                    ),
                     itemBuilder: (context, index) {
                       final session = filtered[index];
                       final realIndex = state.chatSessions

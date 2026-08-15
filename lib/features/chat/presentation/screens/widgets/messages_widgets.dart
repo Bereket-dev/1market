@@ -1,6 +1,6 @@
 part of '../messages_screen.dart';
 
-// ── Session card ──────────────────────────────────────────────────────────────
+// ── Session card (Telegram-style unread treatment) ───────────────────────────
 
 class _SessionCard extends StatelessWidget {
   final ChatSession session;
@@ -19,30 +19,22 @@ class _SessionCard extends StatelessWidget {
     final state = KoolanAppStateScope.of(context);
     final lastMsg = session.messages.lastOrNull;
     final archived = session.isArchived;
-    final hasUnread = session.unreadCount > 0 && !archived;
+    final unread = archived ? 0 : session.unreadCount;
+    final hasUnread = unread > 0;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         onLongPress: onArchiveToggle,
-        borderRadius: BorderRadius.circular(20),
         child: Ink(
-          decoration: BoxDecoration(
-            color: hasUnread
-                ? cs.primaryContainer.withValues(alpha: 0.35)
-                : cs.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: hasUnread
-                  ? cs.primary.withValues(alpha: 0.7)
-                  : cs.outlineVariant.withValues(alpha: 0.3),
-              width: hasUnread ? 1.5 : 1,
-            ),
-          ),
+          color: hasUnread
+              ? cs.primaryContainer.withValues(alpha: 0.28)
+              : Colors.transparent,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Avatar — tappable to public profile
                 GestureDetector(
@@ -51,105 +43,71 @@ class _SessionCard extends StatelessWidget {
                             PublicProfileScreenRoute(session.partnerUserId!),
                           )
                       : null,
-                  child: Stack(
-                    children: [
-                      session.partnerAvatar.isEmpty
-                        ? const CircleAvatar(
-                            radius: 27,
-                            child: Icon(Icons.person),
-                          )
-                        : CachedNetworkImage(
+                  child: session.partnerAvatar.isEmpty
+                      ? const CircleAvatar(
+                          radius: 28,
+                          child: Icon(Icons.person),
+                        )
+                      : CachedNetworkImage(
                           imageUrl: session.partnerAvatar,
                           cacheManager: KoolanImageCacheManager.instance,
                           imageBuilder: (ctx, provider) => CircleAvatar(
-                            radius: 27,
+                            radius: 28,
                             backgroundImage: provider,
                           ),
                           placeholder: (ctx, url) => const CircleAvatar(
-                            radius: 27,
+                            radius: 28,
                             backgroundColor: Colors.grey,
                           ),
                           errorWidget: (ctx, url, err) => const CircleAvatar(
-                            radius: 27,
+                            radius: 28,
                             child: Icon(Icons.person),
                           ),
                         ),
-                      if (hasUnread)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: cs.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: cs.surface,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
-                const SizedBox(width: 16),
-                // Content
+                const SizedBox(width: 14),
+                // Name + listing + preview
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              session.partnerName,
-                              style: TextStyle(
-                                fontWeight: hasUnread
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                fontSize: 16,
-                                color: cs.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            lastMsg?.timestamp ?? state.s.messagesJustNow,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: hasUnread
-                                  ? FontWeight.w700
-                                  : FontWeight.normal,
-                              color: hasUnread
-                                  ? cs.primary
-                                  : cs.onSurfaceVariant.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
                       Text(
-                        session.listingTitle,
+                        session.partnerName,
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: cs.primary,
+                          fontWeight:
+                              hasUnread ? FontWeight.w800 : FontWeight.w600,
+                          fontSize: 16,
+                          color: cs.onSurface,
+                          height: 1.2,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (session.listingTitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          session.listingTitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: cs.primary,
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
                         lastMsg?.text ?? state.s.messagesNoMessages,
                         style: TextStyle(
-                          fontSize: 13,
-                          color: hasUnread ? cs.onSurface : cs.onSurfaceVariant,
+                          fontSize: 14,
+                          height: 1.25,
+                          color: hasUnread
+                              ? cs.onSurface
+                              : cs.onSurfaceVariant.withValues(alpha: 0.85),
                           fontWeight:
-                              hasUnread ? FontWeight.w700 : FontWeight.normal,
+                              hasUnread ? FontWeight.w600 : FontWeight.w400,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -157,40 +115,69 @@ class _SessionCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (hasUnread) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    constraints: const BoxConstraints(minWidth: 24),
-                    height: 24,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: cs.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      session.unreadCount > 99
-                          ? '99+'
-                          : session.unreadCount.toString(),
+                const SizedBox(width: 10),
+                // Telegram-style trailing: time on top, unread count below
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      lastMsg?.timestamp ?? state.s.messagesJustNow,
                       style: TextStyle(
-                        color: cs.onPrimary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        fontWeight:
+                            hasUnread ? FontWeight.w700 : FontWeight.w400,
+                        color: hasUnread
+                            ? cs.primary
+                            : cs.onSurfaceVariant.withValues(alpha: 0.65),
                       ),
                     ),
-                  ),
-                ],
-                IconButton(
-                  tooltip: archived
-                      ? state.s.messagesUnarchive
-                      : state.s.messagesArchive,
-                  icon: Icon(
-                    archived
-                        ? Icons.unarchive_outlined
-                        : Icons.archive_outlined,
-                    color: cs.onSurfaceVariant,
-                  ),
-                  onPressed: onArchiveToggle,
+                    const SizedBox(height: 8),
+                    if (hasUnread)
+                      Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 22,
+                          minHeight: 22,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: cs.primary,
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: Text(
+                          unread > 99 ? '99+' : unread.toString(),
+                          style: TextStyle(
+                            color: cs.onPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
+                          ),
+                        ),
+                      )
+                    else
+                      IconButton(
+                        tooltip: archived
+                            ? state.s.messagesUnarchive
+                            : state.s.messagesArchive,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        icon: Icon(
+                          archived
+                              ? Icons.unarchive_outlined
+                              : Icons.archive_outlined,
+                          size: 20,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.55),
+                        ),
+                        onPressed: onArchiveToggle,
+                      ),
+                  ],
                 ),
               ],
             ),

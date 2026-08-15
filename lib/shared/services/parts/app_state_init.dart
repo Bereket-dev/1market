@@ -454,6 +454,10 @@ extension AppStateInit on KoolanAppState {
         message,
         messagesEnabled: notifMessagesEnabled,
       );
+      // New chat messages must refresh sessions so unread badges update.
+      if (message.data['screen'] == 'chat') {
+        unawaited(refreshChatSessions());
+      }
       if (_repo != null) {
         _repo!.fetchNotifications().then((list) {
           notifications = list;

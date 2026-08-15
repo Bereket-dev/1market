@@ -4,6 +4,11 @@ part of '../app_state.dart';
 // ── Chat & reports ────────────────────────────────────────────────────────────
 
 extension AppStateChat on KoolanAppState {
+  /// Total unread messages across non-archived threads (for nav badge / filters).
+  int get totalUnreadChatCount => chatSessions
+      .where((s) => !s.isArchived)
+      .fold<int>(0, (sum, s) => sum + s.unreadCount);
+
   /// Applies per-device last-read + archived flags to freshly fetched sessions.
   Future<List<ChatSession>> _enrichChatSessions(
     List<ChatSession> sessions,
@@ -25,10 +30,14 @@ extension AppStateChat on KoolanAppState {
         return session.copyWith(unreadCount: 0, isArchived: isArchived);
       }
 
-      final readAt =
-          DateTime.fromMillisecondsSinceEpoch(lastRead[session.id]!);
+      // Compare in epoch-ms so UTC/local DateTime variants stay consistent.
+      final readMs = lastRead[session.id]!;
       final unread = session.messages
-          .where((m) => !m.isMe && m.localUpdatedAt.isAfter(readAt))
+          .where(
+            (m) =>
+                !m.isMe &&
+                m.localUpdatedAt.millisecondsSinceEpoch > readMs,
+          )
           .length;
       return session.copyWith(
         unreadCount: unread,
@@ -55,15 +64,22 @@ extension AppStateChat on KoolanAppState {
     }
   }
 
-  /// Marks a thread as read up to now (clears unread badge).
+  /// Marks a thread as read up to the latest message (clears unread badge).
   Future<void> markChatThreadRead(String sessionId) async {
     final index = chatSessions.indexWhere((s) => s.id == sessionId);
     if (index == -1) return;
     final session = chatSessions[index];
-    if (session.unreadCount == 0) return;
 
+    final lastMsgMs = session.messages.isEmpty
+        ? 0
+        : session.messages.last.localUpdatedAt.millisecondsSinceEpoch;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await app_local.LocalStorage.setChatLastRead(sessionId, nowMs);
+    // Use the later of "now" and last message so clock skew can't leave a
+    // just-opened thread stuck with an unread badge.
+    final readMs = nowMs > lastMsgMs ? nowMs : lastMsgMs;
+    await app_local.LocalStorage.setChatLastRead(sessionId, readMs);
+
+    if (session.unreadCount == 0) return;
     chatSessions[index] = session.copyWith(unreadCount: 0);
     notifyListeners();
   }
