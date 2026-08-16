@@ -23,6 +23,10 @@ class LocalStorage {
   // Location CTA — stores the Unix-ms timestamp until which the CTA is snoozed.
   static const _locationCtaSnoozedUntilKey = 'koolan_location_cta_snoozed_until';
 
+  // Location permission — persisted so the CTA banner and onboarding don't
+  // re-prompt after the user has already granted location access.
+  static const _locationPermissionGrantedKey = 'koolan_location_permission_granted';
+
   static final Map<String, Object?> _memoryStore = {};
 
   static Future<SharedPreferences?> _prefsOrNull() async {
@@ -340,6 +344,25 @@ class LocalStorage {
     final prefs = await _prefsOrNull();
     if (prefs != null) return prefs.getBool(_dataSaverKey) ?? false;
     return _memoryStore[_dataSaverKey] as bool? ?? false;
+  }
+
+  // ── Location permission ──────────────────────────────────────────────────────
+
+  static Future<void> saveLocationPermissionGranted(bool value) async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      await prefs.setBool(_locationPermissionGrantedKey, value);
+    } else {
+      _memoryStore[_locationPermissionGrantedKey] = value;
+    }
+  }
+
+  static Future<bool> getLocationPermissionGranted() async {
+    final prefs = await _prefsOrNull();
+    if (prefs != null) {
+      return prefs.getBool(_locationPermissionGrantedKey) ?? false;
+    }
+    return _memoryStore[_locationPermissionGrantedKey] as bool? ?? false;
   }
 
   // ── Location CTA snooze ──────────────────────────────────────────────────────

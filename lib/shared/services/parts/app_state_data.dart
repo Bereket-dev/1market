@@ -134,6 +134,10 @@ extension AppStateData on KoolanAppState {
     final hasMirrorData = allListings.isNotEmpty &&
         _marketplaceRepo!.hasListingsMirrorData;
 
+    // Promos are independent of the marketplace seed — fetch in parallel so
+    // the carousel can paint images without waiting for listings/Hive.
+    final promosFuture = _fetchHomePromos(anonRepo);
+
     if (hasMirrorData) {
       await _syncInboundPriority1(
         _marketplaceRepo!,
@@ -142,18 +146,36 @@ extension AppStateData on KoolanAppState {
       );
       // If sync left the in-memory feed empty, fall back to a full seed.
       if (allListings.isEmpty) {
-        await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
+        try {
+          await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
+        } catch (e) {
+          if (kDebugMode) debugPrint('[guestLoadOrSync] fallback coldSeed failed: $e');
+        }
       }
     } else {
-      await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
+      // No local mirror — full cold seed.  Wrapped so any unexpected error
+      // doesn't reach loadAllData's outer catch, which would call
+      // reportDataError() even when data was successfully fetched and set on
+      // allListings by an earlier step inside _coldSeedPriority1.
+      try {
+        await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
+      } catch (e) {
+        if (kDebugMode) debugPrint('[guestLoadOrSync] coldSeed failed: $e');
+      }
     }
 
-    try {
-      homePromos = await anonRepo.fetchHomePromos();
-    } catch (e) {
-      if (kDebugMode) debugPrint('[loadAllData] fetchHomePromos (guest) failed: $e');
-    }
+    await promosFuture;
     chatSessions = [];
+  }
+
+  /// Loads home promo cards and notifies so the carousel can refresh early.
+  Future<void> _fetchHomePromos(SupabaseRepository repo) async {
+    try {
+      homePromos = await repo.fetchHomePromos();
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[loadAllData] fetchHomePromos failed: $e');
+    }
   }
 
   // ── Authed path ───────────────────────────────────────────────────────────
@@ -199,11 +221,7 @@ extension AppStateData on KoolanAppState {
       await _syncInboundPriority3(repo);
     }
 
-    try {
-      homePromos = await repo.fetchHomePromos();
-    } catch (e) {
-      if (kDebugMode) debugPrint('[loadAllData] fetchHomePromos failed: $e');
-    }
+    await _fetchHomePromos(repo);
   }
 
   // ── Prioritized inbound sync (Phase 2) ────────────────────────────────────
@@ -314,12 +332,23 @@ extension AppStateData on KoolanAppState {
   }
 
   /// Cold cache seed with resumable offset persistence.
+  ///
+  /// Each phase (listings / services / hiring) is fully isolated: a Hive write
+  /// failure in the mirror-seed step never discards already-fetched network
+  /// data. The in-memory lists are always updated before any Hive I/O so the
+  /// UI can render even when local storage is unavailable (e.g. first launch
+  /// after clearing app data).
   Future<void> _coldSeedPriority1(
     SupabaseRepository repo,
     MarketplaceRepository marketRepo,
   ) async {
+    // ── Listings ──────────────────────────────────────────────────────────────
     const listingsEntity = 'listings';
-    await HiveSyncStore.instance.setInProgressEntity(listingsEntity);
+    try {
+      await HiveSyncStore.instance.setInProgressEntity(listingsEntity);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[coldSeed] setInProgressEntity failed (non-fatal): $e');
+    }
     final listingsOffset =
         HiveSyncStore.instance.getSeedOffset(listingsEntity) ?? 0;
 
@@ -328,18 +357,36 @@ extension AppStateData on KoolanAppState {
         limit: SupabaseRepository.kPageSize,
         offset: listingsOffset,
       );
+      // Update in-memory state FIRST so the UI can render regardless of
+      // whether the Hive mirror write succeeds below.
       allListings = listings;
       hasMoreListings = listings.length >= SupabaseRepository.kPageSize;
-      await app_local.LocalStorage.saveListingsCache(
-        listings.map((l) => l.toJson()).toList(),
-      );
-      await marketRepo.seedListingsMirror(listings);
-      await HiveSyncStore.instance.clearSeedOffset(listingsEntity);
+
+      // Best-effort cache writes — failures must not prevent data from
+      // appearing in the UI.
+      try {
+        await app_local.LocalStorage.saveListingsCache(
+          listings.map((l) => l.toJson()).toList(),
+        );
+      } catch (e) {
+        if (kDebugMode) debugPrint('[coldSeed] saveListingsCache failed (non-fatal): $e');
+      }
+      try {
+        await marketRepo.seedListingsMirror(listings);
+        await HiveSyncStore.instance.clearSeedOffset(listingsEntity);
+      } catch (e) {
+        if (kDebugMode) debugPrint('[coldSeed] seedListingsMirror failed (non-fatal): $e');
+      }
     } catch (e) {
-      await HiveSyncStore.instance.setSeedOffset(listingsEntity, listingsOffset);
-      rethrow;
+      // Network fetch itself failed — save offset for resumable retry but do
+      // NOT rethrow so services/hiring can still be attempted.
+      if (kDebugMode) debugPrint('[coldSeed] fetchListings failed: $e');
+      try {
+        await HiveSyncStore.instance.setSeedOffset(listingsEntity, listingsOffset);
+      } catch (_) {}
     }
 
+    // ── Services ──────────────────────────────────────────────────────────────
     try {
       final services = await repo.fetchServices(
         limit: SupabaseRepository.kPageSize,
@@ -347,14 +394,23 @@ extension AppStateData on KoolanAppState {
       );
       allServices = services;
       hasMoreServices = services.length >= SupabaseRepository.kPageSize;
-      await app_local.LocalStorage.saveServicesCache(
-        services.map((s) => s.toJson()).toList(),
-      );
-      await marketRepo.seedServicesMirror(services);
+      try {
+        await app_local.LocalStorage.saveServicesCache(
+          services.map((s) => s.toJson()).toList(),
+        );
+      } catch (e) {
+        if (kDebugMode) debugPrint('[coldSeed] saveServicesCache failed (non-fatal): $e');
+      }
+      try {
+        await marketRepo.seedServicesMirror(services);
+      } catch (e) {
+        if (kDebugMode) debugPrint('[coldSeed] seedServicesMirror failed (non-fatal): $e');
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('[coldSeed] fetchServices failed: $e');
     }
 
+    // ── Hiring posts ──────────────────────────────────────────────────────────
     try {
       final userId = currentUser?.id;
       final posts = await repo.fetchHiringPosts(
@@ -371,7 +427,11 @@ extension AppStateData on KoolanAppState {
         final count = counts[p.id] ?? 0;
         return count > 0 ? p.copyWith(applicantCount: count) : p;
       }).toList();
-      await marketRepo.seedHiringPostsMirror(allHiringPosts);
+      try {
+        await marketRepo.seedHiringPostsMirror(allHiringPosts);
+      } catch (e) {
+        if (kDebugMode) debugPrint('[coldSeed] seedHiringPostsMirror failed (non-fatal): $e');
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('[coldSeed] fetchHiringPosts failed: $e');
     }

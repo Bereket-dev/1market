@@ -298,7 +298,17 @@ extension AppStateProfile on KoolanAppState {
   // ── Notification preferences ──────────────────────────────────────────────────
 
   /// Reconcile app prefs with OS permission (e.g. after returning from Settings).
+  ///
+  /// When the device is offline we skip any FCM token operations entirely.
+  /// FCM.getToken() hangs or throws when there is no network, which would
+  /// either time-out the resume callback or — worse — set notifPushEnabled=false
+  /// and persist that, creating a permission-prompt loop on every cold start.
   Future<void> refreshNotificationPermissionState() async {
+    // Skip all FCM network calls when offline. The channels and OS permission
+    // state are purely local and can still be reconciled, but we must not call
+    // FirebaseMessaging.getToken() or deleteToken() without connectivity.
+    final isOffline = NetworkMonitor.instance.isOffline;
+
     final osGranted = await PermissionService.isNotificationPermissionGranted();
 
     if (!osGranted) {
@@ -306,7 +316,12 @@ extension AppStateProfile on KoolanAppState {
         notifPushEnabled = false;
         await app_local.LocalStorage.saveNotifPushEnabled(false);
       }
-      await _unregisterPushToken();
+      // Only attempt to deregister the FCM token when we are online — the
+      // deleteToken() call will fail silently offline and we don't want to
+      // put the device into a bad state.
+      if (!isOffline) {
+        await _unregisterPushToken();
+      }
       notifyListeners();
       return;
     }
@@ -316,7 +331,11 @@ extension AppStateProfile on KoolanAppState {
         pushEnabled: true,
         messagesEnabled: notifMessagesEnabled,
       );
-      await _registerPushToken();
+      // Only refresh the FCM token when online — avoids getToken() failures
+      // that reset notifPushEnabled to false on every offline resume.
+      if (!isOffline) {
+        await _registerPushToken();
+      }
     } else {
       await PermissionService.setMessageNotificationsEnabled(
         notifMessagesEnabled,

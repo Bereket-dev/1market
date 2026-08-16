@@ -8,41 +8,61 @@ import '../../../../shared/widgets/cached_image_widget.dart';
 
 // ── Hardcoded fallback slides ─────────────────────────────────────────────────
 //
-// Mirrored exactly from the original implementation.  Used only when the DB
-// returns no rows (first launch / offline / all slots deactivated).
+// Used when the DB returns no rows (offline / all slots deactivated).
+// Default image URLs match the pre-DB carousel so cards never look empty when
+// `home_promos.image_url` is null (seed / admin not yet set).
 
 class _FallbackSlide {
   final String Function(AppStrings) headline;
   final String Function(AppStrings) sub;
   final PromoTheme theme;
+  final String imageUrl;
 
   const _FallbackSlide({
     required this.headline,
     required this.sub,
     required this.theme,
+    required this.imageUrl,
   });
 }
+
+/// Per-slot default images (slot index 0 → 3). Also used when a DB row has a
+/// null/empty `image_url`.
+const _defaultPromoImageUrls = [
+  'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?auto=format&fit=crop&w=600&q=80',
+];
 
 const _fallbackSlides = [
   _FallbackSlide(
     headline: _h1,
     sub: _s1,
     theme: PromoTheme.navy,
+    imageUrl:
+        'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=600&q=80',
   ),
   _FallbackSlide(
     headline: _h2,
     sub: _s2,
     theme: PromoTheme.teal,
+    imageUrl:
+        'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80',
   ),
   _FallbackSlide(
     headline: _h3,
     sub: _s3,
     theme: PromoTheme.purple,
+    imageUrl:
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80',
   ),
   _FallbackSlide(
     headline: _h4,
     sub: _s4,
     theme: PromoTheme.red,
+    imageUrl:
+        'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?auto=format&fit=crop&w=600&q=80',
   ),
 ];
 
@@ -116,21 +136,28 @@ class _PromoCarouselState extends State<PromoCarousel> {
   List<_SlideVM> _buildSlides(KoolanAppState state) {
     final dbPromos = state.homePromos;
     if (dbPromos.isNotEmpty) {
-      return dbPromos
-          .map((p) => _SlideVM(
-                headline: p.headline,
-                subtitle: p.subtitle,
-                imageUrl: p.imageUrl,
-                theme: p.theme,
-              ))
-          .toList();
+      return [
+        for (var i = 0; i < dbPromos.length; i++)
+          _SlideVM(
+            headline: dbPromos[i].headline,
+            subtitle: dbPromos[i].subtitle,
+            // Seed rows ship with null image_url; keep the old Unsplash
+            // defaults so clearing app data / guest fetch still shows images.
+            imageUrl: (dbPromos[i].imageUrl != null &&
+                    dbPromos[i].imageUrl!.isNotEmpty)
+                ? dbPromos[i].imageUrl
+                : _defaultPromoImageUrls[i % _defaultPromoImageUrls.length],
+            theme: dbPromos[i].theme,
+          ),
+      ];
     }
-    // Fallback: localised hardcoded strings.
+    // Fallback: localised hardcoded strings + default images.
     final s = state.s;
     return _fallbackSlides
         .map((f) => _SlideVM(
               headline: f.headline(s),
               subtitle: f.sub(s),
+              imageUrl: f.imageUrl,
               theme: f.theme,
             ))
         .toList();
@@ -146,6 +173,11 @@ class _PromoCarouselState extends State<PromoCarousel> {
         SizedBox(
           height: 170,
           child: PageView.builder(
+            // Rebuild pages when slide content changes (e.g. DB promos arrive
+            // after the hardcoded fallback was first painted).
+            key: ValueKey(
+              slides.map((s) => '${s.headline}|${s.imageUrl}').join(';'),
+            ),
             controller: _ctrl,
             itemCount: slides.length,
             onPageChanged: (i) => setState(() => _page = i),

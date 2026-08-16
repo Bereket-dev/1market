@@ -209,14 +209,19 @@ class PermissionService {
   }
 
   /// Re-enables FCM and requests OS permission. Returns a token when granted.
+  /// Pass [skipOsRequest] = true to skip the OS dialog (e.g. permission already
+  /// granted) and just retrieve the FCM token directly.
   static Future<String?> enablePushOnDevice({
     required bool messagesEnabled,
+    bool skipOsRequest = false,
   }) async {
     try {
       await FirebaseMessaging.instance.setAutoInitEnabled(true);
 
-      final granted = await requestOsNotificationPermission();
-      if (!granted) return null;
+      if (!skipOsRequest) {
+        final granted = await requestOsNotificationPermission();
+        if (!granted) return null;
+      }
 
       await setAndroidChannelsEnabled(
         pushEnabled: true,

@@ -28,26 +28,46 @@ extension AppStateInit on KoolanAppState {
       dataSaverEnabled = await app_local.LocalStorage.getDataSaverEnabled();
       ImagePrefetchService.instance.dataSaverEnabled = dataSaverEnabled;
 
+      // Restore location permission state so the CTA banner and onboarding
+      // don't re-ask on every cold start.
+      locationPermissionGranted =
+          await app_local.LocalStorage.getLocationPermissionGranted();
+
       // Start NetworkMonitor so quality classification is ready before sync.
       await NetworkMonitor.instance.initialize();
 
-      // Wait for Supabase to confirm the auth state (initialSession event).
-      await _sessionReadyCompleter.future.timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          if (kDebugMode) {
-            debugPrint(
-            '[AUTH] initialSession timed out after '
-            '${DateTime.now().millisecondsSinceEpoch - t0}ms — proceeding with current state',
-            );
-          }
-          return null;
-        },
-      );
-      if (kDebugMode) {
-        debugPrint(
-        '[AUTH] session ready after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+      // Only wait for Supabase's initialSession when the device is online.
+      // Offline: skip straight to local data so the app opens instantly.
+      final isOffline = NetworkMonitor.instance.isOffline;
+      if (!isOffline) {
+        await _sessionReadyCompleter.future.timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            if (kDebugMode) {
+              debugPrint(
+              '[AUTH] initialSession timed out after '
+              '${DateTime.now().millisecondsSinceEpoch - t0}ms — proceeding with current state',
+              );
+            }
+            return null;
+          },
         );
+        if (kDebugMode) {
+          debugPrint(
+          '[AUTH] session ready after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+          );
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint(
+          '[AUTH] offline — skipping initialSession wait, '
+          'using cached state after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+          );
+        }
+        // Complete the completer so any future waiter doesn't hang.
+        if (!_sessionReadyCompleter.isCompleted) {
+          _sessionReadyCompleter.complete(null);
+        }
       }
       if (kDebugMode) debugPrint('Repo available: ${_repo != null}');
 
@@ -64,6 +84,13 @@ extension AppStateInit on KoolanAppState {
           onboardingPhase = OnboardingPhase.ready;
         }
         notifyListeners();
+        // Init the Hive sync store before reading from it so the local mirror
+        // is available immediately, especially on the first offline launch.
+        try {
+          await syncService.init();
+        } catch (e) {
+          if (kDebugMode) debugPrint('[init] syncService.init() failed in guest path: $e');
+        }
         unawaited(loadAllData());
         return;
       }
@@ -291,6 +318,9 @@ extension AppStateInit on KoolanAppState {
       deviceLat = lat;
       deviceLng = lng;
     }
+    await app_local.LocalStorage.saveLocationPermissionGranted(
+      locationPermissionGranted,
+    );
     await app_local.LocalStorage.saveOnboardingPhase('goal');
     onboardingPhase = OnboardingPhase.goal;
     notifyListeners();
@@ -323,6 +353,7 @@ extension AppStateInit on KoolanAppState {
       locationPermissionGranted = true;
       deviceLat = position.latitude;
       deviceLng = position.longitude;
+      await app_local.LocalStorage.saveLocationPermissionGranted(true);
     }
     await snoozeLocationCta();
   }
@@ -400,9 +431,16 @@ extension AppStateInit on KoolanAppState {
   Future<void> _registerPushToken() async {
     if (!notifPushEnabled) return;
 
-    final token = await PermissionService.enablePushOnDevice(
-      messagesEnabled: notifMessagesEnabled,
-    );
+    // Don't prompt the OS dialog if permission was already granted.
+    final alreadyGranted = await PermissionService.isNotificationPermissionGranted();
+    final token = alreadyGranted
+        ? await PermissionService.enablePushOnDevice(
+            messagesEnabled: notifMessagesEnabled,
+            skipOsRequest: true,
+          )
+        : await PermissionService.enablePushOnDevice(
+            messagesEnabled: notifMessagesEnabled,
+          );
     if (token == null) {
       notifPushEnabled = false;
       await app_local.LocalStorage.saveNotifPushEnabled(false);
