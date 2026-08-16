@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
+import '../../../../shared/models/koolan_cities.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/phone_prompt.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';

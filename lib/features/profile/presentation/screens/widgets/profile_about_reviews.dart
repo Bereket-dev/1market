@@ -32,7 +32,8 @@ class _AboutTab extends StatelessWidget {
         spacing: 8,
         runSpacing: 8,
         children: [
-          'Jigjiga',
+          KoolanAppStateScope.of(context).profile?.city ??
+              KoolanCities.launchDefault,
           'Verified',
         ].map((tag) {
           return Container(

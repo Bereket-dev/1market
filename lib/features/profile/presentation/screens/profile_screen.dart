@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../shared/models/koolan_cities.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/models/service.dart';
 import '../../../../shared/models/service_review.dart';
@@ -64,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final displayName = profile?.displayName ?? 'Your Name';
     final avatarUrl = profile?.avatarUrl;
     final bannerUrl = profile?.bannerUrl;
-    final city = profile?.city ?? 'Jigjiga';
+    final city = profile?.city ?? KoolanCities.launchDefault;
 
     // Fallback banner when user hasn't set one yet — null uses a gradient.
     final String? effectiveBanner = bannerUrl?.isNotEmpty == true ? bannerUrl : null;

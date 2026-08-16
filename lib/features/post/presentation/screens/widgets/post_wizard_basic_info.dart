@@ -402,6 +402,7 @@ class _LocationSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = state.s;
+    final cs = Theme.of(context).colorScheme;
     final kebeleKeys = [
       'Kebele 01',
       'Kebele 02',
@@ -409,6 +410,9 @@ class _LocationSection extends StatelessWidget {
       'Kebele 04',
       'Kebele 05',
       'Kebele 06',
+      'Kebele 07',
+      'Kebele 08',
+      'Kebele 09',
     ];
     final kebeleLabels = [
       s.wizardLocationKebele01,
@@ -417,21 +421,76 @@ class _LocationSection extends StatelessWidget {
       s.wizardLocationKebele04,
       s.wizardLocationKebele05,
       s.wizardLocationKebele06,
+      s.wizardLocationKebele07,
+      s.wizardLocationKebele08,
+      s.wizardLocationKebele09,
     ];
 
-    return _DropdownOrOther(
-      label: s.wizardLocationLabel,
-      isRequired: true,
-      currentValue: state.postLocation,
-      options: kebeleLabels,
-      optionKeys: kebeleKeys,
-      otherLabel: s.wizardOther,
-      otherHint: s.wizardOtherHint,
-      requiredError: s.wizardCategoryRequired,
-      onChanged: (v) {
-        state.postLocation = v.isEmpty ? 'Kebele 06' : v;
-        onRebuild();
-      },
+    final cityValue = KoolanCities.resolve(state.postCity);
+    final cityItems = <String>[
+      ...KoolanCities.all,
+      if (!KoolanCities.all
+          .any((c) => c.toLowerCase() == cityValue.toLowerCase()))
+        cityValue,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(
+          label: s.wizardCityLabel,
+          isRequired: true,
+          requiredSuffix: s.wizardRequired,
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          key: ValueKey(cityValue),
+          initialValue: cityValue,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: cs.surface,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                  color: cs.outlineVariant.withValues(alpha: 0.5)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: cs.primary, width: 2),
+            ),
+          ),
+          items: [
+            for (final city in cityItems)
+              DropdownMenuItem(value: city, child: Text(city)),
+          ],
+          onChanged: (v) {
+            if (v == null) return;
+            state.postCity = v;
+            onRebuild();
+          },
+        ),
+        const SizedBox(height: 16),
+        _DropdownOrOther(
+          label: s.wizardLocationLabel,
+          isRequired: true,
+          currentValue: state.postLocation,
+          options: kebeleLabels,
+          optionKeys: kebeleKeys,
+          otherLabel: s.wizardOther,
+          otherHint: s.wizardOtherHint,
+          requiredError: s.wizardCategoryRequired,
+          onChanged: (v) {
+            state.postLocation = v.isEmpty ? 'Kebele 06' : v;
+            onRebuild();
+          },
+        ),
+      ],
     );
   }
 }

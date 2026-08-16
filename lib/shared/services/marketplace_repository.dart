@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/errors/safe_parse.dart';
 import '../models/hiring_post.dart';
+import '../models/koolan_cities.dart';
 import '../models/listing.dart';
 import '../models/service.dart';
 import 'image_prefetch_service.dart';
@@ -688,19 +689,18 @@ class MarketplaceRepository {
 
   /// Returns location strings to prefetch in priority order.
   ///
-  /// Tier 1: user's own city (if known), defaulting to Jigjiga.
-  /// Tier 2: nearby Somali Region cities (Dire Dawa, Harar).
-  /// Tier 3: other major cities (Addis Ababa, Djibouti).
+  /// Tier 1: user's own city (if known), defaulting to Dire Dawa (launch city).
+  /// Tier 2: nearby East Ethiopia cities (Harar, Jigjiga, Chiro, …).
+  /// Tier 3: broader East Ethiopia + Addis.
   ///
   /// The user's city is always first; other cities follow in tier order,
   /// skipping the user's city to avoid duplication.
   static List<String> _regionalTiers(String? userCity) {
-    const tier1Default = 'Jigjiga';
-    const tier2 = ['Dire Dawa', 'Harar'];
-    const tier3 = ['Addis Ababa', 'Djibouti'];
-
-    final city = userCity ?? tier1Default;
-    final others = [...tier2, ...tier3].where((c) => c != city).toList();
+    final city = KoolanCities.resolve(userCity);
+    final others = [
+      ...KoolanCities.nearby,
+      ...KoolanCities.extended,
+    ].where((c) => c.toLowerCase() != city.toLowerCase()).toList();
     return [city, ...others];
   }
 
@@ -711,8 +711,8 @@ class MarketplaceRepository {
   /// returns (avoiding N city × 3 entity network loops).
   ///
   /// Otherwise:
-  ///   Pass 1 — user's own city (or Jigjiga default).
-  ///   Pass 2 — nearby cities (Dire Dawa, Harar) then other majors.
+  ///   Pass 1 — user's own city (or Dire Dawa default).
+  ///   Pass 2 — nearby East Ethiopia cities then other majors.
   ///   Pass 3 — no city filter (advances global cursors + TTL).
   ///
   /// Passes 1–2 do not advance the global sync cursor.

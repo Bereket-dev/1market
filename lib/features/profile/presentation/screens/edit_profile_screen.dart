@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../shared/models/app_strings.dart';
+import '../../../../shared/models/koolan_cities.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/recommendation_engine.dart'
@@ -27,8 +28,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _bioController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _cityController;
 
+  String _selectedCity = KoolanCities.launchDefault;
   String? _selectedCategory; // null = "None"
 
   /// True while [submitProfileUpdate] is awaited.
@@ -48,7 +49,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController();
     _bioController = TextEditingController();
     _phoneController = TextEditingController();
-    _cityController = TextEditingController();
   }
 
   @override
@@ -67,7 +67,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _nameController.text = profile?.displayName ?? '';
       _bioController.text = profile?.bio ?? '';
       _phoneController.text = profile?.phone ?? '';
-      _cityController.text = profile?.city ?? '';
+      _selectedCity = KoolanCities.resolve(profile?.city);
 
       // Sanitize preferredCategory: legacy profiles may have stored a
       // translated goal label (e.g. "Find a car") instead of the category code
@@ -93,7 +93,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _bioController.dispose();
     _phoneController.dispose();
-    _cityController.dispose();
     super.dispose();
   }
 
@@ -116,7 +115,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         displayName: _nameController.text.trim(),
         bio: _bioController.text.trim(),
         phone: newPhone.isEmpty ? existingPhone : newPhone,
-        city: _cityController.text.trim(),
+        city: _selectedCity,
         preferredCategory: _selectedCategory,
       );
     } catch (e) {
@@ -400,11 +399,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // City
-                    _field(
-                      label: s.editProfileCity,
-                      controller: _cityController,
-                      s: s,
+                    // City — East Ethiopia launch cities (Dire Dawa first).
+                    DropdownButtonFormField<String>(
+                      key: ValueKey(_selectedCity),
+                      initialValue: _selectedCity,
+                      decoration: InputDecoration(
+                        labelText: s.editProfileCity,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      items: [
+                        for (final city in [
+                          ...KoolanCities.all,
+                          if (!KoolanCities.all.any((c) =>
+                              c.toLowerCase() ==
+                              _selectedCity.toLowerCase()))
+                            _selectedCity,
+                        ])
+                          DropdownMenuItem(value: city, child: Text(city)),
+                      ],
+                      onChanged: (val) {
+                        if (val == null) return;
+                        setState(() => _selectedCity = val);
+                      },
                     ),
                     const SizedBox(height: 14),
 

@@ -165,7 +165,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
     if (kDebugMode) debugPrint('[KoolanApp] build');
     if (_bootstrapErrorCode != null) {
       return MaterialApp(
-        title: 'Koolan – Jigjiga Marketplace',
+        title: 'Koolan – East Ethiopia Marketplace',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
@@ -182,7 +182,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
         listenable: _appState,
         builder: (context, _) {
           return MaterialApp(
-            title: 'Koolan – Jigjiga Marketplace',
+            title: 'Koolan – East Ethiopia Marketplace',
             debugShowCheckedModeBanner: false,
             locale: _appState.materialLocale,
             supportedLocales: const [Locale('en')],

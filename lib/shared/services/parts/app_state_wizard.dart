@@ -53,6 +53,7 @@ extension AppStateWizard on KoolanAppState {
     postPrice = '';
     postDescription = '';
     postLocation = 'Kebele 06';
+    postCity = KoolanCities.resolve(profile?.city);
     postPhysicalAddress = '';
     postMainPhotoAttached = false;
     postImagePaths = [];
@@ -140,7 +141,7 @@ extension AppStateWizard on KoolanAppState {
         title: titleStr,
         price: priceStr,
         imageUrl: primaryImageUrl,
-        location: '${postLocation.trim()}, Jigjiga',
+        location: '${postLocation.trim()}, ${KoolanCities.resolve(postCity)}',
         conditionOrStatus: postCondition.trim().isEmpty
             ? 'Available'
             : postCondition.trim(),

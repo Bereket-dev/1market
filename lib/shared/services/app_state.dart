@@ -20,6 +20,7 @@ import '../models/application.dart';
 import '../models/chat.dart';
 import '../models/hiring_post.dart';
 import '../models/home_promo.dart';
+import '../models/koolan_cities.dart';
 import '../models/listing.dart';
 import '../models/profile.dart';
 import '../models/service.dart';
@@ -318,6 +319,8 @@ class KoolanAppState extends ChangeNotifier {
   String postPrice = '';
   String postDescription = '';
   String postLocation = 'Kebele 06';
+  /// City appended to [postLocation] on submit (East Ethiopia launch cities).
+  String postCity = 'Dire Dawa';
   String postPhysicalAddress = '';
   bool postMainPhotoAttached = false;
   /// Condition / status selected by the user (e.g. "Brand New", "For Rent").

@@ -243,7 +243,7 @@ extension AppStateData on KoolanAppState {
 
     // Use the profile's city field as the regional anchor.
     // profile is loaded in P2, so it may be null on first ever launch —
-    // _regionalTiers defaults to Jigjiga in that case.
+    // _regionalTiers defaults to Dire Dawa (East Ethiopia launch city).
     final userCity = profile?.city;
 
     if (userCity != null && !forceRefresh) {

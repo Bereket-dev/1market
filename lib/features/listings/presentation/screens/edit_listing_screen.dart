@@ -296,7 +296,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
             const SizedBox(height: 8),
             _buildField(
               controller: _locationCtrl,
-              hint: 'e.g. Kebele 03, Jigjiga',
+              hint: 'e.g. Kebele 03, Dire Dawa',
               cs: cs,
             ),
             const SizedBox(height: 16),

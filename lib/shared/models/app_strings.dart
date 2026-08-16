@@ -22,9 +22,9 @@ class AppStrings {
   String get authTitle =>
       _t('Welcome to Koolan', 'እንኳን ወደ ኩላን በደህና መጡ', 'Ku soo dhawow Koolan');
   String get authSubtitle => _t(
-    'Sign in to browse, post, and chat in Jigjiga.',
-    'በጂግጂጋ ለማስላት፣ ለመለጠፍ እና ለመወያየት ይግቡ።',
-    'Gal si aad u baarto, u dajiso, oo aad ula sheekaysato Jigjiga.',
+    'Sign in to browse, post, and chat across East Ethiopia.',
+    'በምስራቅ ኢትዮጵያ ለማስላት፣ ለመለጠፍ እና ለመወያየት ይግቡ።',
+    'Gal si aad u baarto, u dajiso, oo aad ula sheekaysato Bariga Itoobiya.',
   );
   String get authSignIn => _t('Sign In', 'ግባ', 'Gal');
   String get authSignUp => _t('Sign Up', 'ተመዝገብ', 'Is diiwaangeli');
@@ -492,6 +492,8 @@ class AppStrings {
   String get wizardLandRoad3 => _t('Dirt Track', 'የ흙 መንገድ', 'Wadad ciid ah');
 
   // ── Location options ─────────────────────────────────────────────────────────
+  String get wizardCityLabel =>
+      _t('City', 'ከተማ', 'Magaalo');
   String get wizardLocationLabel =>
       _t('Area / Kebele', 'አካባቢ / ቀበሌ', 'Xaafada / Kebele');
   String get wizardLocationKebele01 => _t('Kebele 01', 'ቀበሌ 01', 'Kebele 01');
@@ -500,6 +502,9 @@ class AppStrings {
   String get wizardLocationKebele04 => _t('Kebele 04', 'ቀበሌ 04', 'Kebele 04');
   String get wizardLocationKebele05 => _t('Kebele 05', 'ቀበሌ 05', 'Kebele 05');
   String get wizardLocationKebele06 => _t('Kebele 06', 'ቀበሌ 06', 'Kebele 06');
+  String get wizardLocationKebele07 => _t('Kebele 07', 'ቀበሌ 07', 'Kebele 07');
+  String get wizardLocationKebele08 => _t('Kebele 08', 'ቀበሌ 08', 'Kebele 08');
+  String get wizardLocationKebele09 => _t('Kebele 09', 'ቀበሌ 09', 'Kebele 09');
 
   // ── Shared form labels ───────────────────────────────────────────────────────
   String get wizardPriceLabelGeneric => _t('Price (ETB)', 'ዋጋ (ETB)', 'Qiimaha (ETB)');
@@ -791,7 +796,7 @@ class AppStrings {
       _t('Step {step} of 4', 'ደረጃ {step} ከ 4', 'Tallaabo {step} oo ah 4');
   String get wizardStartPosting => _t('Start posting', 'ማስታወቂያ ጀምር', 'Bilow dajinta');
   String get wizardSelectType =>
-      _t("Select what type of ad you'd like to list in Jigjiga.", "በጂግጂጋ ምን ዓይነት ማስታወቂያ ማስቀመጥ ይፈልጋሉ?", "Xulo nooca xayaysiiska aad rabto inaad ku dajiso Jigjiga.");
+      _t("Select what type of ad you'd like to list.", "ምን ዓይነት ማስታወቂያ ማስቀመጥ ይፈልጋሉ?", "Xulo nooca xayaysiiska aad rabto inaad dajiso.");
   String get wizardCatSkillsTitle => _t('Professional Service', 'ሙያዊ አገልግሎት', 'Adeeg xirfadeed');
   String get wizardCatSkillsDesc => _t('Post a skilled worker profile.', 'የብቃት ሰራተኛ መገለጫ ያስቀምጡ።', 'Ku daji xogta shaqaalaha xirfadlaha ah.');
   String get wizardCatCarsTitle => _t('Vehicles / Cars', 'ተሽከርካሪዎች / መኪናዎች', 'Baabuurta / Gawaari');
@@ -951,7 +956,7 @@ class AppStrings {
   String get servicesDescriptionHint => _t('Full description of your skills and experience', 'ሙሉ የክህሎቶ እና ልምድዎ ዝርዝር', 'Sharaxaad buuxda oo ku saabsan xirfadahaaga');
   String get servicesYearsOfExperienceHint => _t('e.g. 3', 'ለምሳሌ 3', 'tusaale 3');
   String get servicesPriceRangeHint => _t('e.g. ETB 500–1500 / day', 'ለምሳሌ ETB 500–1500 / ቀን', 'tusaale ETB 500–1500 / maalin');
-  String get servicesLocationHint => _t('e.g. Kebele 05, Jigjiga', 'ለምሳሌ ቀበሌ 05, ጂጂጋ', 'tusaale Kebele 05, Jigjiga');
+  String get servicesLocationHint => _t('e.g. Kebele 05, Dire Dawa', 'ለምሳሌ ቀበሌ 05, ድሬዳዋ', 'tusaale Kebele 05, Dire Dawa');
   String get servicesDeleteButton => _t('Delete service', 'አገልግሎቱን ሰርዝ', 'Tirtir adeegga');
   String get servicesDeleteConfirm => _t('Delete this service? This cannot be undone.', 'ይህን አገልግሎት ይሰርዙ? ሊቀለበስ አይችልም።', 'Tirtir adeeggan? Dib loo celin karo ma.');
   String get servicesDeleteCancel => _t('Cancel', 'ሰርዝ', 'Jooji');
@@ -1076,7 +1081,7 @@ class AppStrings {
       _t('e.g. Plumbing, Cleaning, Tutoring', 'ፒፓ፣ ጽዳት፣ ትምህርት', 'Tusaale: Biyo, nadiifin');
   String get hiringLocationLabel => _t('Location', 'ቦታ', 'Goobta');
   String get hiringLocationHint =>
-      _t('e.g. Kebele 04, Jigjiga', 'ቀበሌ 04፣ ጅጅጋ', 'Tusaale: Kebele 04, Jigjiga');
+      _t('e.g. Kebele 04, Dire Dawa', 'ቀበሌ 04፣ ድሬዳዋ', 'Tusaale: Kebele 04, Dire Dawa');
   String get hiringPriceRangeLabel =>
       _t('Budget (ETB)', 'በጀት (ብር)', 'Miisaaniyada (ETB)');
   String get hiringPriceRangeHint =>
@@ -1333,23 +1338,23 @@ class AppStrings {
   String get shareListingSubject => _t('Check out this listing on Koolan', 'ይህን ዝርዝር በ Koolan ይመልከቱ', 'Fiiri xayaysiiskan Koolan');
   String shareListingBody(String title, String price, String location, String url) =>
       _t(
-        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDownload Koolan – Jigjiga\'s marketplace',
-        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የጂግጂጋ ገበያ',
-        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Jigjiga',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDownload Koolan – East Ethiopia marketplace',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Bariga Itoobiya',
       );
   String get shareServiceSubject => _t('Check out this service on Koolan', 'ይህን አገልግሎት በ Koolan ይመልከቱ', 'Fiiri adeeggan Koolan');
   String shareServiceBody(String title, String category, String priceRange, String url) =>
       _t(
-        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDownload Koolan – Jigjiga\'s marketplace',
-        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nKoolan ይጠቀሙ – የጂግጂጋ ገበያ',
-        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDegsado Koolan – Suuqa Jigjiga',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDownload Koolan – East Ethiopia marketplace',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nKoolan ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDegsado Koolan – Suuqa Bariga Itoobiya',
       );
   String get shareHiringSubject => _t('Check out this job on Koolan', 'ይህን ስራ በ Koolan ይመልከቱ', 'Fiiri shaqadan Koolan');
   String shareHiringBody(String title, String category, String location, String url) =>
       _t(
-        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDownload Koolan – Jigjiga\'s marketplace',
-        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የጂግጂጋ ገበያ',
-        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Jigjiga',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDownload Koolan – East Ethiopia marketplace',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Bariga Itoobiya',
       );
   String get detailLocationLabel => _t('Location', 'ቦታ', 'Goobta');
   String get detailOpenMaps => _t('Open in Maps', 'በካርታ ክፈት', 'Ku fur khariidadda');
@@ -1408,7 +1413,7 @@ class AppStrings {
   // ── Category List Screen ─────────────────────────────────────────────────────
   String get catNoMatchingListings => _t('No matching listings found', 'ተዛማጅ ዝርዝሮች አልተገኙም', 'Xayaysiis ku habboon ma helin');
   String get catClearFilters => _t('Try clearing your query filters', 'ማጣሪያዎቹን ለማጽዳት ይሞክሩ', 'Isku day nadiifi shaandhaynta');
-  String get catResultsIn => _t('results in Jigjiga', 'ውጤቶች በጂግጂጋ', 'natiijo Jigjiga');
+  String get catResultsIn => _t('results nearby', 'አቅራቢያ ውጤቶች', 'natiijo u dhow');
 
   // ── Compare Overlay rows (dynamic) ──────────────────────────────────────────
   String get compareSpec1 => _t('Spec 1', 'መስፈርት 1', 'Sifo 1');
@@ -1425,7 +1430,7 @@ class AppStrings {
   String get catListView => _t('List', 'ዝርዝር', 'Liis');
   String get catMapView => _t('Map', 'ካርታ', 'Khariidad');
   String get catSearchHint => _t('Search', 'ፈልግ', 'Raadi');
-  String get catResultsCount => _t('{count} results in Jigjiga', '{count} ውጤቶች በጂግጂጋ', '{count} natiijo Jigjiga');
+  String get catResultsCount => _t('{count} results nearby', '{count} ውጤቶች አቅራቢያ', '{count} natiijo u dhow');
 
   // Filter option labels
   String get catFilterAll  => _t('All',      'ሁሉም',    'Dhammaan');
@@ -1514,11 +1519,11 @@ class AppStrings {
   // ── Promo Carousel ───────────────────────────────────────────────────────────
 
   String get promo1Headline =>
-      _t("Jigjiga's #1\nMarketplace", 'ጂጂጋ ቁጥር 1\nገበያ', "Suuqa #1\nJigjiga");
+      _t("East Ethiopia's\nMarketplace", 'የምስራቅ ኢትዮጵያ\nገበያ', "Suuqa #1\nBariga Itoobiya");
   String get promo1Sub => _t(
     'Buy, sell, and hire in your city — all in one place.',
     'በከተማዎ ይሸምቱ፣ ይሸጡ፣ ቅጥርም ያድርጉ — ሁሉ በአንድ ቦታ።',
-    'Jigjiga gad-iibso oo kiri — meel ku jira dhammaan.',
+    'Gad, iibso oo kiri magaaladaada — meel ku jira dhammaan.',
   );
 
   String get promo2Headline =>
