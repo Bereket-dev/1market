@@ -171,7 +171,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 170,
+          height: 188,
           child: PageView.builder(
             // Rebuild pages when slide content changes (e.g. DB promos arrive
             // after the hardcoded fallback was first painted).
@@ -183,7 +183,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
             onPageChanged: (i) => setState(() => _page = i),
             itemBuilder: (context, index) {
               return AnimatedScale(
-                scale: _page == index ? 1.0 : 0.95,
+                scale: _page == index ? 1.0 : 0.94,
                 duration: const Duration(milliseconds: 300),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -193,7 +193,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Builder(builder: (context) {
           final cs = Theme.of(context).colorScheme;
           return Row(
@@ -202,11 +202,11 @@ class _PromoCarouselState extends State<PromoCarousel> {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: _page == i ? 20 : 6,
-                height: 6,
+                width: _page == i ? 22 : 7,
+                height: 7,
                 decoration: BoxDecoration(
                   color: _page == i ? cs.primary : cs.outlineVariant,
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(4),
                 ),
               );
             }),
@@ -218,210 +218,156 @@ class _PromoCarouselState extends State<PromoCarousel> {
 }
 
 // ── Slide card ────────────────────────────────────────────────────────────────
+//
+// Full-bleed photo background + soft left scrim so the message stays readable
+// while most of the image remains visible on the right.
 
 class _PromoSlideCard extends StatelessWidget {
   final _SlideVM vm;
 
   const _PromoSlideCard({required this.vm});
 
+  bool get _hasImage => vm.imageUrl != null && vm.imageUrl!.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [vm.theme.accent, vm.theme.accentLight],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: vm.theme.accent.withValues(alpha: 0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-        ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // ── Subtle geometric overlay for depth ─────────────────────────
-            Positioned(
-              right: -20,
-              top: -20,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.06),
+            // Solid theme fill behind image (also used when image fails).
+            ColoredBox(color: vm.theme.accent),
+
+            // Full-bleed background photo.
+            if (_hasImage)
+              CachedNetworkImage(
+                imageUrl: vm.imageUrl!,
+                cacheManager: KoolanImageCacheManager.instance,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                placeholder: (_, __) => ColoredBox(color: vm.theme.accentLight),
+                errorWidget: (_, __, ___) => ColoredBox(color: vm.theme.accent),
+              ),
+
+            // Left→right message scrim: strong enough for text, light enough
+            // that the photo reads clearly on the right half.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: const [0.0, 0.42, 0.72, 1.0],
+                  colors: [
+                    vm.theme.accent.withValues(alpha: 0.88),
+                    vm.theme.accent.withValues(alpha: 0.55),
+                    vm.theme.accent.withValues(alpha: 0.18),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
-            Positioned(
-              right: 10,
-              bottom: -30,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.04),
+
+            // Soft bottom edge so subtitle stays legible on busy photos.
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.55, 1.0],
+                  colors: [
+                    Colors.transparent,
+                    Color(0x66000000),
+                  ],
                 ),
               ),
             ),
-            // ── Remote image (if provided) — right-side fill ───────────────
-            if (vm.imageUrl != null && vm.imageUrl!.isNotEmpty)
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 130,
-                child: ShaderMask(
-                  shaderCallback: (rect) => LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      vm.theme.accent,
-                      Colors.transparent,
-                    ],
-                  ).createShader(rect),
-                  blendMode: BlendMode.dstOut,
-                  child: CachedNetworkImage(
-                    imageUrl: vm.imageUrl!,
-                    cacheManager: KoolanImageCacheManager.instance,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                    placeholder: (_, __) => const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-            // ── Text + badge content ───────────────────────────────────────
+
+            // Message content — left-weighted over the scrim.
             Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(20, 18, 88, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.28),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Brand badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.25)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(vm.theme.icon,
-                                  color: Colors.white, size: 13),
-                              const SizedBox(width: 5),
-                              const Text(
-                                'KOOLAN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        // Headline
-                        Text(
-                          vm.headline,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            height: 1.2,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        // Subtitle
-                        Text(
-                          vm.subtitle,
+                        Icon(vm.theme.icon, color: Colors.white, size: 12),
+                        const SizedBox(width: 5),
+                        const Text(
+                          'KOOLAN',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.82),
-                            fontSize: 11,
-                            height: 1.4,
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.4,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  // ── Right side: network image OR icon circle ──────────────
-                  Expanded(
-                    flex: 3,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: vm.imageUrl != null && vm.imageUrl!.isNotEmpty
-                          ? _NetworkImageCircle(url: vm.imageUrl!, theme: vm.theme)
-                          : _IconCircle(theme: vm.theme),
+                  const SizedBox(height: 12),
+                  Text(
+                    vm.headline,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900,
+                      height: 1.15,
+                      letterSpacing: -0.4,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x66000000),
+                          blurRadius: 10,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    vm.subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      fontSize: 12,
+                      height: 1.35,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x55000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Helper sub-widgets ────────────────────────────────────────────────────────
-
-class _IconCircle extends StatelessWidget {
-  final PromoTheme theme;
-
-  const _IconCircle({required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        shape: BoxShape.circle,
-        border: Border.all(
-            color: Colors.white.withValues(alpha: 0.3), width: 2),
-      ),
-      child: Icon(theme.icon, color: Colors.white, size: 28),
-    );
-  }
-}
-
-class _NetworkImageCircle extends StatelessWidget {
-  final String url;
-  final PromoTheme theme;
-
-  const _NetworkImageCircle({required this.url, required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-            color: Colors.white.withValues(alpha: 0.35), width: 2),
-      ),
-      child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: url,
-          cacheManager: KoolanImageCacheManager.instance,
-          fit: BoxFit.cover,
-          placeholder: (_, __) => _IconCircle(theme: theme),
-          errorWidget: (_, __, ___) => _IconCircle(theme: theme),
         ),
       ),
     );
