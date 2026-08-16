@@ -108,6 +108,9 @@ class MarketplaceRepository {
 
   // ── Local read ────────────────────────────────────────────────────────────
 
+  /// Whether the Hive listings mirror currently has any rows.
+  bool get hasListingsMirrorData => _store.getAllListingsMirror().isNotEmpty;
+
   /// Reads all listing summaries from the Hive mirror.
   /// Returns an empty list when no mirror data exists yet.
   Future<List<Listing>> loadListingsFromLocal({
@@ -226,6 +229,20 @@ class MarketplaceRepository {
 
   /// Internal implementation of the version-cursor sync pass.
   Future<bool> _syncViaVersionCursor({bool forceRefresh = false}) async {
+    // Empty mirror cannot be served by a tip-only cursor jump — callers must
+    // cold-seed or run the updated_at delta path first.
+    final mirrorEmpty = _store.getAllListingsMirror().isEmpty &&
+        _store.getAllServicesMirror().isEmpty &&
+        _store.getAllHiringPostsMirror().isEmpty;
+    if (mirrorEmpty) {
+      if (kDebugMode) {
+        debugPrint(
+          '[MarketplaceRepo] version cursor skipped — local mirror empty',
+        );
+      }
+      return false;
+    }
+
     var storedVersion = _store.getSyncVersion();
 
     // Uninitialized — jump to tip without replaying history.

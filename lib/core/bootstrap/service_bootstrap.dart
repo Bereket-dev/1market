@@ -77,11 +77,11 @@ class ServiceBootstrap {
             authOptions: const FlutterAuthClientOptions(
               authFlowType: AuthFlowType.pkce,
             ),
-            // Request gzip-compressed responses from PostgREST / GoTrue.
-            // Reduces listing delta payloads by ~70% on repeated refreshes.
-            headers: const {
-              'Accept-Encoding': 'gzip, deflate',
-            },
+            // Do NOT set Accept-Encoding manually. Dart's HttpClient already
+            // negotiates gzip and auto-decompresses. Overriding the header
+            // disables that decompression, so PostgREST bodies arrive as
+            // binary and every listings/services fetch fails to parse —
+            // empty home feed for both guests and signed-in users.
           ).timeout(const Duration(seconds: 10));
           _supabaseReady = true;
           if (kDebugMode) debugPrint('[bootstrap] Supabase ready');

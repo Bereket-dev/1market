@@ -10,7 +10,8 @@ extension AppStateData on KoolanAppState {
   MarketplaceRepository? _ensureMarketplaceRepo() {
     final repo = _repo ?? _anonRepo;
     if (repo == null) return null;
-    _marketplaceRepo ??= MarketplaceRepository(
+    // Always bind to the current auth client (guest anon ↔ signed-in).
+    _marketplaceRepo = MarketplaceRepository(
       supabaseRepo: repo,
       observability: syncObservability,
     );
@@ -128,7 +129,10 @@ extension AppStateData on KoolanAppState {
       observability: syncObservability,
     );
 
-    final hasMirrorData = allListings.isNotEmpty;
+    // Prefer cold seed whenever the Hive mirror has no listings — a version
+    // cursor alone must never skip the first full fetch.
+    final hasMirrorData = allListings.isNotEmpty &&
+        _marketplaceRepo!.hasListingsMirrorData;
 
     if (hasMirrorData) {
       await _syncInboundPriority1(
@@ -136,6 +140,10 @@ extension AppStateData on KoolanAppState {
         userId: null,
         forceRefresh: forceRefresh,
       );
+      // If sync left the in-memory feed empty, fall back to a full seed.
+      if (allListings.isEmpty) {
+        await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
+      }
     } else {
       await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
     }
@@ -156,23 +164,35 @@ extension AppStateData on KoolanAppState {
   }) async {
     final repo = _repo!;
     final userId = currentUser?.id;
-    final hasMirrorData = allListings.isNotEmpty;
+    final market = marketRepo ??
+        (_marketplaceRepo = MarketplaceRepository(
+          supabaseRepo: repo,
+          observability: syncObservability,
+        ));
 
-    if (hasMirrorData && marketRepo != null) {
+    final hasMirrorData =
+        allListings.isNotEmpty && market.hasListingsMirrorData;
+
+    if (hasMirrorData) {
       // P1 → P2 → P3 prioritized inbound sync.
       await _syncInboundPriority1(
-        marketRepo,
+        market,
         userId: userId,
         forceRefresh: forceRefresh,
       );
       notifyListeners();
 
+      if (allListings.isEmpty) {
+        await _coldSeedPriority1(repo, market);
+        notifyListeners();
+      }
+
       await _syncInboundPriority2(repo, userId: userId);
       notifyListeners();
 
       await _syncInboundPriority3(repo);
-    } else if (marketRepo != null) {
-      await _coldSeedPriority1(repo, marketRepo);
+    } else {
+      await _coldSeedPriority1(repo, market);
       notifyListeners();
 
       await _syncInboundPriority2(repo, userId: userId);
