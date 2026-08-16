@@ -287,9 +287,9 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
           child: ListView(
             children: [
               // ── Cover Image ────────────────────────────────────────────────
-              _SectionLabel(label: 'Cover Photo', cs: cs),
+              _SectionLabel(label: s.coverPhotoLabel, cs: cs),
               const SizedBox(height: 8),
-              _buildImagePicker(cs),
+              _buildImagePicker(cs, s.addCoverPhotoLabel),
               if (_imageError != null) ...[
                 const SizedBox(height: 4),
                 Text(_imageError!,
@@ -433,7 +433,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     );
   }
 
-  Widget _buildImagePicker(ColorScheme cs) {
+  Widget _buildImagePicker(ColorScheme cs, String addCoverLabel) {
     // Show new local image if picked, otherwise existing remote image, else add button.
     if (_newImagePaths.isNotEmpty) {
       return SizedBox(
@@ -469,7 +469,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
       height: 120,
       child: Row(
         children: [
-          _AddTile(cs: cs, label: 'Add Cover Photo', onTap: _pickImage),
+          _AddTile(cs: cs, label: addCoverLabel, onTap: _pickImage),
         ],
       ),
     );

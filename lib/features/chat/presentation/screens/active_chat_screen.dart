@@ -195,6 +195,7 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = KoolanAppStateScope.of(context).s;
 
     // My bubbles: primaryContainer bg, onPrimaryContainer text — guaranteed contrast.
     // Incoming: surfaceContainerHighest bg, onSurface text.
@@ -222,7 +223,7 @@ class _ChatBubble extends StatelessWidget {
             child: Text(msg.text, style: TextStyle(color: fg, fontSize: 14)),
           ),
           const SizedBox(height: 2),
-          Text(msg.timestamp,
+          Text(s.formatChatTimestamp(msg.displayTime),
               style: TextStyle(
                   fontSize: 10,
                   color: cs.onSurfaceVariant.withValues(alpha: 0.5))),

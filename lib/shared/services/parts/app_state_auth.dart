@@ -145,15 +145,8 @@ extension AppStateAuth on KoolanAppState {
       ? 'Detail 1'
       : 'Category';
 
-  String _specDefault1(String cat) => cat == 'CARS'
-      ? '2023'
-      : cat == 'HOUSES'
-      ? '3 Bed'
-      : cat == 'LAND'
-      ? '500 sqm'
-      : cat == 'OTHERS'
-      ? ''
-      : 'Worker';
+  /// Empty when the user left the field blank — never invent sample values.
+  String _specDefault1(String cat) => '';
 
   String _specLabel2(String cat) => cat == 'CARS'
       ? 'Mileage'
@@ -165,15 +158,7 @@ extension AppStateAuth on KoolanAppState {
       ? 'Detail 2'
       : 'Experience';
 
-  String _specDefault2(String cat) => cat == 'CARS'
-      ? '5,000 km'
-      : cat == 'HOUSES'
-      ? '2 Bath'
-      : cat == 'LAND'
-      ? 'Residential'
-      : cat == 'OTHERS'
-      ? ''
-      : '3 years';
+  String _specDefault2(String cat) => '';
 
   String _specLabel3(String cat) => cat == 'CARS'
       ? 'Transmission'
@@ -185,15 +170,7 @@ extension AppStateAuth on KoolanAppState {
       ? 'Detail 3'
       : 'Skills';
 
-  String _specDefault3(String cat) => cat == 'CARS'
-      ? 'Automatic'
-      : cat == 'HOUSES'
-      ? '150m²'
-      : cat == 'LAND'
-      ? 'Available'
-      : cat == 'OTHERS'
-      ? ''
-      : 'General Support';
+  String _specDefault3(String cat) => '';
 
   String _specLabel4(String cat) => cat == 'CARS'
       ? 'Fuel Type'
@@ -205,13 +182,5 @@ extension AppStateAuth on KoolanAppState {
       ? 'Detail 4'
       : 'Status';
 
-  String _specDefault4(String cat) => cat == 'CARS'
-      ? 'Petrol'
-      : cat == 'HOUSES'
-      ? '24/7'
-      : cat == 'LAND'
-      ? 'Yes'
-      : cat == 'OTHERS'
-      ? ''
-      : 'Verified';
+  String _specDefault4(String cat) => '';
 }

@@ -28,7 +28,7 @@ class _ListingsTab extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onManageTap,
                 icon: const Icon(Icons.list_alt_rounded, size: 16),
-                label: const Text('Manage All'),
+                label: Text(state.s.profileManageAll),
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -40,7 +40,7 @@ class _ListingsTab extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onPostTap,
                 icon: const Icon(Icons.add_rounded, size: 16),
-                label: const Text('New Post'),
+                label: Text(state.s.profileNewPost),
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),

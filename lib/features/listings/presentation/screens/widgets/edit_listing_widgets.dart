@@ -86,7 +86,7 @@ class _LocalImageTile extends StatelessWidget {
               color: cs.primary.withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text('New',
+            child: Text(KoolanAppStateScope.of(context).s.commonNew,
                 style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
@@ -278,7 +278,7 @@ class _EditDropdownOrOtherState extends State<_EditDropdownOrOther> {
           dropdownColor: cs.surfaceContainerHighest,
           style: TextStyle(color: cs.onSurface, fontSize: 14),
           decoration: decoration,
-          hint: Text('Select or type…',
+          hint: Text(KoolanAppStateScope.of(context).s.selectOrTypeHint,
               style: TextStyle(
                   color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
           items: List.generate(allKeys.length, (i) {

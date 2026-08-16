@@ -17,6 +17,8 @@ class AppStrings {
   String get commonRetry => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
   String get commonLoading => _t('Loading…', 'በመጫን ላይ…', 'Waa la soo rarayaa…');
   String get commonCancel => _t('Cancel', 'ሰርዝ', 'Jooji');
+  String get commonDelete => _t('Delete', 'ሰርዝ', 'Tirtir');
+  String get commonNew => _t('New', 'አዲስ', 'Cusub');
 
   // ── Auth / Onboarding ───────────────────────────────────────────────────────
   String get authTitle =>
@@ -123,6 +125,21 @@ class AppStrings {
   String get listingNotFound =>
       _t('Listing not found', 'ዝርዝር አልተገኘም', 'Xayaysiiska lama helin');
   String get listingMyAd => _t('My Ad', 'የኔ ማስታወቂያ', 'Xayaysiiskayga');
+  String get editListingTitle =>
+      _t('Edit Listing', 'ዝርዝር አርትዕ', 'Tafatir Xayaysiis');
+  String get deleteListingTitle =>
+      _t('Delete listing?', 'ዝርዝር ይሰረዝ?', 'Tirtir xayaysiiska?');
+  String deleteListingBody(String title) => _t(
+        'This will permanently remove "$title" from the marketplace.',
+        '"$title" ከገበያው እስከመጨረሻ ይወገዳል።',
+        'Tani waxay si joogto ah uga saari doontaa "$title" suuqa.',
+      );
+  String get selectOrTypeHint =>
+      _t('Select or type…', 'ይምረጡ ወይም ይጻፉ…', 'Dooro ama qor…');
+  String get coverPhotoLabel =>
+      _t('Cover Photo', 'ሽፋን ፎቶ', 'Sawirka daboolka');
+  String get addCoverPhotoLabel =>
+      _t('Add Cover Photo', 'ሽፋን ፎቶ ጨምር', 'Ku dar sawirka daboolka');
 
   // ── Bottom Navigation ───────────────────────────────────────────────────────
   String get navHome => _t('Home', 'ዋና ገጽ', 'Guriga');
@@ -895,7 +912,26 @@ class AppStrings {
   String get messagesFilterUnread => _t('Unread', 'ያልተነበቡ', 'aan la aqoon');
   String get messagesFilterArchived => _t('Archived', 'የተቀዱ', 'La kaydiyey');
   String get messagesJustNow => _t('Just now', 'አሁን ነው', 'Hadda ayuu ahaa');
+  String get messagesYesterday => _t('Yesterday', 'ትናንት', 'Shalay');
+  String messagesMinutesAgo(int minutes) =>
+      _t('$minutes m ago', 'ከ$minutes ደቂቃ በፊት', '$minutes d kahor');
   String get messagesNoMessages => _t('No messages yet', 'ምንም መልዕክት የለም', 'Wali farriin ma jirto');
+
+  /// Relative chat timestamp for message bubbles and conversation list.
+  String formatChatTimestamp(DateTime? dt) {
+    if (dt == null) return messagesJustNow;
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return messagesJustNow;
+    if (diff.inHours < 1) return messagesMinutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) {
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    }
+    if (diff.inDays == 1) return messagesYesterday;
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
 
   // ── Active Chat Screen ───────────────────────────────────────────────────────
   String get chatCall => _t('Call', 'ደውል', 'Wac');
@@ -917,6 +953,8 @@ class AppStrings {
 
   // ── Profile Screen ───────────────────────────────────────────────────────────
   String get profileReviews => _t('Reviews', 'ግምገማዎች', 'Dib-u-eegisyada');
+  String get profileManageAll => _t('Manage All', 'ሁሉንም አስተዳድር', 'Maamul Dhammaan');
+  String get profileNewPost => _t('New Post', 'አዲስ ልጥፍ', 'Post Cusub');
   String get profileJobsDone => _t('Jobs Done', 'የተጠናቀቁ ሥራዎች', 'Shaqooyinka la dhammeeyey');
   String get profileResponseRate => _t('Response Rate', 'የምላሽ ደረጃ', 'Heerka jawaabta');
   String get profileTabServices => _t('Services', 'አገልግሎቶች', 'Adeegyada');
@@ -1527,7 +1565,7 @@ class AppStrings {
   );
 
   String get promo2Headline =>
-      _t('Trusted &\nVerified Sellers', 'የታመኑ\nሻጮች', 'Iibiyayaal\nLa Amini Karo');
+      _t('Trusted\nLocal Sellers', 'የታመኑ\nአካባቢያዊ ሻጮች', 'Iibiyayaal\nDeegaan');
   String get promo2Sub => _t(
     'Browse real listings from people in your community.',
     'ከማህበረሰብዎ ሰዎች ዝርዝሮችን ያስሱ።',
@@ -1657,5 +1695,15 @@ class AppStrings {
     'አንዳንድ ለውጦች ሊስቀልቁ አልቻሉም። ለሙከራ ወይም ለሰርዛ ይጫኑ።',
     'Qaar ka mid ah isbedelada lama soo gelicarin. Taabo si aad isku daydo ama tirtirto.',
   );
+
+  // ── Legal ────────────────────────────────────────────────────────────────────
+  String get settingsLegalSection =>
+      _t('Legal', 'ሕጋዊ', 'Sharci');
+  String get settingsPrivacyPolicy =>
+      _t('Privacy Policy', 'የግላዊነት ፖሊሲ', 'Xeerka Sirta');
+  String get settingsTermsOfService =>
+      _t('Terms of Service', 'የአገልግሎት ውሎች', 'Shuruudaha Adeegga');
+  String get settingsAboutVersion =>
+      _t('App version', 'የመተግበሪያ ስሪት', 'Nooca abka');
 
 }

@@ -8,14 +8,15 @@ void main() {
   testWidgets('Koolan app renders without crashing', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const KoolanApp());
+    // bootstrapPending paints branded boot UI without blocking on services.
+    await tester.pumpWidget(const KoolanApp(bootstrapPending: true));
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 
-  testWidgets('Koolan app tolerates missing Supabase configuration', (
+  testWidgets('Koolan app shows branded boot while pending', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const KoolanApp());
+    await tester.pumpWidget(const KoolanApp(bootstrapPending: true));
     await tester.pump();
 
     expect(find.byType(MaterialApp), findsOneWidget);

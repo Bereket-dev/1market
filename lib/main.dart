@@ -33,6 +33,7 @@ Future<void> main() async {
     // Calm ErrorWidget instead of the red screen (release).
     ErrorWidget.builder = (details) => AppErrorWidget(details: details);
 
+    // Must be registered before runApp (FCM isolate entry).
     registerFcmBackgroundHandler();
 
     bool initialDarkMode = false;
@@ -45,12 +46,12 @@ Future<void> main() async {
       // SharedPreferences unavailable — use defaults.
     }
 
-    final bootstrap = await ServiceBootstrap.initialize();
-
+    // Paint first frame immediately (native splash → branded boot UI).
+    // Firebase / Supabase / notifications init inside [KoolanApp].
     runApp(KoolanApp(
       initialDarkMode: initialDarkMode,
       initialLocale: initialLocale,
-      bootstrapErrorCode: bootstrap.ok ? null : bootstrap.errorCode,
+      bootstrapPending: true,
     ));
   }, (error, stack) {
     ErrorReporter.recordError(error, stack, fatal: true);

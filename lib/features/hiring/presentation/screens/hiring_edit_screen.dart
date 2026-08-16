@@ -240,9 +240,9 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
           child: ListView(
             children: [
               // ── Cover Image ────────────────────────────────────────────
-              _SectionLabel(label: 'Cover Photo', cs: cs),
+              _SectionLabel(label: s.coverPhotoLabel, cs: cs),
               const SizedBox(height: 8),
-              _buildImagePicker(cs),
+              _buildImagePicker(cs, s.addCoverPhotoLabel),
               if (_imageError != null) ...[
                 const SizedBox(height: 4),
                 Text(_imageError!,
@@ -358,7 +358,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     );
   }
 
-  Widget _buildImagePicker(ColorScheme cs) {
+  Widget _buildImagePicker(ColorScheme cs, String addCoverLabel) {
     if (_newImagePath != null) {
       return SizedBox(
         height: 120,
@@ -393,7 +393,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
       height: 120,
       child: Row(
         children: [
-          _AddTile(cs: cs, label: 'Add Cover Photo', onTap: _pickImage),
+          _AddTile(cs: cs, label: addCoverLabel, onTap: _pickImage),
         ],
       ),
     );

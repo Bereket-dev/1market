@@ -11,22 +11,21 @@ class _MyListingTile extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final cs = Theme.of(context).colorScheme;
+    final s = state.s;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete listing?'),
-        content: Text(
-          'This will permanently remove "${listing.title}" from the marketplace.',
-        ),
+        title: Text(s.deleteListingTitle),
+        content: Text(s.deleteListingBody(listing.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(s.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(backgroundColor: cs.error),
-            child: const Text('Delete'),
+            child: Text(s.commonDelete),
           ),
         ],
       ),

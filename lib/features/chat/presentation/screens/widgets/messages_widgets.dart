@@ -121,7 +121,9 @@ class _SessionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      lastMsg?.timestamp ?? state.s.messagesJustNow,
+                      lastMsg != null
+                          ? state.s.formatChatTimestamp(lastMsg.displayTime)
+                          : state.s.messagesJustNow,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight:

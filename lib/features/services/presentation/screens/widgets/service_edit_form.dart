@@ -49,7 +49,7 @@ class _ServiceImagePicker extends StatelessWidget {
     return SizedBox(
       height: 120,
       child: Row(children: [
-        _AddTile(cs: cs, label: 'Add Cover Photo', onTap: onPick),
+        _AddTile(cs: cs, label: KoolanAppStateScope.of(context).s.addCoverPhotoLabel, onTap: onPick),
       ]),
     );
   }

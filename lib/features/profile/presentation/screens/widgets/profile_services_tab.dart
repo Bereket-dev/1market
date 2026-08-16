@@ -37,7 +37,7 @@ class _ServicesTab extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onManageTap,
                 icon: const Icon(Icons.list_alt_rounded, size: 16),
-                label: const Text('Manage All'),
+                label: Text(s.profileManageAll),
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),

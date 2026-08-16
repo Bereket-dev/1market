@@ -54,13 +54,18 @@ class KoolanApp extends StatefulWidget {
   final bool initialDarkMode;
   final String initialLocale;
 
-  /// Stable bootstrap failure code from [ServiceBootstrap], or null when OK.
+  /// When true, [ServiceBootstrap] runs after the first frame so the branded
+  /// boot UI appears immediately under the native splash.
+  final bool bootstrapPending;
+
+  /// Pre-known failure from a previous bootstrap attempt (tests / hot restart).
   final String? bootstrapErrorCode;
 
   const KoolanApp({
     super.key,
     this.initialDarkMode = false,
     this.initialLocale = 'en',
+    this.bootstrapPending = false,
     this.bootstrapErrorCode,
   });
 
@@ -69,43 +74,75 @@ class KoolanApp extends StatefulWidget {
 }
 
 class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
-  late KoolanAppState _appState;
+  KoolanAppState? _appState;
   String? _bootstrapErrorCode;
+  bool _bootstrapPending = false;
   bool _retryingBootstrap = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _bootstrapErrorCode = widget.bootstrapErrorCode;
+    _bootstrapPending = widget.bootstrapPending && _bootstrapErrorCode == null;
+
+    if (_bootstrapPending) {
+      unawaited(_runBootstrap());
+    } else if (_bootstrapErrorCode == null) {
+      _createAppState();
+      unawaited(_handleColdStartDeepLink());
+    }
+  }
+
+  void _createAppState() {
     _appState = KoolanAppState(
       initialDarkMode: widget.initialDarkMode,
       initialLocale: widget.initialLocale,
     );
-    WidgetsBinding.instance.addObserver(this);
-    if (_bootstrapErrorCode == null) {
-      _handleColdStartDeepLink();
+  }
+
+  Future<void> _runBootstrap() async {
+    final result = await ServiceBootstrap.initialize();
+    if (!mounted) return;
+    if (result.ok) {
+      setState(() {
+        _bootstrapPending = false;
+        _bootstrapErrorCode = null;
+        _retryingBootstrap = false;
+        _createAppState();
+      });
+      unawaited(_handleColdStartDeepLink());
+    } else {
+      setState(() {
+        _bootstrapPending = false;
+        _bootstrapErrorCode = result.errorCode;
+        _retryingBootstrap = false;
+      });
     }
   }
 
   Future<void> _retryBootstrap() async {
     if (_retryingBootstrap) return;
-    setState(() => _retryingBootstrap = true);
+    setState(() {
+      _retryingBootstrap = true;
+      _bootstrapPending = true;
+      _bootstrapErrorCode = null;
+    });
     try {
       final result = await ServiceBootstrap.initialize();
       if (!mounted) return;
       if (result.ok) {
-        _appState.dispose();
+        _appState?.dispose();
         setState(() {
+          _bootstrapPending = false;
           _bootstrapErrorCode = null;
           _retryingBootstrap = false;
-          _appState = KoolanAppState(
-            initialDarkMode: widget.initialDarkMode,
-            initialLocale: widget.initialLocale,
-          );
+          _createAppState();
         });
-        _handleColdStartDeepLink();
+        unawaited(_handleColdStartDeepLink());
       } else {
         setState(() {
+          _bootstrapPending = false;
           _bootstrapErrorCode = result.errorCode;
           _retryingBootstrap = false;
         });
@@ -114,6 +151,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
       await ErrorReporter.recordError(e, st, reason: 'bootstrap_retry');
       if (!mounted) return;
       setState(() {
+        _bootstrapPending = false;
         _bootstrapErrorCode = 'supabase_init_failed';
         _retryingBootstrap = false;
       });
@@ -123,16 +161,18 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   /// Cold-start OAuth deep link: supabase may already have a session.
   Future<void> _handleColdStartDeepLink() async {
     await Future<void>.delayed(Duration.zero);
+    final appState = _appState;
+    if (appState == null) return;
     try {
       final client = AppSupabaseConfig.clientOrNull();
       if (client == null) return;
       final session = client.auth.currentSession;
       if (session != null &&
-          _appState.onboardingPhase == OnboardingPhase.initializing) {
+          appState.onboardingPhase == OnboardingPhase.initializing) {
         if (kDebugMode) {
           debugPrint('[DeepLink] Cold-start session found — onFreshAuth');
         }
-        await _appState.onFreshAuth();
+        await appState.onFreshAuth();
       }
     } catch (e, st) {
       await ErrorReporter.recordError(e, st, reason: 'cold_start_deeplink');
@@ -142,7 +182,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _appState.dispose();
+    _appState?.dispose();
     super.dispose();
   }
 
@@ -151,41 +191,65 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   /// queued while the app was backgrounded are flushed immediately.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final appState = _appState;
+    if (appState == null) return;
     if (state == AppLifecycleState.resumed) {
       if (kDebugMode) {
         debugPrint('[KoolanApp] App foregrounded — triggering sync');
       }
-      _appState.syncService.requestSync();
-      unawaited(_appState.refreshNotificationPermissionState());
+      appState.syncService.requestSync();
+      unawaited(appState.refreshNotificationPermissionState());
     }
   }
+
+  ThemeMode get _themeMode =>
+      widget.initialDarkMode ? ThemeMode.dark : ThemeMode.light;
 
   @override
   Widget build(BuildContext context) {
     if (kDebugMode) debugPrint('[KoolanApp] build');
-    if (_bootstrapErrorCode != null) {
+
+    if (_bootstrapPending) {
       return MaterialApp(
-        title: 'Koolan – East Ethiopia Marketplace',
+        title: 'Koolan',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        themeMode: widget.initialDarkMode ? ThemeMode.dark : ThemeMode.light,
+        themeMode: _themeMode,
+        home: _BrandedBootScreen(locale: widget.initialLocale),
+      );
+    }
+
+    if (_bootstrapErrorCode != null) {
+      return MaterialApp(
+        title: 'Koolan',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: _themeMode,
         home: _BootstrapFailureScreen(
           retrying: _retryingBootstrap,
           onRetry: _retryBootstrap,
+          locale: widget.initialLocale,
         ),
       );
     }
+
+    final appState = _appState!;
     return KoolanAppStateScope(
-      notifier: _appState,
+      notifier: appState,
       child: ListenableBuilder(
-        listenable: _appState,
+        listenable: appState,
         builder: (context, _) {
           return MaterialApp(
-            title: 'Koolan – East Ethiopia Marketplace',
+            title: 'Koolan',
             debugShowCheckedModeBanner: false,
-            locale: _appState.materialLocale,
-            supportedLocales: const [Locale('en')],
+            locale: appState.materialLocale,
+            supportedLocales: const [
+              Locale('en'),
+              Locale('am'),
+              Locale('so'),
+            ],
             localeResolutionCallback: (locale, supportedLocales) {
               if (locale == null) return const Locale('en');
               for (final supportedLocale in supportedLocales) {
@@ -202,8 +266,8 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
             ],
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
-            themeMode: _appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: _RootGate(appState: _appState),
+            themeMode: appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: _RootGate(appState: appState),
           );
         },
       ),

@@ -9,12 +9,15 @@ class _RootGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) debugPrint('[RootGate] build — phase: ${appState.onboardingPhase}');
+    if (kDebugMode) {
+      debugPrint('[RootGate] build — phase: ${appState.onboardingPhase}');
+    }
     switch (appState.onboardingPhase) {
       case OnboardingPhase.initializing:
         return _InitializingScreen(
           error: appState.initError,
           onRetry: appState.retryInitialization,
+          locale: appState.locale,
         );
       case OnboardingPhase.auth:
         return const AuthScreen(fromOnboarding: true);
@@ -32,20 +35,110 @@ class _RootGate extends StatelessWidget {
   }
 }
 
+/// Matches native splash: brand blue + centred logo while services start.
+class _BrandedBootScreen extends StatelessWidget {
+  const _BrandedBootScreen({required this.locale});
+
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppStrings(locale);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF001A5C) : kPrimary;
+    return Scaffold(
+      backgroundColor: bg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/brand/splash_logo.png',
+              width: 96,
+              height: 96,
+              filterQuality: FilterQuality.high,
+            ),
+            const SizedBox(height: 28),
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              s.initLoading,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InitializingScreen extends StatelessWidget {
   final String? error;
   final VoidCallback onRetry;
+  final String locale;
 
-  const _InitializingScreen({this.error, required this.onRetry});
+  const _InitializingScreen({
+    this.error,
+    required this.onRetry,
+    required this.locale,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (kDebugMode) debugPrint('[InitializingScreen] build');
     final cs = Theme.of(context).colorScheme;
-    final appState = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
-        .notifier!;
-    final s = appState.s;
+    final s = AppStrings(locale);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (error == null) {
+      final bg = isDark ? const Color(0xFF001A5C) : kPrimary;
+      return Scaffold(
+        backgroundColor: bg,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/brand/splash_logo.png',
+                width: 96,
+                height: 96,
+                filterQuality: FilterQuality.high,
+              ),
+              const SizedBox(height: 28),
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                s.initLoading,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Center(
         child: Padding(
@@ -53,24 +146,15 @@ class _InitializingScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (error == null) ...[
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(
-                  s.initLoading,
-                  style: TextStyle(color: cs.onSurfaceVariant),
-                ),
-              ] else ...[
-                Icon(Icons.error_outline, color: cs.error, size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  s.errorCantConnect,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: cs.error),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(onPressed: onRetry, child: Text(s.initRetry)),
-              ],
+              Icon(Icons.error_outline, color: cs.error, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                s.errorCantConnect,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: cs.error),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onRetry, child: Text(s.initRetry)),
             ],
           ),
         ),
@@ -84,16 +168,17 @@ class _BootstrapFailureScreen extends StatelessWidget {
   const _BootstrapFailureScreen({
     required this.retrying,
     required this.onRetry,
+    this.locale = 'en',
   });
 
   final bool retrying;
   final VoidCallback onRetry;
+  final String locale;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // Locale prefs may exist but AppStrings needs a locale code; default en.
-    final s = AppStrings('en');
+    final s = AppStrings(locale);
     return Scaffold(
       body: Center(
         child: Padding(
@@ -101,7 +186,14 @@ class _BootstrapFailureScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_outlined, color: cs.error, size: 48),
+              Image.asset(
+                'assets/brand/logo.png',
+                width: 72,
+                height: 72,
+                filterQuality: FilterQuality.high,
+              ),
+              const SizedBox(height: 24),
+              Icon(Icons.cloud_off_outlined, color: cs.error, size: 40),
               const SizedBox(height: 16),
               Text(
                 s.errorCantConnect,
@@ -129,4 +221,3 @@ class _BootstrapFailureScreen extends StatelessWidget {
     );
   }
 }
-

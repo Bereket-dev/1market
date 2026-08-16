@@ -1,0 +1,12 @@
+# Android upload signing — copy to key.properties and fill in real values.
+# NEVER commit key.properties or the .jks/.keystore file.
+#
+# Generate a keystore (once):
+#   ./tool/create_upload_keystore.sh
+#
+# Then point storeFile at the absolute path of the generated keystore.
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=/absolute/path/to/koolan-upload.jks

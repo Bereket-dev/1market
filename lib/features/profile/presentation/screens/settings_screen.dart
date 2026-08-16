@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/legal_urls.dart';
 import '../../../../core/errors/error_mapper.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
@@ -110,6 +112,22 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       await appState.toggleNotifMessages(value);
     } finally {
       if (mounted) setState(() => _messagesToggleBusy = false);
+    }
+  }
+
+  Future<void> _openLegalUrl(String url) async {
+    final uri = Uri.parse(url);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppStrings(
+          context
+                  .getInheritedWidgetOfExactType<KoolanAppStateScope>()
+                  ?.notifier
+                  ?.locale ??
+              'en',
+        ).errorCantConnect)),
+      );
     }
   }
 
@@ -250,6 +268,24 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             onChanged: !appState.notifPushEnabled || _messagesToggleBusy
                 ? null
                 : (v) => _onMessagesToggle(v, appState),
+          ),
+          const SizedBox(height: 32),
+
+          // ── Legal ─────────────────────────────────────────────────────────
+          _SectionLabel(s.settingsLegalSection),
+          const SizedBox(height: 10),
+          _SettingsRow(
+            icon: Icons.privacy_tip_outlined,
+            title: s.settingsPrivacyPolicy,
+            subtitle: '',
+            onTap: () => _openLegalUrl(LegalUrls.privacyPolicy),
+          ),
+          const SizedBox(height: 8),
+          _SettingsRow(
+            icon: Icons.description_outlined,
+            title: s.settingsTermsOfService,
+            subtitle: '',
+            onTap: () => _openLegalUrl(LegalUrls.termsOfService),
           ),
           const SizedBox(height: 32),
 

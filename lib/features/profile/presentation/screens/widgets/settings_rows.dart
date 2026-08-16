@@ -33,7 +33,7 @@ class _SettingsRow extends StatelessWidget {
   const _SettingsRow({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle = '',
     // ignore: unused_element_parameter — optional trailing label for future rows
     this.trailingText,
     this.onTap,
@@ -59,10 +59,11 @@ class _SettingsRow extends StatelessWidget {
                 Text(title,
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(subtitle,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.7))),
+                if (subtitle.isNotEmpty)
+                  Text(subtitle,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.7))),
               ],
             ),
           ),

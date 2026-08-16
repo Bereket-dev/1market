@@ -37,7 +37,8 @@ class ChatMessage with SyncableEntity {
       id: json['id'] as String,
       sender: senderId == currentUserId ? 'Me' : 'Partner',
       text: json['text'] as String,
-      timestamp: _formatTimestamp(createdAt),
+      // Timestamp string is a stable fallback; UI prefers [formatDisplayTime].
+      timestamp: _formatTimestampEn(createdAt),
       isMe: senderId == currentUserId,
       localUpdatedAt: createdAt ?? DateTime.now(),
       remoteUpdatedAt: createdAt,
@@ -45,7 +46,10 @@ class ChatMessage with SyncableEntity {
     );
   }
 
-  static String _formatTimestamp(DateTime? dt) {
+  /// Prefer [AppStrings.formatChatTimestamp] at display time for l10n.
+  DateTime? get displayTime => remoteUpdatedAt ?? localUpdatedAt;
+
+  static String _formatTimestampEn(DateTime? dt) {
     if (dt == null) return 'Just now';
     final now = DateTime.now();
     final diff = now.difference(dt);

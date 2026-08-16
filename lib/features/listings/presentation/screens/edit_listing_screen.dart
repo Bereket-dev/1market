@@ -176,11 +176,11 @@ class _EditListingScreenState extends State<EditListingScreen> {
             icon: Icon(Icons.arrow_back, color: cs.primary),
             onPressed: () => state.popScreen(),
           ),
-          title: const Text('Edit Listing'),
+          title: Text(state.s.editListingTitle),
           backgroundColor: cs.surface,
           elevation: 0,
         ),
-        body: const Center(child: Text('Listing not found.')),
+        body: Center(child: Text(state.s.listingNotFound)),
       );
     }
 
@@ -193,9 +193,9 @@ class _EditListingScreenState extends State<EditListingScreen> {
           icon: Icon(Icons.arrow_back, color: cs.primary),
           onPressed: () => state.popScreen(),
         ),
-        title: const Text(
-          'Edit Listing',
-          style: TextStyle(fontWeight: FontWeight.w900),
+        title: Text(
+          state.s.editListingTitle,
+          style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         actions: [
           if (_isSaving)
