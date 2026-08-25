@@ -7,9 +7,9 @@ class LegalUrls {
 
   /// Public HTTPS privacy policy (must stay reachable for Play review).
   static const String privacyPolicy =
-      'https://koolan.app/privacy';
+      'https://1market-privacy-policy.vercel.app/';
 
   /// Public HTTPS terms of service.
   static const String termsOfService =
-      'https://koolan.app/terms';
+      'https://1market-terms.vercel.app/';
 }
