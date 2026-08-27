@@ -9,13 +9,10 @@ import '../../../../shared/widgets/auth_gate_sheet.dart';
 part 'widgets/service_reviews_widgets.dart';
 part 'widgets/service_reviews_form.dart';
 
-/// Displays reviews for a service and allows the current user to submit one.
+/// Displays reviews for a service and allows eligible hirers to submit one.
 ///
-/// TODO (Phase C Part 2): Gate review submission on a completed HiringApplication
-/// for this service. For Part 1, any authenticated user can leave a review.
-/// Once the HiringApplications table is introduced, add a check:
-///   final canReview = await repo.hasCompletedEngagement(serviceId, userId);
-///   if (!canReview) show "Complete a job first" message.
+/// Review submission requires an accepted application for this service on a
+/// hiring post owned by the current user.
 class ServiceReviewsScreen extends StatefulWidget {
   final String serviceId;
 
@@ -31,6 +28,8 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
   String? _submitError;
   String? _successMessage;
   bool _initialized = false;
+  bool _canReview = false;
+  bool _isOwnService = false;
 
   // Submit form state
   int _rating = 5;
@@ -52,8 +51,19 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
 
   Future<void> _load() async {
     final state = KoolanAppStateScope.of(context);
+    final service = state.getServiceById(widget.serviceId);
+    final isOwn = service != null &&
+        state.currentUser?.id != null &&
+        service.ownerId == state.currentUser!.id;
+    final canReview = !isOwn && await state.canReviewService(widget.serviceId);
     await state.loadReviewsForService(widget.serviceId);
-    if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      setState(() {
+        _loading = false;
+        _canReview = canReview;
+        _isOwnService = isOwn;
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -63,6 +73,10 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
     // Auth gate: review submission requires sign-in.
     if (!state.isSignedIn) {
       showAuthGateSheet(context, reason: AuthGateReason.generic);
+      return;
+    }
+    if (!_canReview) {
+      setState(() => _submitError = state.s.reviewsGatingNote);
       return;
     }
 
@@ -121,116 +135,92 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Phase C Part 2 gating note ────────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: cs.primaryContainer.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.primary.withValues(alpha: 0.2),
+            if (_isOwnService)
+              _ReviewGateBanner(message: s.reviewsOwnServiceHint, cs: cs)
+            else if (!_canReview)
+              _ReviewGateBanner(message: s.reviewsGatingNote, cs: cs)
+            else ...[
+              // ── Submit form (eligible hirers only) ─────────────────────
+              Text(
+                s.reviewsSubmitTitle,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: cs.onSurface,
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, size: 16, color: cs.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      // TODO (Phase C Part 2): Replace with gating check
-                      s.reviewsAnonymousHint,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurfaceVariant,
-                      ),
+              const SizedBox(height: 12),
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.star_outline,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          s.reviewsRatingLabel,
+                          style: TextStyle(color: cs.onSurfaceVariant),
+                        ),
+                        const SizedBox(width: 12),
+                        _StarPicker(
+                          value: _rating,
+                          onChanged: (v) => setState(() => _rating = v),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            // ── Submit form ────────────────────────────────────────────────
-            Text(
-              s.reviewsSubmitTitle,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Star rating picker — labelled ──────────────────────
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.star_outline,
-                        size: 18,
-                        color: cs.onSurfaceVariant,
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _commentController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: s.reviewsCommentLabel,
+                        hintText: s.reviewsCommentHint,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                      const SizedBox(width: 8),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? s.reviewsCommentRequired
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _submitting ? null : _submit,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50),
+                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(s.reviewsSubmitButton),
+                    ),
+                    if (_successMessage != null) ...[
+                      const SizedBox(height: 8),
                       Text(
-                        s.reviewsRatingLabel,
-                        style: TextStyle(color: cs.onSurfaceVariant),
-                      ),
-                      const SizedBox(width: 12),
-                      _StarPicker(
-                        value: _rating,
-                        onChanged: (v) => setState(() => _rating = v),
+                        _successMessage!,
+                        style: TextStyle(color: cs.primary),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  // ── Comment ────────────────────────────────────────────
-                  TextFormField(
-                    controller: _commentController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: s.reviewsCommentLabel,
-                      hintText: s.reviewsCommentHint,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                    if (_submitError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _submitError!,
+                        style: TextStyle(color: cs.error, fontSize: 12),
                       ),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? s.reviewsCommentRequired : null,
-                  ),
-                  const SizedBox(height: 12),
-                  // ── Submit button ─────────────────────────────────────
-                  FilledButton(
-                    onPressed: _submitting ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    child: _submitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(s.reviewsSubmitButton),
-                  ),
-                  if (_successMessage != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      _successMessage!,
-                      style: TextStyle(color: cs.primary),
-                    ),
+                    ],
                   ],
-                  if (_submitError != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      _submitError!,
-                      style: TextStyle(color: cs.error, fontSize: 12),
-                    ),
-                  ],
-                ],
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 12),
@@ -258,6 +248,36 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
                   )),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ReviewGateBanner extends StatelessWidget {
+  final String message;
+  final ColorScheme cs;
+  const _ReviewGateBanner({required this.message, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 16, color: cs.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
+          ),
+        ],
       ),
     );
   }

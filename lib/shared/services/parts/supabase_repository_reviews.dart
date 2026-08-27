@@ -35,7 +35,9 @@ extension SupabaseRepositoryReviews on SupabaseRepository {
   }
 
   /// Inserts or updates a review for [serviceId] by the current user.
-  /// TODO (Phase C Part 2): Gate this on a completed HiringApplication.
+  ///
+  /// Requires an accepted hiring application for this service where the
+  /// current user is the hiring-post owner (the hirer).
   Future<ServiceReview> submitReview({
     required String serviceId,
     required int rating,
@@ -43,6 +45,11 @@ extension SupabaseRepositoryReviews on SupabaseRepository {
   }) async {
     final userId = currentUserId;
     if (userId == null) throw StateError('Not authenticated');
+
+    final allowed = await canReviewService(serviceId);
+    if (!allowed) {
+      throw StateError('Review requires an accepted hiring engagement');
+    }
 
     // Upsert on the unique (service_id, reviewer_id) constraint.
     // onConflict is required by PostgREST v2 for non-PK upserts.
@@ -80,6 +87,33 @@ extension SupabaseRepositoryReviews on SupabaseRepository {
       reviewerName: profile?['display_name'] as String?,
       reviewerAvatarUrl: profile?['avatar_url'] as String?,
     );
+  }
+
+  /// True when the current user hired [serviceId] (accepted application
+  /// on a hiring post they own) and does not own the service themselves.
+  Future<bool> canReviewService(String serviceId) async {
+    final userId = currentUserId;
+    if (userId == null) return false;
+
+    // Owners cannot review their own service.
+    final owned = await _client
+        .from('services')
+        .select('id')
+        .eq('id', serviceId)
+        .eq('owner_id', userId)
+        .maybeSingle();
+    if (owned != null) return false;
+
+    // Hirer must have accepted an application for this service.
+    final rows = await _client
+        .from('applications')
+        .select('id, hiring_posts!inner(poster_id)')
+        .eq('service_id', serviceId)
+        .eq('status', 'accepted')
+        .eq('hiring_posts.poster_id', userId)
+        .limit(1);
+
+    return (rows as List).isNotEmpty;
   }
 
 }

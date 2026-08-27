@@ -1,8 +1,7 @@
 /// A review for a specific service, left by a reviewer.
 ///
-/// TODO (Phase C Part 2): Reviews should be gated on a completed job engagement
-/// (i.e. reviewer must have a closed HiringApplication for this service).
-/// For Phase C Part 1 any authenticated user can submit a review.
+/// Submission is gated: the reviewer must own a hiring post that accepted
+/// an application for this service (and must not own the service).
 class ServiceReview {
   const ServiceReview({
     required this.id,

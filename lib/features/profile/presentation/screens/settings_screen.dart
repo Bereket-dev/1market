@@ -19,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
   bool _isSigningOut = false;
+  bool _isDeletingAccount = false;
   bool _pushToggleBusy = false;
   bool _messagesToggleBusy = false;
 
@@ -299,7 +300,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
 
           // ── Sign out ──────────────────────────────────────────────────────
           ElevatedButton.icon(
-            onPressed: _isSigningOut
+            onPressed: _isSigningOut || _isDeletingAccount
                 ? null
                 : () async {
                     if (!mounted) return;
@@ -326,10 +327,73 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
               elevation: 0,
             ),
           ),
+          if (appState.profile != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _isSigningOut || _isDeletingAccount
+                  ? null
+                  : () => _confirmDeleteAccount(appState),
+              icon: _isDeletingAccount
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(Icons.delete_forever_outlined, color: cs.error),
+              label: Text(
+                s.settingsDeleteAccount,
+                style: TextStyle(color: cs.error),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: cs.error,
+                side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(KoolanAppState appState) async {
+    final s = appState.s;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.settingsDeleteAccountTitle),
+        content: Text(s.settingsDeleteAccountBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(s.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(s.settingsDeleteAccountConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeletingAccount = true);
+    try {
+      await appState.deleteAccount();
+    } catch (e) {
+      if (!mounted) return;
+      final message = ErrorMapper.userMessage(e, appState.s);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeletingAccount = false);
+    }
   }
 }
 

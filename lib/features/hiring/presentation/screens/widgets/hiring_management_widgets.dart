@@ -118,7 +118,7 @@ class _HiringPostCard extends StatelessWidget {
                 children: [
                   _HiringCardAction(
                     icon: Icons.edit_rounded,
-                    label: 'Edit',
+                    label: s.commonEdit,
                     color: cs.secondaryContainer.withValues(alpha: 0.5),
                     iconColor: cs.secondary,
                     onTap: () =>
@@ -127,7 +127,7 @@ class _HiringPostCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   _HiringCardAction(
                     icon: Icons.delete_outline_rounded,
-                    label: 'Delete',
+                    label: s.commonDelete,
                     color: cs.error.withValues(alpha: 0.1),
                     iconColor: cs.error,
                     onTap: () =>

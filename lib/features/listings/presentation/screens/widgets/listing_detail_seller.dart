@@ -71,8 +71,8 @@ class _SellerCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.star_rounded,
-                              color: Colors.amber, size: 15),
+                          const Icon(Icons.star_rounded,
+                              color: kBrandGold, size: 15),
                           const SizedBox(width: 3),
                           Text(
                             listing.sellerRating.toStringAsFixed(1),
@@ -88,6 +88,33 @@ class _SellerCard extends StatelessWidget {
                                 fontSize: 12,
                                 color: cs.onSurfaceVariant),
                           ),
+                          if (listing.verified) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: kVerifiedBackground,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.verified_rounded,
+                                      size: 12, color: kVerifiedColor),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    s.detailVerified,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: kVerifiedColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],

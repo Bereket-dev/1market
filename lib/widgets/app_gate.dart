@@ -35,7 +35,7 @@ class _RootGate extends StatelessWidget {
   }
 }
 
-/// Matches native splash: brand blue + centred logo while services start.
+/// Matches native splash: plate colour + centred lockup while services start.
 class _BrandedBootScreen extends StatelessWidget {
   const _BrandedBootScreen({required this.locale});
 
@@ -44,34 +44,32 @@ class _BrandedBootScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = AppStrings(locale);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF001A5C) : kPrimary;
+    final brightness = Theme.of(context).brightness;
+    final bg = BrandLogo.backgroundForBrightness(brightness);
+    final onPlate = brightness == Brightness.dark
+        ? Colors.white70
+        : kPrimary.withValues(alpha: 0.7);
     return Scaffold(
       backgroundColor: bg,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/brand/splash_logo.png',
-              width: 96,
-              height: 96,
-              filterQuality: FilterQuality.high,
-            ),
+            const BrandLogo(width: 160, height: 160),
             const SizedBox(height: 28),
-            const SizedBox(
+            SizedBox(
               width: 28,
               height: 28,
               child: CircularProgressIndicator(
                 strokeWidth: 2.5,
-                color: Colors.white70,
+                color: onPlate,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               s.initLoading,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: onPlate,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -99,36 +97,34 @@ class _InitializingScreen extends StatelessWidget {
     if (kDebugMode) debugPrint('[InitializingScreen] build');
     final cs = Theme.of(context).colorScheme;
     final s = AppStrings(locale);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
 
     if (error == null) {
-      final bg = isDark ? const Color(0xFF001A5C) : kPrimary;
+      final bg = BrandLogo.backgroundForBrightness(brightness);
+      final onPlate = brightness == Brightness.dark
+          ? Colors.white70
+          : kPrimary.withValues(alpha: 0.7);
       return Scaffold(
         backgroundColor: bg,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                'assets/brand/splash_logo.png',
-                width: 96,
-                height: 96,
-                filterQuality: FilterQuality.high,
-              ),
+              const BrandLogo(width: 160, height: 160),
               const SizedBox(height: 28),
-              const SizedBox(
+              SizedBox(
                 width: 28,
                 height: 28,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: Colors.white70,
+                  color: onPlate,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 s.initLoading,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: onPlate,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -186,12 +182,7 @@ class _BootstrapFailureScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                'assets/brand/logo.png',
-                width: 72,
-                height: 72,
-                filterQuality: FilterQuality.high,
-              ),
+              const BrandLogo(width: 72, height: 72),
               const SizedBox(height: 24),
               Icon(Icons.cloud_off_outlined, color: cs.error, size: 40),
               const SizedBox(height: 16),

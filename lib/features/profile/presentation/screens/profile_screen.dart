@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/koolan_cities.dart';
 import '../../../../shared/models/listing.dart';
@@ -92,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : Container(
                           decoration: const BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Color(0xFF00288E), Color(0xFF1E40AF)],
+                              colors: kBrandBannerGradient,
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -301,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: cs.outlineVariant.withValues(alpha: 0.5)),
                             _StatCell(
                               value: '${myListings.length}',
-                              label: 'Listings',
+                              label: state.s.profileTabListings,
                             ),
                           ],
                         ),
@@ -322,7 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final isSel = _activeTab == tab;
                           final label = switch (tab) {
                             'Services' => state.s.profileTabServices,
-                            'Listings' => 'My Listings',
+                            'Listings' => state.s.profileTabListingsLong,
                             'About' => state.s.profileTabAbout,
                             _ => state.s.profileTabReviews,
                           };

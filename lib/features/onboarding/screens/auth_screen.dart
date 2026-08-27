@@ -8,6 +8,7 @@ import '../../../core/config/supabase_config.dart';
 import '../../../core/errors/app_error.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
+import '../../../shared/widgets/brand_logo.dart';
 import 'create_account_screen.dart';
 import 'reset_password_screen.dart';
 part 'widgets/auth_social_buttons.dart';
@@ -331,9 +332,14 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Headline ───────────────────────────────────────────────────
+              // ── Brand ──────────────────────────────────────────────────────
+              const Center(
+                child: BrandLogo(iconOnly: true, width: 72, height: 72),
+              ),
+              const SizedBox(height: 16),
               Text(
-                s.authSignIn,
+                s.authTitle,
+                textAlign: TextAlign.center,
                 style: tt.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                   color: cs.onSurface,
@@ -341,10 +347,20 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(height: 6),
               Text(
+                s.appSlogan,
+                textAlign: TextAlign.center,
+                style: tt.bodyMedium?.copyWith(
+                  color: cs.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
                 s.authSubtitle,
+                textAlign: TextAlign.center,
                 style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
               // ── Google ─────────────────────────────────────────────────────
               _SocialButton(

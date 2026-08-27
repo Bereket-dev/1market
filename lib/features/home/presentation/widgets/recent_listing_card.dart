@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/colors.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
@@ -21,10 +22,10 @@ class RecentListingCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      color: cs.surfaceContainerHighest,
+      color: kSurfaceContainerLowest,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.45)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -51,6 +52,20 @@ class RecentListingCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (listing.verified)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(
+                          color: kVerifiedColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.verified_rounded,
+                            size: 12, color: Colors.white),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(width: 14),
@@ -73,10 +88,11 @@ class RecentListingCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           listing.price,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w900,
                             color: cs.primary,
                           ),
@@ -100,15 +116,14 @@ class RecentListingCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: cs.primaryContainer
-                              .withValues(alpha: 0.25),
+                          color: cs.primary,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -121,7 +136,7 @@ class RecentListingCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: cs.primary,
+                                color: cs.onPrimary,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -129,7 +144,7 @@ class RecentListingCard extends StatelessWidget {
                               listing.category == 'SKILLS'
                                   ? Icons.chat_bubble
                                   : Icons.call,
-                              color: cs.primary,
+                              color: cs.onPrimary,
                               size: 11,
                             ),
                           ],

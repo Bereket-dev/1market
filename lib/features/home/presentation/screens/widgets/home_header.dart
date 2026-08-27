@@ -14,7 +14,7 @@ class _HomeHeader extends StatelessWidget {
     final displayName = profile?.displayName;
     final initials = displayName != null && displayName.isNotEmpty
         ? displayName[0].toUpperCase()
-        : 'K';
+        : '1';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
@@ -29,29 +29,23 @@ class _HomeHeader extends StatelessWidget {
       child: Row(
         children: [
           // ── Brand mark ─────────────────────────────────────────────────────
-          Container(
-            width: 36,
-            height: 36,
+          DecoratedBox(
             decoration: BoxDecoration(
-              color: cs.primary,
+              color: BrandLogo.iconBackgroundForBrightness(
+                Theme.of(context).brightness,
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              'K',
-              style: TextStyle(
-                color: cs.onPrimary,
-                fontWeight: FontWeight.w900,
-                fontSize: 20,
-                height: 1,
-              ),
+            child: const Padding(
+              padding: EdgeInsets.all(2),
+              child: BrandLogo(iconOnly: true, width: 34, height: 34),
             ),
           ),
           const SizedBox(width: 10),
           // ── App name ───────────────────────────────────────────────────────
           Expanded(
             child: Text(
-              'Koolan',
+              state.s.appName,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,

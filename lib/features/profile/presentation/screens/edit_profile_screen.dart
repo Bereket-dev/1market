@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/colors.dart';
 import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../shared/models/app_strings.dart';
@@ -230,10 +231,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               height: 140,
                               decoration: const BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [
-                                    Color(0xFF00288E),
-                                    Color(0xFF1E40AF)
-                                  ],
+                                  colors: kBrandBannerGradient,
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),

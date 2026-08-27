@@ -39,7 +39,7 @@ class _ProfileBanner extends StatelessWidget {
               : Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF00288E), Color(0xFF1E40AF)],
+                      colors: kBrandBannerGradient,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -254,7 +254,7 @@ class _ProfileStatsCard extends StatelessWidget {
                 width: 1,
                 height: 30,
                 color: cs.outlineVariant.withValues(alpha: 0.5)),
-            _StatCell(value: '$listingsCount', label: 'Listings'),
+            _StatCell(value: '$listingsCount', label: s.profileTabListings),
           ],
         ),
       ),
@@ -284,7 +284,7 @@ class _ProfileTabBar extends StatelessWidget {
           final isSel = activeTab == tab;
           final label = switch (tab) {
             'Services' => s.profileTabServices,
-            'Listings' => 'My Listings',
+            'Listings' => s.profileTabListingsLong,
             'About'    => s.profileTabAbout,
             _          => s.profileTabReviews,
           };

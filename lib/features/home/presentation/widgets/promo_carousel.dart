@@ -27,7 +27,7 @@ class _FallbackSlide {
 const _fallbackSlides = [
   _FallbackSlide(headline: _h1, sub: _s1, theme: PromoTheme.navy),
   _FallbackSlide(headline: _h2, sub: _s2, theme: PromoTheme.teal),
-  _FallbackSlide(headline: _h3, sub: _s3, theme: PromoTheme.purple),
+  _FallbackSlide(headline: _h3, sub: _s3, theme: PromoTheme.purple), // gold family
   _FallbackSlide(headline: _h4, sub: _s4, theme: PromoTheme.red),
 ];
 
@@ -279,12 +279,12 @@ class _PromoSlideCard extends StatelessWidget {
                         Icon(vm.theme.icon, color: Colors.white, size: 12),
                         const SizedBox(width: 5),
                         const Text(
-                          'KOOLAN',
+                          '1MARKET',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 1.4,
+                            letterSpacing: 1.2,
                           ),
                         ),
                       ],

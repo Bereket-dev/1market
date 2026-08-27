@@ -65,6 +65,29 @@ extension AppStateAuth on KoolanAppState {
     }
   }
 
+  /// Permanently deletes the signed-in account (Play Store requirement).
+  ///
+  /// Calls the `delete_own_account` RPC (migration 031), then clears local
+  /// session state. Throws on failure so the UI can show an error.
+  Future<void> deleteAccount() async {
+    final client = AppSupabaseConfig.clientOrNull();
+    if (client == null || client.auth.currentUser == null) {
+      throw StateError('Not signed in');
+    }
+    try {
+      await client.rpc('delete_own_account');
+    } catch (e, st) {
+      ErrorReporter.recordError(e, st, reason: 'delete_account');
+      rethrow;
+    }
+    try {
+      await client.auth.signOut();
+    } catch (_) {
+      // Auth user may already be gone; force local guest mode.
+    }
+    await _enterGuestMode(clearOnboardingData: true);
+  }
+
   /// Routes the user to the AuthScreen so they can sign in or create an account.
   void goToAuth({bool signUpMode = false}) {
     onboardingPhase = OnboardingPhase.auth;
@@ -136,51 +159,51 @@ extension AppStateAuth on KoolanAppState {
   }
 
   String _specLabel1(String cat) => cat == 'CARS'
-      ? 'Year'
+      ? s.specLabelYear
       : cat == 'HOUSES'
-      ? 'Bedrooms'
+      ? s.specLabelBedrooms
       : cat == 'LAND'
-      ? 'Size'
+      ? s.specLabelSize
       : cat == 'OTHERS'
-      ? 'Detail 1'
-      : 'Category';
+      ? s.specLabelDetail1
+      : s.specLabelCategory;
 
   /// Empty when the user left the field blank — never invent sample values.
   String _specDefault1(String cat) => '';
 
   String _specLabel2(String cat) => cat == 'CARS'
-      ? 'Mileage'
+      ? s.specLabelMileage
       : cat == 'HOUSES'
-      ? 'Bathrooms'
+      ? s.specLabelBathrooms
       : cat == 'LAND'
-      ? 'Land Use'
+      ? s.specLabelLandUse
       : cat == 'OTHERS'
-      ? 'Detail 2'
-      : 'Experience';
+      ? s.specLabelDetail2
+      : s.specLabelExperience;
 
   String _specDefault2(String cat) => '';
 
   String _specLabel3(String cat) => cat == 'CARS'
-      ? 'Transmission'
+      ? s.specLabelTransmission
       : cat == 'HOUSES'
-      ? 'Area'
+      ? s.specLabelArea
       : cat == 'LAND'
-      ? 'Title Deed'
+      ? s.specLabelTitleDeed
       : cat == 'OTHERS'
-      ? 'Detail 3'
-      : 'Skills';
+      ? s.specLabelDetail3
+      : s.specLabelSkills;
 
   String _specDefault3(String cat) => '';
 
   String _specLabel4(String cat) => cat == 'CARS'
-      ? 'Fuel Type'
+      ? s.specLabelFuelType
       : cat == 'HOUSES'
-      ? 'Security'
+      ? s.specLabelSecurity
       : cat == 'LAND'
-      ? 'Road Access'
+      ? s.specLabelRoadAccess
       : cat == 'OTHERS'
-      ? 'Detail 4'
-      : 'Status';
+      ? s.specLabelDetail4
+      : s.specLabelStatus;
 
   String _specDefault4(String cat) => '';
 }

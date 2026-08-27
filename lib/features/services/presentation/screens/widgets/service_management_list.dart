@@ -245,7 +245,7 @@ class _ServiceCard extends StatelessWidget {
                       children: [
                         _CardAction(
                           icon: Icons.edit_rounded,
-                          label: 'Edit',
+                          label: s.commonEdit,
                           color: cs.secondaryContainer
                               .withValues(alpha: 0.5),
                           iconColor: cs.secondary,
@@ -255,7 +255,7 @@ class _ServiceCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         _CardAction(
                           icon: Icons.delete_outline_rounded,
-                          label: 'Delete',
+                          label: s.commonDelete,
                           color: cs.error.withValues(alpha: 0.1),
                           iconColor: cs.error,
                           onTap: () => _confirmDeleteService(

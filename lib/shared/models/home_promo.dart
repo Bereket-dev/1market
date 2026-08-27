@@ -55,19 +55,18 @@ enum PromoTheme {
     };
   }
 
-  /// Dark (left-side) gradient stop — same hex values as the hardcoded slides.
   Color get accent => switch (this) {
-        PromoTheme.navy   => const Color(0xFF00288E),
+        PromoTheme.navy   => const Color(0xFF0B3A6E),
         PromoTheme.teal   => const Color(0xFF0F766E),
-        PromoTheme.purple => const Color(0xFF6D28D9),
+        PromoTheme.purple => const Color(0xFF1B6CA8),
         PromoTheme.red    => const Color(0xFFB91C1C),
       };
 
   /// Light (right-side) gradient stop.
   Color get accentLight => switch (this) {
-        PromoTheme.navy   => const Color(0xFF1E40AF),
+        PromoTheme.navy   => const Color(0xFF1B6CA8),
         PromoTheme.teal   => const Color(0xFF14B8A6),
-        PromoTheme.purple => const Color(0xFF8B5CF6),
+        PromoTheme.purple => const Color(0xFF3B82C4),
         PromoTheme.red    => const Color(0xFFEF4444),
       };
 

@@ -20,7 +20,7 @@ extension AppStateReviews on KoolanAppState {
     }
   }
 
-  /// Submits a review for [serviceId].
+  /// Submits a review for [serviceId] (gated on accepted hiring engagement).
   Future<void> submitReview({
     required String serviceId,
     required int rating,
@@ -52,6 +52,17 @@ extension AppStateReviews on KoolanAppState {
       reportDataError(e);
       notifyListeners();
       rethrow;
+    }
+  }
+
+  /// Whether the signed-in user may review [serviceId].
+  Future<bool> canReviewService(String serviceId) async {
+    if (_repo == null || !isSignedIn) return false;
+    try {
+      return await _repo!.canReviewService(serviceId);
+    } catch (e) {
+      if (kDebugMode) debugPrint('canReviewService error: $e');
+      return false;
     }
   }
 

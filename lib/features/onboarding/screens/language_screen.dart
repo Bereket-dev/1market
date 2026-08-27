@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
+import '../../../shared/widgets/brand_logo.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -29,6 +30,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 48),
+              const BrandLogo(iconOnly: true, width: 56, height: 56),
+              const SizedBox(height: 20),
               Text(
                 s.languageTitle,
                 style: TextStyle(
@@ -39,10 +42,19 @@ class _LanguageScreenState extends State<LanguageScreen> {
               ),
               const SizedBox(height: 8),
               Text(
+                s.appSlogan,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: cs.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
                 s.languageSubtitle,
                 style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
               _LanguageOption(
                 label: s.languageEnglish,
                 sublabel: 'English',

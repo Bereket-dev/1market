@@ -35,9 +35,9 @@ class MyListingsScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back, color: cs.primary),
           onPressed: () => state.popScreen(),
         ),
-        title: const Text(
-          'My Listings',
-          style: TextStyle(fontWeight: FontWeight.w900),
+        title: Text(
+          state.s.profileTabListingsLong,
+          style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         actions: [
           // Quick shortcut to post a new listing
@@ -45,7 +45,7 @@ class MyListingsScreen extends StatelessWidget {
             onPressed: () => state.pushScreen(PostWizardScreenRoute()),
             icon: Icon(Icons.add_rounded, size: 18, color: cs.primary),
             label: Text(
-              'New Post',
+              state.s.profileNewPost,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: cs.primary,

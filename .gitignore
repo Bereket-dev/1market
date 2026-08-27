@@ -18,6 +18,9 @@ pubspec.lock
 .cxx/
 local.properties
 debug.keystore
+*.jks
+*.keystore
+android/key.properties
 
 # iOS / macOS
 *.xcworkspace

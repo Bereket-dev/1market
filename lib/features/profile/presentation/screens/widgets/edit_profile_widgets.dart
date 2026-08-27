@@ -40,7 +40,7 @@ class _BannerPickerSection extends StatelessWidget {
                     height: 140,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF00288E), Color(0xFF1E40AF)],
+                        colors: kBrandBannerGradient,
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),

@@ -150,7 +150,7 @@ class _MyListingTile extends StatelessWidget {
                   // Edit listing
                   _ActionButton(
                     icon: Icons.edit_rounded,
-                    label: 'Edit',
+                    label: state.s.commonEdit,
                     color: cs.secondaryContainer.withValues(alpha: 0.5),
                     iconColor: cs.secondary,
                     onTap: () =>
@@ -160,7 +160,7 @@ class _MyListingTile extends StatelessWidget {
                   // View detail
                   _ActionButton(
                     icon: Icons.open_in_new_rounded,
-                    label: 'View',
+                    label: state.s.commonView,
                     color: cs.primary.withValues(alpha: 0.12),
                     iconColor: cs.primary,
                     onTap: () =>
@@ -170,7 +170,7 @@ class _MyListingTile extends StatelessWidget {
                   // Delete
                   _ActionButton(
                     icon: Icons.delete_outline_rounded,
-                    label: 'Delete',
+                    label: state.s.commonDelete,
                     color: cs.error.withValues(alpha: 0.1),
                     iconColor: cs.error,
                     onTap: () => _confirmDelete(context),

@@ -137,6 +137,11 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: false
+  web:
+    generate: true
+    image_path: "assets/brand/1market_logo_light.png"
+    background_color: "#FFFFFF"
+    theme_color: "#0B1220"
   image_path: "assets/brand/1market_logo_light.png"
   # Adaptive icon (Android 8+) — use the same cropped logo as foreground
   # on a white background so it looks clean in circular/squircle frames.
@@ -150,17 +155,18 @@ flutter_launcher_icons:
 # Run: flutter pub get && flutter pub run flutter_native_splash:create
 # To revert: flutter pub run flutter_native_splash:remove
 flutter_native_splash:
-  # Plate colours match 1market_light / 1market_dark lockups.
+  # Pre-Android 12: full lockup (no circular mask) on brand plate.
   color: "#FFFFFF"
   image: assets/brand/1market_light.png
   android_gravity: center
   color_dark: "#0B1220"
   image_dark: assets/brand/1market_dark.png
+  # Android 12+: circular mask — use the icon-only brand marks (not full lockup).
   android_12:
     color: "#FFFFFF"
-    image: assets/brand/1market_light.png
+    image: assets/brand/1market_logo_light.png
     color_dark: "#0B1220"
-    image_dark: assets/brand/1market_dark.png
+    image_dark: assets/brand/1market_logo_dark.png
     icon_background_color: "#FFFFFF"
     icon_background_color_dark: "#0B1220"
   fullscreen: false

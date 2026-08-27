@@ -31,7 +31,7 @@ class _CategoryGridSection extends StatelessWidget {
                 title: s.homeCategoryCars,
                 subtitle: s.homeCategoryCars,
                 icon: Icons.directions_car_filled,
-                color: const Color(0xFF1E40AF),
+                color: const Color(0xFF002050),
                 onTap: () => state.pushScreen(CategoryListScreenRoute('CARS')),
               ),
             ),
@@ -41,7 +41,7 @@ class _CategoryGridSection extends StatelessWidget {
                 title: s.homeCategoryHouses,
                 subtitle: s.homeCategoryHouses,
                 icon: Icons.home_rounded,
-                color: const Color(0xFF0F766E),
+                color: const Color(0xFF0A4F8C),
                 onTap: () =>
                     state.pushScreen(CategoryListScreenRoute('HOUSES')),
               ),
@@ -54,7 +54,7 @@ class _CategoryGridSection extends StatelessWidget {
                 title: s.homeCategoryLand,
                 subtitle: s.homeCategoryLand,
                 icon: Icons.landscape_rounded,
-                color: const Color(0xFF92400E),
+                color: const Color(0xFFB87400),
                 onTap: () => state.pushScreen(CategoryListScreenRoute('LAND')),
               ),
             ),
@@ -64,7 +64,7 @@ class _CategoryGridSection extends StatelessWidget {
                 title: s.homeCategorySkills,
                 subtitle: s.homeCategorySkills,
                 icon: Icons.construction_rounded,
-                color: const Color(0xFF6D28D9),
+                color: const Color(0xFF0F766E),
                 onTap: () =>
                     state.pushScreen(CategoryListScreenRoute('SKILLS')),
               ),
@@ -76,7 +76,7 @@ class _CategoryGridSection extends StatelessWidget {
             title: s.homeCategoryOthers,
             subtitle: s.homeCategoryOthers,
             icon: Icons.category_outlined,
-            color: const Color(0xFF475569),
+            color: const Color(0xFF3D4F66),
             onTap: () => state.pushScreen(CategoryListScreenRoute('OTHERS')),
           ),
         ],
@@ -140,7 +140,10 @@ class _FindJobsBanner extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [cs.primary, cs.primary.withValues(alpha: 0.75)],
+              colors: [
+                cs.primary,
+                cs.primary.withValues(alpha: 0.85),
+              ],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),

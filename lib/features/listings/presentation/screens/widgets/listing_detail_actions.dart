@@ -86,58 +86,78 @@ class _StickyBarState extends State<_StickyBar> {
           ],
         ),
         padding: EdgeInsets.fromLTRB(
-          16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
-        child: Row(
+          16, 10, 16, MediaQuery.of(context).padding.bottom + 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _chatLoading ? null : _openChat,
-                icon: _chatLoading
-                    ? SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: cs.primary),
-                      )
-                    : Icon(Icons.chat_bubble_outline_rounded,
-                        size: 18, color: cs.primary),
-                label: Text(s.detailChat,
-                    style: TextStyle(
-                        color: cs.primary, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  side: BorderSide(color: cs.primary),
-                ),
+            Text(
+              s.detailTrustChat,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.3,
+                color: cs.onSurfaceVariant,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: listing.category == 'SKILLS'
-                    ? () => ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(s.detailRequestLogged)),
-                        )
-                    : _openViewingSheet,
-                icon: Icon(
-                  listing.category == 'SKILLS'
-                      ? Icons.handshake_outlined
-                      : Icons.calendar_month_outlined,
-                  size: 18,
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: listing.category == 'SKILLS'
+                        ? () => ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(s.detailRequestLogged)),
+                            )
+                        : _openViewingSheet,
+                    icon: Icon(
+                      listing.category == 'SKILLS'
+                          ? Icons.handshake_outlined
+                          : Icons.calendar_month_outlined,
+                      size: 18,
+                      color: cs.primary,
+                    ),
+                    label: Text(
+                      listing.category == 'SKILLS'
+                          ? s.detailRequestHire
+                          : s.detailViewProperty,
+                      style: TextStyle(
+                        color: cs.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: cs.primary),
+                    ),
+                  ),
                 ),
-                label: Text(
-                  listing.category == 'SKILLS'
-                      ? s.detailRequestHire
-                      : s.detailViewProperty,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
+                  child: FilledButton.icon(
+                    onPressed: _chatLoading ? null : _openChat,
+                    icon: _chatLoading
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: cs.onPrimary),
+                          )
+                        : const Icon(Icons.chat_bubble_rounded, size: 18),
+                    label: Text(s.detailChat,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
+                      minimumSize: const Size.fromHeight(50),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
                 ),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
+              ],
             ),
           ],
         ),

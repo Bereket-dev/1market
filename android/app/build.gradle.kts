@@ -85,6 +85,12 @@ android {
             isShrinkResources = false
         }
     }
+
+    // Upload R8 mapping for Crashlytics deobfuscation when online.
+    // Skip via android/gradle.properties: disableCrashlyticsMappingUpload=true
+    firebaseCrashlytics {
+        mappingFileUploadEnabled = !project.hasProperty("disableCrashlyticsMappingUpload")
+    }
 }
 
 flutter {

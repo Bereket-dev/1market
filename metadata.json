@@ -1,6 +1,6 @@
 {
-  "name": "Koolan",
-  "description": "A premium local marketplace classifieds app for cars, houses, land, and skills in Jigjiga, Somali Region.",
+  "name": "1market",
+  "description": "East Ethiopia marketplace — buy, sell, and hire. One Place. Many Possibilities.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

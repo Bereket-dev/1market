@@ -1,6 +1,10 @@
-# Koolan – Jigjiga Marketplace
+# 1market – East Ethiopia Marketplace
 
-A Flutter marketplace app for East Ethiopia (buy, sell, hire, find services).
+Flutter marketplace app for East Ethiopia (buy, sell, hire, find services).
+
+**Store-facing name:** 1market  
+**Slogan:** One Place. Many Possibilities.  
+**Application ID:** `com.jigjigamarket.koolan` (unchanged for Firebase / Play continuity)
 
 ## Run Locally
 
@@ -39,11 +43,14 @@ cp android/key.properties.example android/key.properties
 # edit key.properties with storeFile path + passwords
 ```
 
-`android/key.properties` and `*.jks` / `*.keystore` are gitignored.
+`android/key.properties` and `*.jks` / `*.keystore` are gitignored.  
+Credentials backup (outside repo): `~/.koolan-keys/credentials.txt` — keep an offline copy.
 
 ### 2. Legal URLs
 
 Update `lib/core/config/legal_urls.dart` with your live Privacy Policy and Terms pages (required by Play Console). Settings opens these links in the browser.
+
+Store listing copy, data-safety answers, and screenshot checklist: [`docs/play_store_listing.md`](docs/play_store_listing.md).
 
 ### 3. Build App Bundle
 
@@ -58,17 +65,20 @@ Release builds enable R8 minify + resource shrinking. Version is `pubspec.yaml` 
 
 ### 4. Play Console checklist
 
+Paste pack: [`docs/play_console_paste.md`](docs/play_console_paste.md).
+
 - [ ] Short + full store description
-- [ ] Phone screenshots + feature graphic (1024×500)
+- [ ] Phone screenshots (≥2) + feature graphic (`assets/promo/feature_graphic_1024x500.png`)
 - [ ] Content rating questionnaire
 - [ ] Data safety form (location, photos, personal info, messages)
 - [ ] Privacy Policy URL + Terms URL (must match in-app links)
-- [ ] Contact email
+- [ ] Contact email (`support@1market.app`)
+- [ ] Upload AAB to internal testing (manual, or `tool/upload_play_internal.py` with a service account)
 
 ### 5. Smoke test before upload
 
 - Cold start shows branded splash/icon
-- Email + Google sign-in
+- Email + Google sign-in (+ Facebook if enabled in console)
 - Create listing with photo; browse offline with cache
 - Chat unread badge; language switch en ↔ am ↔ so
 - Kill app; reopen; session restored

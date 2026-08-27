@@ -19,7 +19,7 @@ class _AboutTab extends StatelessWidget {
       Text(
         bio != null && bio!.isNotEmpty
             ? bio!
-            : 'No bio added yet. Tap "Edit Profile" to add one.',
+            : s.profileNoBio,
         style:
             TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.5),
       ),
@@ -34,7 +34,7 @@ class _AboutTab extends StatelessWidget {
         children: [
           KoolanAppStateScope.of(context).profile?.city ??
               KoolanCities.launchDefault,
-          'Verified',
+          s.profileVerifiedBadge,
         ].map((tag) {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/hiring_post.dart';
@@ -10,6 +11,7 @@ import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/recommendation_engine.dart';
 import '../../../../shared/services/scorable_adapters.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
+import '../../../../shared/widgets/brand_logo.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
 import '../../../../shared/widgets/sync_status_banner.dart';
 import '../widgets/category_card.dart';
@@ -70,7 +72,7 @@ class HomeScreen extends StatelessWidget {
                               title: state.s.homeCategoryCars,
                               subtitle: state.s.homeCategoryCars,
                               icon: Icons.directions_car_filled,
-                              color: const Color(0xFF1E40AF),
+                              color: const Color(0xFF0B3A6E),
                               onTap: () => state.pushScreen(
                                   CategoryListScreenRoute('CARS')),
                             ),
@@ -81,7 +83,7 @@ class HomeScreen extends StatelessWidget {
                               title: state.s.homeCategoryHouses,
                               subtitle: state.s.homeCategoryHouses,
                               icon: Icons.home_rounded,
-                              color: const Color(0xFF0F766E),
+                              color: const Color(0xFF1B6CA8),
                               onTap: () => state.pushScreen(
                                   CategoryListScreenRoute('HOUSES')),
                             ),
@@ -94,7 +96,7 @@ class HomeScreen extends StatelessWidget {
                               title: state.s.homeCategoryLand,
                               subtitle: state.s.homeCategoryLand,
                               icon: Icons.landscape_rounded,
-                              color: const Color(0xFF92400E),
+                              color: const Color(0xFF0F766E),
                               onTap: () => state.pushScreen(
                                   CategoryListScreenRoute('LAND')),
                             ),
@@ -105,7 +107,7 @@ class HomeScreen extends StatelessWidget {
                               title: state.s.homeCategorySkills,
                               subtitle: state.s.homeCategorySkills,
                               icon: Icons.construction_rounded,
-                              color: const Color(0xFF6D28D9),
+                              color: const Color(0xFFB45309),
                               onTap: () => state.pushScreen(
                                   CategoryListScreenRoute('SKILLS')),
                             ),
@@ -177,7 +179,7 @@ class HomeScreen extends StatelessWidget {
                           gradient: LinearGradient(
                             colors: [
                               cs.primary,
-                              cs.primary.withValues(alpha: 0.75),
+                              cs.primary.withValues(alpha: 0.85),
                             ],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,

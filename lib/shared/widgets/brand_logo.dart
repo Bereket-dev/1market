@@ -45,8 +45,8 @@ class BrandLogo extends StatelessWidget {
   /// Dark lockup:  very dark navy background (matches [1market_dark.png]).
   static Color backgroundForBrightness(Brightness brightness) =>
       brightness == Brightness.dark
-          ? const Color(0xFF080D1C)   // deep navy — same as kDarkBackground
-          : const Color(0xFFFFFFFF);  // pure white
+          ? const Color(0xFF0B1220) // matches splash / kDarkBackground
+          : const Color(0xFFFFFFFF);
 
   /// Background tint for the icon-only badge (the circle mark).
   ///
@@ -54,8 +54,8 @@ class BrandLogo extends StatelessWidget {
   /// Dark icon:  dark navy background, logo ring is white/light.
   static Color iconBackgroundForBrightness(Brightness brightness) =>
       brightness == Brightness.dark
-          ? const Color(0xFF0E1628)   // slightly lighter navy so ring is visible
-          : const Color(0xFFFFFFFF);  // pure white
+          ? const Color(0xFF111827)
+          : const Color(0xFFFFFFFF);
 
   @override
   Widget build(BuildContext context) {

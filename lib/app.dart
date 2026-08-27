@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/bootstrap/service_bootstrap.dart';
@@ -44,6 +45,7 @@ import 'features/listings/presentation/screens/my_listings_screen.dart';
 import 'features/profile/presentation/screens/public_profile_screen.dart';
 import 'shared/services/app_state.dart';
 import 'shared/models/app_strings.dart';
+import 'shared/widgets/brand_logo.dart';
 import 'shared/widgets/sync_debug_overlay.dart';
 import 'shared/widgets/toast_banner.dart';
 part 'widgets/app_shell.dart';
@@ -211,7 +213,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
 
     if (_bootstrapPending) {
       return MaterialApp(
-        title: 'Koolan',
+        title: '1market',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
@@ -222,7 +224,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
 
     if (_bootstrapErrorCode != null) {
       return MaterialApp(
-        title: 'Koolan',
+        title: '1market',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
@@ -242,7 +244,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
         listenable: appState,
         builder: (context, _) {
           return MaterialApp(
-            title: 'Koolan',
+            title: '1market',
             debugShowCheckedModeBanner: false,
             locale: appState.materialLocale,
             supportedLocales: const [

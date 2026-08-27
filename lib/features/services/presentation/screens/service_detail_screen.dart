@@ -16,8 +16,8 @@ part 'widgets/service_detail_hero.dart';
 
 /// Read-only detail view for a service.
 ///
-/// Shows all fields before any further action.
-/// Full apply/hiring linkage is Phase C Part 2 — see TODO comment below.
+/// Hire via job posts: open a hiring post and accept the provider's application.
+/// Reviews are gated on that accepted engagement.
 class ServiceDetailScreen extends StatefulWidget {
   final String serviceId;
   const ServiceDetailScreen({super.key, required this.serviceId});

@@ -7,9 +7,6 @@ part 'widgets/service_browse_widgets.dart';
 
 /// Browse screen — shows all services where [availability == true].
 /// Searchable by title/category, filterable by category and location.
-///
-/// This screen is the Part 1 entry point for "Apply to" flow.
-/// The full apply/hiring linkage is Phase C Part 2.
 class ServiceBrowseScreen extends StatefulWidget {
   const ServiceBrowseScreen({super.key});
 

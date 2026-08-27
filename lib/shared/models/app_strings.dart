@@ -13,16 +13,23 @@ class AppStrings {
       : en;
 
   // ── App-wide ────────────────────────────────────────────────────────────────
-  String get appName => _t('Koolan', 'ኩላን', 'Koolan');
+  String get appName => _t('1market', '1market', '1market');
+  String get appSlogan => _t(
+        'One Place. Many Possibilities.',
+        'አንድ ቦታ። ብዙ እድሎች።',
+        'Hal Meel. Fursado Badan.',
+      );
   String get commonRetry => _t('Retry', 'እንደገና ይሞክሩ', 'Isku day mar kale');
   String get commonLoading => _t('Loading…', 'በመጫን ላይ…', 'Waa la soo rarayaa…');
   String get commonCancel => _t('Cancel', 'ሰርዝ', 'Jooji');
+  String get commonEdit => _t('Edit', 'አርትዕ', 'Tafatir');
   String get commonDelete => _t('Delete', 'ሰርዝ', 'Tirtir');
+  String get commonView => _t('View', 'እይ', 'Arag');
   String get commonNew => _t('New', 'አዲስ', 'Cusub');
 
   // ── Auth / Onboarding ───────────────────────────────────────────────────────
   String get authTitle =>
-      _t('Welcome to Koolan', 'እንኳን ወደ ኩላን በደህና መጡ', 'Ku soo dhawow Koolan');
+      _t('Welcome to 1market', 'እንኳን ወደ 1market በደህና መጡ', 'Ku soo dhawow 1market');
   String get authSubtitle => _t(
     'Sign in to browse, post, and chat across East Ethiopia.',
     'በምስራቅ ኢትዮጵያ ለማስላት፣ ለመለጠፍ እና ለመወያየት ይግቡ።',
@@ -119,7 +126,7 @@ class AppStrings {
   String get languageAmharic => _t('Amharic', 'አማርኛ', 'Amharic');
   String get languageSomali => _t('Somali', 'Somali', 'Somali');
   String get languageContinue =>
-      _t('Continue to Koolan', 'ወደ ኩላን ቀጥል', 'U gudub Koolan');
+      _t('Continue to 1market', 'ወደ 1market ቀጥል', 'U gudub 1market');
 
   // ── Listing ─────────────────────────────────────────────────────────────────
   String get listingNotFound =>
@@ -206,6 +213,11 @@ class AppStrings {
   String get detailDescription => _t('Description', 'መግለጫ', 'Sharaxaad');
   String get detailSpecs => _t('Specifications', 'ዝርዝሮች', 'Sifooyinka');
   String get detailVerified => _t('Verified', 'የተረጋገጠ', 'Xaqiijiyey');
+  String get detailTrustChat => _t(
+        'Chat safely on 1market — your number stays private until you share it.',
+        'በ 1market ደህንን ይወያዩ — ስልክዎ እስከሚያጋሩ ድረስ የግል ይቀራል።',
+        'Si aamin ah ugu sheekeyso 1market — lambarkaagu waa qarsoodi ilaa aad wadaagto.',
+      );
   String get detailReviews => _t('reviews', 'ግምገማዎች', 'dib-u-eegis');
   String get detailProfileVerified => _t(
     'Full profile verification: OK',
@@ -597,9 +609,9 @@ class AppStrings {
     'Android iyo iPhone ma ogolaan in app-ku si toos ah u damiyo ogeysiiska. Waxaan kuu furi doonaa dejinta ogeysiiska telefoonka si aad halkaas uga damiso.',
   );
   String get settingsPushDisabledHint => _t(
-    'Push delivery stopped in Koolan. Turn notifications off in the screen that just opened to fully disable them on this device.',
-    'የፑሽ ማድረስ በ Koolan ቆሟል። በዚህ መሣሪያ ላይ ሙሉ በሙሉ ለመכבות የተከፈተውን የማሳወቂያ ቅንብር ያጥፉ።',
-    'Gaarsiinta push-ka Koolan waa istaagtay. Ku dami ogeysiiska shaashadda hadda la furay si aad si buuxda u damiso telefoonkan.',
+    'Push delivery stopped in 1market. Turn notifications off in the screen that just opened to fully disable them on this device.',
+    'የፑሽ ማድረስ በ 1market ቆሟል። በዚህ መሣሪያ ላይ ሙሉ በሙሉ ለመכבות የተከፈተውን የማሳወቂያ ቅንብር ያጥፉ።',
+    'Gaarsiinta push-ka 1market waa istaagtay. Ku dami ogeysiiska shaashadda hadda la furay si aad si buuxda u damiso telefoonkan.',
   );
   String get settingsOpenNotificationSettings => _t(
     'Open settings',
@@ -958,8 +970,17 @@ class AppStrings {
   String get profileJobsDone => _t('Jobs Done', 'የተጠናቀቁ ሥራዎች', 'Shaqooyinka la dhammeeyey');
   String get profileResponseRate => _t('Response Rate', 'የምላሽ ደረጃ', 'Heerka jawaabta');
   String get profileTabServices => _t('Services', 'አገልግሎቶች', 'Adeegyada');
+  String get profileTabListings => _t('Listings', 'ዝርዝሮች', 'Xayaysiisyada');
+  String get profileTabListingsLong =>
+      _t('My Listings', 'የኔ ዝርዝሮች', 'Xayaysiisyadayda');
   String get profileTabAbout => _t('About', 'ስለ', 'Ku saabsan');
   String get profileTabReviews => _t('Reviews', 'ግምገማዎች', 'Dib-u-eegisyada');
+  String get profileNoBio => _t(
+    'No bio added yet. Tap Edit Profile to add one.',
+    'ባዮ ገና አልተጨመረም። መገለጫ አርትዕ ንካው ለመጨመር።',
+    'Wali bio lama darin. Taabo Wax ka beddel xogta si aad u darto.',
+  );
+  String get profileVerifiedBadge => _t('Verified', 'የተረጋገጠ', 'Xaqiijiyey');
   String get profileNoServices => _t('No services posted yet', 'ምንም አገልግሎቶች አልተለጠፉም', 'Wali adeeg la ma dajin');
   String get profileNoServicesSub => _t(
     'Tap the central + button to publish your professional service ad instantly.',
@@ -1019,9 +1040,9 @@ class AppStrings {
   String get servicesDetailCvView => _t('View CV', 'ስርዝ ይመልከቱ', 'Arag CV');
   String get servicesDetailNoCv => _t('No CV uploaded', 'ምንም ስርዝ አልተጫነም', 'CV lama soo rarin');
   String get servicesDetailApplyNote => _t(
-    'To apply or hire, use the "Apply to" feature in Phase C Part 2.',
-    'ለማዘዝ ወይም ለቅጠር, "Apply to" ባህሪን ይጠቀሙ.',
-    'Si aad u codsato ama u kiraynayso, isticmaal "Apply to" Qaybta C Qaybta 2.',
+    'To hire this provider, open a job post and accept their application.',
+    'ይህን አቅራቢ ለመቅጠር የሥራ ልጥፍ ይክፈቱ እና ማመልከቻቸውን ይቀበሉ።',
+    'Si aad u shaqaaleyso bixiyahan, fur xasaab shaqo oo aqbal codsigiisa.',
   );
 
   // ── Reviews ──────────────────────────────────────────────────────────────────
@@ -1035,14 +1056,14 @@ class AppStrings {
   String get reviewsSubmitting => _t('Submitting…', 'በማስገባ ላይ…', 'Waa la gudbinayaa…');
   String get reviewsThankYou => _t('Review submitted!', 'ግምገማ ቀረበ!', 'Dib-u-eegiska waa la gudbiyey!');
   String get reviewsGatingNote => _t(
-    'Reviews are linked to completed job engagements.',
-    'ግምገማዎች ከጠናቀቀ ስምምነት ጋር ይያያዛሉ።',
-    'Dib-u-eegisyadu waxay la xidnaanayaan hawlaha dhamaatay.',
+    'You can leave a review after you hire this provider and mark their application as accepted.',
+    'ይህን አቅራቢ ከቀጠሩ እና ማመልከቻቸውን እንደተቀበሉ ካመለከቱ በኋላ ግምገማ መስጠት ይችላሉ።',
+    'Waxaad dib-u-eegis ka tegi kartaa ka dib markaad shaqaaleyso bixiyahan oo aad aqbasho codsigiisa.',
   );
-  String get reviewsAnonymousHint => _t(
-    'Reviews are linked to completed job engagements in Part 2.',
-    'ግምገማዎች ከጠናቀቀ ስምምነት ጋር ይያያዛሉ።',
-    'Dib-u-eegisyadu waxay la xidnaanayaan hawlaha dhamaatay.',
+  String get reviewsOwnServiceHint => _t(
+    'You cannot review your own service.',
+    'የራስዎን አገልግሎት መገምገም አይችሉም።',
+    'Ma dib-u-eegi kartid adeeggaaga.',
   );
   // Relative time labels for review timestamps
   String reviewsTimeAgoYears(int n) => _t(
@@ -1373,26 +1394,26 @@ class AppStrings {
   String get detailLinkShared => _t('Link shared!', 'ሊንክ ተጋርቷል!', 'Xiriirka la wadaagay!');
 
   // ── Sharing ──────────────────────────────────────────────────────────────────
-  String get shareListingSubject => _t('Check out this listing on Koolan', 'ይህን ዝርዝር በ Koolan ይመልከቱ', 'Fiiri xayaysiiskan Koolan');
+  String get shareListingSubject => _t('Check out this listing on 1market', 'ይህን ዝርዝር በ 1market ይመልከቱ', 'Fiiri xayaysiiskan 1market');
   String shareListingBody(String title, String price, String location, String url) =>
       _t(
-        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDownload Koolan – East Ethiopia marketplace',
-        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
-        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Bariga Itoobiya',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDownload 1market – East Ethiopia marketplace',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\n1market ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
+        '🛍️ $title\n💰 $price\n📍 $location\n\n👉 $url\n\nDegsado 1market – Suuqa Bariga Itoobiya',
       );
-  String get shareServiceSubject => _t('Check out this service on Koolan', 'ይህን አገልግሎት በ Koolan ይመልከቱ', 'Fiiri adeeggan Koolan');
+  String get shareServiceSubject => _t('Check out this service on 1market', 'ይህን አገልግሎት በ 1market ይመልከቱ', 'Fiiri adeeggan 1market');
   String shareServiceBody(String title, String category, String priceRange, String url) =>
       _t(
-        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDownload Koolan – East Ethiopia marketplace',
-        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nKoolan ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
-        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDegsado Koolan – Suuqa Bariga Itoobiya',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDownload 1market – East Ethiopia marketplace',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\n1market ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
+        '🔧 $title\n📂 $category\n💰 $priceRange\n\n👉 $url\n\nDegsado 1market – Suuqa Bariga Itoobiya',
       );
-  String get shareHiringSubject => _t('Check out this job on Koolan', 'ይህን ስራ በ Koolan ይመልከቱ', 'Fiiri shaqadan Koolan');
+  String get shareHiringSubject => _t('Check out this job on 1market', 'ይህን ስራ በ 1market ይመልከቱ', 'Fiiri shaqadan 1market');
   String shareHiringBody(String title, String category, String location, String url) =>
       _t(
-        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDownload Koolan – East Ethiopia marketplace',
-        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nKoolan ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
-        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDegsado Koolan – Suuqa Bariga Itoobiya',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDownload 1market – East Ethiopia marketplace',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\n1market ይጠቀሙ – የምስራቅ ኢትዮጵያ ገበያ',
+        '💼 $title\n📂 $category\n📍 $location\n\n👉 $url\n\nDegsado 1market – Suuqa Bariga Itoobiya',
       );
   String get detailLocationLabel => _t('Location', 'ቦታ', 'Goobta');
   String get detailOpenMaps => _t('Open in Maps', 'በካርታ ክፈት', 'Ku fur khariidadda');
@@ -1402,7 +1423,7 @@ class AppStrings {
   String get detailRequestCall => _t('Request Call', 'ጥሪ ጠይቅ', 'Codsiga Wicitaanka');
   String get detailRequestCallSent => _t('Call request sent to the seller!', 'ጥሪ ጥያቄ ለሻጩ ተልኳል!', 'Codsiga wicitaanka ayaa loo diray iibiyaha!');
   String get detailRequestCallFailed => _t('Could not send request. Please try again.', 'ጥያቄ መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።', 'Codsi la diray ma ahayn. Fadlan isku day mar kale.');
-  String get detailRequestCallMessage => _t('📞 Hi! I saw your listing on Koolan and would like you to call me back.', '📞 ሰላም! ዝርዝርዎን በ Koolan አይቻለሁ፤ ደውሎ ወደ እኔ ይደውሉ።', '📞 Salaan! Waxaan arkay xayaysiiskaaga Koolan-ka waxaanan jeclaan lahaa inaad igula xirto.');
+  String get detailRequestCallMessage => _t('📞 Hi! I saw your listing on 1market and would like you to call me back.', '📞 ሰላም! ዝርዝርዎን በ 1market አይቻለሁ፤ ደውሎ ወደ እኔ ይደውሉ።', '📞 Salaan! Waxaan arkay xayaysiiskaaga 1market waxaanan jeclaan lahaa inaad igula xirto.');
   String get detailNoPhone => _t('Phone number not available for this seller.', 'ለዚህ ሻጭ ስልክ ቁጥር አይገኝም።', 'Lambarka telefoonku kuma jiro iibiyahan.');
   String get detailFetchingPhone => _t('Fetching seller info…', 'የሻጭ መረጃ እየጫነ…', 'Waxaa la rarayo macluumaadka iibiyaha…');
   String get detailContactHidden => _t(
@@ -1553,6 +1574,29 @@ class AppStrings {
       _t('Profile not found', 'መገለጫ አልተገኘም', 'Xogta lama helin');
   String get publicProfileRatingLabel =>
       _t('Rating', 'ደረጃ', 'Derejayn');
+
+
+  // ── Listing spec labels (post wizard) ──────────────────────────────────────
+  String get specLabelYear => _t('Year', 'ዓመት', 'Sannad');
+  String get specLabelBedrooms => _t('Bedrooms', 'መኝታ ክፍሎች', 'Qolalka jiifka');
+  String get specLabelSize => _t('Size', 'መጠን', 'Cabbir');
+  String get specLabelDetail1 => _t('Detail 1', 'ዝርዝር 1', 'Faahfaahin 1');
+  String get specLabelCategory => _t('Category', 'ምድብ', 'Qayb');
+  String get specLabelMileage => _t('Mileage', 'ኪሎሜትር', 'Masaafada');
+  String get specLabelBathrooms => _t('Bathrooms', 'መታጠቢያዎች', 'Musqulaha');
+  String get specLabelLandUse => _t('Land Use', 'የመሬት አጠቃቀም', 'Isticmaalka dhulka');
+  String get specLabelDetail2 => _t('Detail 2', 'ዝርዝር 2', 'Faahfaahin 2');
+  String get specLabelExperience => _t('Experience', 'ልምድ', 'Khibrad');
+  String get specLabelTransmission => _t('Transmission', 'ማስተላለፊያ', 'Transmission');
+  String get specLabelArea => _t('Area', 'ስፋት', 'Aagga');
+  String get specLabelTitleDeed => _t('Title Deed', 'የባለቤትነት ሰነድ', 'Warqadda lahaanshaha');
+  String get specLabelDetail3 => _t('Detail 3', 'ዝርዝር 3', 'Faahfaahin 3');
+  String get specLabelSkills => _t('Skills', 'ችሎታዎች', 'Xirfadaha');
+  String get specLabelFuelType => _t('Fuel Type', 'የነዳጅ አይነት', 'Nooca shidaalka');
+  String get specLabelSecurity => _t('Security', 'ደህንነት', 'Amniga');
+  String get specLabelRoadAccess => _t('Road Access', 'የመንገድ መዳረሻ', 'Helitaanka waddada');
+  String get specLabelDetail4 => _t('Detail 4', 'ዝርዝር 4', 'Faahfaahin 4');
+  String get specLabelStatus => _t('Status', 'ሁኔታ', 'Xaalad');
 
   // ── Promo Carousel ───────────────────────────────────────────────────────────
 
@@ -1705,5 +1749,25 @@ class AppStrings {
       _t('Terms of Service', 'የአገልግሎት ውሎች', 'Shuruudaha Adeegga');
   String get settingsAboutVersion =>
       _t('App version', 'የመተግበሪያ ስሪት', 'Nooca abka');
+
+  String get settingsDeleteAccount =>
+      _t('Delete account', 'ሂሳብ ሰርዝ', 'Tirtir xisaabta');
+  String get settingsDeleteAccountSub => _t(
+        'Permanently remove your account and listings',
+        'ሂሳብዎን እና ዝርዝሮችዎን ለዘላለም ያስወግዱ',
+        'Si joogto ah ka saar xisaabtaada iyo liisaskaada',
+      );
+  String get settingsDeleteAccountTitle => _t(
+        'Delete your account?',
+        'ሂሳብዎን ይሰርዙ?',
+        'Ma tirtiraysaa xisaabtaada?',
+      );
+  String get settingsDeleteAccountBody => _t(
+        'This permanently deletes your account, listings, services, and job posts. This cannot be undone.',
+        'ይህ ሂሳብዎን፣ ዝርዝሮችዎን፣ አገልግሎቶችዎን እና የሥራ ማስታወቂያዎችዎን ለዘላለም ይሰርዛል። መመለስ አይቻልም።',
+        'Tani waxay si joogto ah u tirtiraysaa xisaabtaada, liisaskaada, adeegyadaada iyo shaqooyinkaada. Lama soo celin karo.',
+      );
+  String get settingsDeleteAccountConfirm =>
+      _t('Delete permanently', 'ለዘላለም ሰርዝ', 'Si joogto ah tirtir');
 
 }

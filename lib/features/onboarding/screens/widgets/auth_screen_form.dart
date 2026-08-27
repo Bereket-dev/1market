@@ -16,8 +16,13 @@ class _AuthHeadline extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const Center(
+          child: BrandLogo(iconOnly: true, width: 64, height: 64),
+        ),
+        const SizedBox(height: 14),
         Text(
           s.authSignIn,
+          textAlign: TextAlign.center,
           style: tt.headlineMedium?.copyWith(
             fontWeight: FontWeight.w900,
             color: cs.onSurface,
@@ -25,7 +30,17 @@ class _AuthHeadline extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
+          s.appSlogan,
+          textAlign: TextAlign.center,
+          style: tt.bodyMedium?.copyWith(
+            color: cs.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
           s.authSubtitle,
+          textAlign: TextAlign.center,
           style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
         ),
       ],

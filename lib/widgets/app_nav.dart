@@ -126,6 +126,7 @@ class _BottomNavBar extends StatelessWidget {
             return Expanded(
               child: InkWell(
                 onTap: () {
+                  HapticFeedback.lightImpact();
                   // Auth gate: posting a listing requires sign-in.
                   if (!appState.isSignedIn) {
                     showAuthGateSheet(context, reason: AuthGateReason.post);
@@ -174,6 +175,7 @@ class _BottomNavBar extends StatelessWidget {
           return Expanded(
             child: InkWell(
               onTap: () {
+                HapticFeedback.selectionClick();
                 // Auth gate: Saved, Messages, and Profile require sign-in.
                 final needsAuth = tab.route is SavedScreenRoute ||
                     tab.route is MessagesScreenRoute ||
@@ -197,8 +199,8 @@ class _BottomNavBar extends StatelessWidget {
                     child: Badge(
                       key: ValueKey('$selected-$unreadChats'),
                       isLabelVisible: unreadChats > 0,
-                      backgroundColor: cs.primary,
-                      textColor: cs.onPrimary,
+                      backgroundColor: cs.error,
+                      textColor: cs.onError,
                       label: Text(
                         unreadChats > 99 ? '99+' : '$unreadChats',
                         style: const TextStyle(
