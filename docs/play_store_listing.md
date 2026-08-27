@@ -104,7 +104,7 @@ Ready-to-paste Play Console answers: [`docs/play_console_paste.md`](play_console
 
 - Launcher label / `MaterialApp` title: **1market**  
 - Settings → Privacy / Terms open `LegalUrls`  
-- Facebook login uses existing Supabase OAuth (browser); no separate ID-token helper in release  
+- Sign-in: email + Google (Facebook deferred — see `docs/facebook_signin_next_release.md`)  
 
 ---
 
@@ -121,7 +121,6 @@ Checklist:
 
 - [ ] Cold start: branded splash → home  
 - [ ] Email + Google sign-in  
-- [ ] Facebook sign-in (if Meta app + Supabase provider configured)  
 - [ ] Create listing **with photo**  
 - [ ] Chat unread badge; archive  
 - [ ] Language en ↔ am ↔ so (including home promo)  

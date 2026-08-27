@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/services/app_state.dart';
 
-/// Shown during onboarding for OAuth users (Google / Facebook) who are missing
+/// Shown during onboarding for OAuth users (e.g. Google) who are missing
 /// a display name or phone number. Both fields are required — phone is needed
 /// so buyers can contact sellers, and a real name builds trust.
 ///

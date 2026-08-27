@@ -16,10 +16,6 @@
 -dontwarn okhttp3.**
 -dontwarn okio.**
 
-# ── Facebook SDK ───────────────────────────────────────────────────────────────
--keep class com.facebook.** { *; }
--dontwarn com.facebook.**
-
 # ── Google Sign-In ─────────────────────────────────────────────────────────────
 -keep class com.google.android.gms.auth.** { *; }
 

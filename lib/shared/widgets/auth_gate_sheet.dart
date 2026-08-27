@@ -5,7 +5,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_config.dart';
-import '../../core/errors/app_error.dart';
 import '../../core/errors/error_mapper.dart';
 import '../services/app_state.dart';
 part 'widgets/auth_gate_logos.dart';
@@ -19,7 +18,6 @@ part 'widgets/auth_gate_content.dart';
 // Layout (new design):
 //   • Drag handle
 //   • Continue with Google   → completes auth inline, sheet closes
-//   • Continue with Facebook → completes auth inline (stub snackbar for now)
 //   • Log in with Email      → navigates to AuthScreen
 //   • "Don't have an account? Create one now" text link → AuthScreen sign-up
 //

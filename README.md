@@ -11,15 +11,13 @@ Flutter marketplace app for East Ethiopia (buy, sell, hire, find services).
 **Prerequisites:** [Flutter SDK](https://flutter.dev/docs/get-started/install) and [Android Studio](https://developer.android.com/studio)
 
 1. Copy `.env.example` to `.env` and fill in your Supabase / OAuth values.
-2. Copy Facebook strings if needed:
-   `cp android/strings.xml.example android/app/src/main/res/values/strings.xml`
-3. Sync client-safe keys into the app (also runs automatically before Android builds):
+2. Sync client-safe keys into the app (also runs automatically before Android builds):
 
 ```bash
 dart run tool/sync_local_env.dart
 ```
 
-4. Run:
+3. Run:
 
 ```bash
 flutter run
@@ -78,10 +76,12 @@ Paste pack: [`docs/play_console_paste.md`](docs/play_console_paste.md).
 ### 5. Smoke test before upload
 
 - Cold start shows branded splash/icon
-- Email + Google sign-in (+ Facebook if enabled in console)
+- Email + Google sign-in
 - Create listing with photo; browse offline with cache
 - Chat unread badge; language switch en ↔ am ↔ so
 - Kill app; reopen; session restored
+
+> Facebook Login is deferred — see [`docs/facebook_signin_next_release.md`](docs/facebook_signin_next_release.md).
 
 ## Debug APK
 

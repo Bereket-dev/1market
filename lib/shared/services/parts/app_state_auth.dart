@@ -107,7 +107,7 @@ extension AppStateAuth on KoolanAppState {
 
   void clearOAuthPending() => _pendingOAuthCompletion = false;
 
-  /// Latest OAuth redirect failure, if any (e.g. Facebook missing email).
+  /// Latest OAuth redirect failure, if any (e.g. provider withheld email).
   String? get authError => _authError;
 
   void clearAuthError() {
@@ -124,9 +124,9 @@ extension AppStateAuth on KoolanAppState {
 
   /// Records an OAuth redirect failure so the auth screen / toast can show it.
   ///
-  /// Facebook often fails with "Error getting user email from external
+  /// Some providers fail with "Error getting user email from external
   /// provider" when email permission is denied — without email, Supabase
-  /// cannot link the Facebook identity to an existing same-email profile.
+  /// cannot link the identity to an existing same-email profile.
   void reportOAuthFailure(Object error) {
     if (!_pendingOAuthCompletion && onboardingPhase != OnboardingPhase.auth) {
       return;
@@ -140,7 +140,7 @@ extension AppStateAuth on KoolanAppState {
         lower.contains('external provider') ||
         lower.contains('user_email');
     final friendly = isEmailIssue
-        ? s.authFacebookEmailRequired
+        ? s.authOAuthEmailRequired
         : ErrorMapper.userMessage(error, s);
     _authError = friendly;
     // Guest-mode auth gate closes before OAuth returns — use the shell toast.

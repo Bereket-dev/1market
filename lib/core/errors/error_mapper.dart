@@ -58,7 +58,7 @@ class ErrorMapper {
       return s.errorCancelled;
     }
     if (lower.contains('email') && lower.contains('external provider')) {
-      return s.authFacebookEmailRequired;
+      return s.authOAuthEmailRequired;
     }
 
     return switch (AppError.classify(error)) {

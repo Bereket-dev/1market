@@ -71,34 +71,3 @@ class _GoogleLogoPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// _FacebookLogo — Facebook brand "f" on blue circle (24×24)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _FacebookLogo extends StatelessWidget {
-  const _FacebookLogo();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 24,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: Color(0xFF1877F2),
-        shape: BoxShape.circle,
-      ),
-      child: const Text(
-        'f',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-          height: 1.0,
-          fontFamily: 'sans-serif',
-        ),
-      ),
-    );
-  }
-}

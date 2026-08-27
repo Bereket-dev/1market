@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Optional local overrides. Copy to:
+     android/app/src/main/res/values/strings.xml  (gitignored)
+
+     Facebook Login is deferred — see docs/facebook_signin_next_release.md
+     before adding facebook_app_id / facebook_client_token here. -->
 <resources>
-    <!-- Facebook SDK credentials (gitignored as strings.xml).
-         Copy this file to strings.xml and fill in values from
-         https://developers.facebook.com/apps/<id>/settings/basic/ -->
-    <string name="facebook_app_id">YOUR_FACEBOOK_APP_ID</string>
-    <string name="fb_login_protocol_scheme">fbYOUR_FACEBOOK_APP_ID</string>
-    <string name="facebook_client_token">YOUR_FACEBOOK_CLIENT_TOKEN</string>
 </resources>

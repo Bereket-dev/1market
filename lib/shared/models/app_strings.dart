@@ -60,8 +60,6 @@ class AppStrings {
       _t('or continue with', 'ወይም በ', 'ama ku sii wad');
   String get authGoogle =>
       _t('Continue with Google', 'በ Google ግባ', 'Google ku sii wad');
-  String get authFacebook =>
-      _t('Continue with Facebook', 'በ Facebook ግባ', 'Facebook ku sii wad');
   String get authFullName => _t('Full name', 'ሙሉ ስም', 'Magaca buuxa');
   String get authFullNameRequired =>
       _t('Full name is required', 'ሙሉ ስም ያስፈልጋል', 'Magaca buuxa waa lagama maarmaan');
@@ -1337,15 +1335,11 @@ class AppStrings {
       _t('Supabase is not available. Check configuration.', 'Supabase አልተገኘም። ቅንብሮቹን ያረጋግጡ።', 'Supabase ma heli karto. Hubi dejinta.');
   String get authGoogleCancelled =>
       _t('Google sign-in was cancelled.', 'የGoogle ግቤት ተሰርዟል።', 'Galitaanka Google waa la joojiyey.');
-  String get authFacebookFailed => _t(
-    'Facebook sign-in did not complete. Please try again.',
-    'የFacebook ግቤት አልተጠናቀቀም። እባክዎ እንደገና ይሞክሩ።',
-    'Galitaanka Facebook ma dhammaan. Fadlan isku day mar kale.',
-  );
-  String get authFacebookEmailRequired => _t(
-    'Facebook did not share your email. Allow email access so we can open your existing profile, then try again.',
-    'Facebook ኢሜይልዎን አላጋራም። ያለዎትን መገለጫ ለመክፈት ኢሜይል መዳረሻን ይፍቀዱ፣ ከዚያ እንደገና ይሞክሩ።',
-    'Facebook iimaylkaaga ma wadaagin. Oggolow iimaylka si aan u furno xogtaada jirta, ka dibna isku day mar kale.',
+  /// Generic OAuth email permission failure (any provider that withholds email).
+  String get authOAuthEmailRequired => _t(
+    'Sign-in did not share your email. Allow email access so we can open your profile, then try again.',
+    'ግቤቱ ኢሜይልዎን አላጋራም። መገለጫዎን ለመክፈት ኢሜይል መዳረሻን ይፍቀዱ፣ ከዚያ እንደገና ይሞክሩ።',
+    'Galitaanku iimaylkaaga ma wadaagin. Oggolow iimaylka si aan u furno xogtaada, ka dibna isku day mar kale.',
   );
 
   // ── Change / Reset Password Screens ─────────────────────────────────────────

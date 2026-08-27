@@ -116,10 +116,4 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
     implementation("com.google.firebase:firebase-analytics")
-
-    // Facebook SDK — required for Supabase Facebook OAuth on Android.
-    // Pinned to an explicit version (never use latest.release in production).
-    // Check https://central.sonatype.com/artifact/com.facebook.android/facebook-android-sdk/versions
-    // and bump manually when upgrading.
-    implementation("com.facebook.android:facebook-android-sdk:18.3.0")
 }

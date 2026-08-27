@@ -236,7 +236,7 @@ extension AppStateInit on KoolanAppState {
 
   /// Loads [profile] after OAuth while the app is already in guest/ready mode.
   ///
-  /// Without this, Facebook (and any other browser OAuth) from the auth gate
+  /// Without this, browser OAuth from the auth gate
   /// leaves `profile == null`: owned posts/services still appear because they
   /// key off `currentUser.id`, but name/bio/phone/avatar stay empty.
   Future<void> hydrateSessionProfile() async {

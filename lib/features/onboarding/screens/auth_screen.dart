@@ -5,7 +5,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
-import '../../../core/errors/app_error.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../shared/services/app_state.dart';
 import '../../../shared/widgets/brand_logo.dart';
@@ -21,7 +20,6 @@ part 'widgets/auth_screen_body.dart';
 // Layout (top → bottom):
 //   • App title / headline
 //   • Google button
-//   • Facebook button
 //   • Or-divider
 //   • Email field
 //   • Password field
@@ -44,7 +42,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
+class _AuthScreenState extends State<AuthScreen> {
   final _formKey       = GlobalKey<FormState>();
   final _emailCtrl     = TextEditingController();
   final _passwordCtrl  = TextEditingController();
@@ -53,14 +51,11 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   bool   _isLoading           = false;
   String? _error;
 
-  bool _facebookOAuthInFlight = false;
-
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
 
     // If this screen was opened in sign-up mode (onboarding or auth-gate
     // "Create account" tap), push CreateAccountScreen on the first frame so
@@ -84,32 +79,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _facebookOAuthInFlight) {
-      // Give supabase_flutter a moment to process the OAuth deep link before
-      // treating a missing session as a cancelled / failed sign-in.
-      Future<void>.delayed(const Duration(milliseconds: 800), () {
-        if (!mounted || !_facebookOAuthInFlight) return;
-        final appState = KoolanAppStateScope.of(context);
-        final client = AppSupabaseConfig.clientOrNull();
-        final hasSession = client?.auth.currentSession != null;
-        if (hasSession) return;
-        final pending = appState.consumeAuthError();
-        setState(() {
-          _facebookOAuthInFlight = false;
-          _isLoading = false;
-          _error = pending ?? appState.s.authFacebookFailed;
-        });
-        appState.clearOAuthPending();
-      });
-    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -254,52 +226,6 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     }
   }
 
-  // ── Facebook ───────────────────────────────────────────────────────────────
-
-  Future<void> _signInWithFacebook() async {
-    setState(() { _isLoading = true; _facebookOAuthInFlight = false; _error = null; });
-    final client = AppSupabaseConfig.clientOrNull();
-    if (client == null) {
-      setState(() {
-        _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable;
-        _isLoading = false;
-      });
-      return;
-    }
-    try {
-      if (!mounted) return;
-      KoolanAppStateScope.of(context).markOAuthPending();
-      setState(() => _facebookOAuthInFlight = true);
-      await client.auth.signInWithOAuth(
-        OAuthProvider.facebook,
-        redirectTo: AppSupabaseConfig.redirectUrl,
-        scopes: 'email,public_profile',
-        authScreenLaunchMode: LaunchMode.externalApplication,
-      );
-    } on AuthException catch (e) {
-      if (mounted) {
-        final msg = _mapError(e);
-        final cancelled = AppError.classify(e) == AppErrorKind.cancelled;
-        setState(() {
-          _error = cancelled ? null : msg;
-          _isLoading = false;
-          _facebookOAuthInFlight = false;
-        });
-        if (cancelled) KoolanAppStateScope.of(context).clearOAuthPending();
-      }
-    } catch (e) {
-      if (mounted) {
-        final cancelled = AppError.classify(e) == AppErrorKind.cancelled;
-        setState(() {
-          _error = cancelled ? null : _mapError(e);
-          _isLoading = false;
-          _facebookOAuthInFlight = false;
-        });
-        if (cancelled) KoolanAppStateScope.of(context).clearOAuthPending();
-      }
-    }
-  }
-
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -309,8 +235,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    // Pick up OAuth redirect errors that arrived via the auth stream
-    // (e.g. Facebook denied email — cannot link to existing same-email profile).
+    // Pick up OAuth redirect errors that arrived via the auth stream.
     final pendingAuthError = appState.authError;
     if (pendingAuthError != null && pendingAuthError != _error) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -319,7 +244,6 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
         setState(() {
           _error = pendingAuthError;
           _isLoading = false;
-          _facebookOAuthInFlight = false;
         });
       });
     }
@@ -367,14 +291,6 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                 onPressed: _isLoading ? null : _signInWithGoogle,
                 logo: const _GoogleLogo(),
                 label: s.authGoogle,
-              ),
-              const SizedBox(height: 10),
-
-              // ── Facebook ───────────────────────────────────────────────────
-              _SocialButton(
-                onPressed: _isLoading ? null : _signInWithFacebook,
-                logo: const _FacebookLogo(),
-                label: s.authFacebook,
               ),
               const SizedBox(height: 24),
 

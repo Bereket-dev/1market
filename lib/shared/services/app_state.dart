@@ -127,7 +127,7 @@ class KoolanAppState extends ChangeNotifier {
                   onboardingPhase == OnboardingPhase.initializing) {
                 await onFreshAuth();
               } else {
-                // Guest / in-app OAuth (Facebook auth-gate): posts/services
+                // Guest / in-app OAuth (auth-gate): posts/services
                 // resolve via currentUser.id, but profile was never loaded.
                 await hydrateSessionProfile();
               }
@@ -209,7 +209,7 @@ class KoolanAppState extends ChangeNotifier {
   final Completer<Session?> _sessionReadyCompleter = Completer<Session?>();
 
   bool _pendingOAuthCompletion = false;
-  /// Surfaced OAuth redirect failures (e.g. Facebook missing email).
+  /// Surfaced OAuth redirect failures (e.g. provider withheld email).
   String? _authError;
   late final SyncService syncService;
 
