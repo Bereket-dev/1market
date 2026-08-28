@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 
 import '../services/app_state.dart';
 
-/// Debug-only overlay showing aggregate sync metrics from [KoolanAppState.syncObservability].
+/// Debug-only overlay showing aggregate sync metrics from [OnemarketAppState.syncObservability].
 ///
-/// Visible only in debug builds. Does not register on [KoolanAppStateScope] —
+/// Visible only in debug builds. Does not register on [OnemarketAppStateScope] —
 /// receives [appState] directly from [_ShellScaffold].
 class SyncDebugOverlay extends StatelessWidget {
   const SyncDebugOverlay({super.key, required this.appState});
 
-  final KoolanAppState appState;
+  final OnemarketAppState appState;
 
   @override
   Widget build(BuildContext context) {

@@ -1,7 +1,7 @@
 part of '../post_wizard_screen.dart';
 
 class _SpecsSection extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final VoidCallback onRebuild;
   const _SpecsSection({required this.state, required this.onRebuild});
 
@@ -212,7 +212,7 @@ class _SpecDef {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DescriptionSection extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _DescriptionSection({required this.state});
 
   @override

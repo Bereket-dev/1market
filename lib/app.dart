@@ -52,7 +52,7 @@ part 'widgets/app_shell.dart';
 part 'widgets/app_nav.dart';
 part 'widgets/app_gate.dart';
 
-class KoolanApp extends StatefulWidget {
+class OnemarketApp extends StatefulWidget {
   final bool initialDarkMode;
   final String initialLocale;
 
@@ -63,7 +63,7 @@ class KoolanApp extends StatefulWidget {
   /// Pre-known failure from a previous bootstrap attempt (tests / hot restart).
   final String? bootstrapErrorCode;
 
-  const KoolanApp({
+  const OnemarketApp({
     super.key,
     this.initialDarkMode = false,
     this.initialLocale = 'en',
@@ -72,11 +72,11 @@ class KoolanApp extends StatefulWidget {
   });
 
   @override
-  State<KoolanApp> createState() => _KoolanAppState();
+  State<OnemarketApp> createState() => _OnemarketAppState();
 }
 
-class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
-  KoolanAppState? _appState;
+class _OnemarketAppState extends State<OnemarketApp> with WidgetsBindingObserver {
+  OnemarketAppState? _appState;
   String? _bootstrapErrorCode;
   bool _bootstrapPending = false;
   bool _retryingBootstrap = false;
@@ -97,7 +97,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
   }
 
   void _createAppState() {
-    _appState = KoolanAppState(
+    _appState = OnemarketAppState(
       initialDarkMode: widget.initialDarkMode,
       initialLocale: widget.initialLocale,
     );
@@ -197,7 +197,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
     if (appState == null) return;
     if (state == AppLifecycleState.resumed) {
       if (kDebugMode) {
-        debugPrint('[KoolanApp] App foregrounded — triggering sync');
+        debugPrint('[OnemarketApp] App foregrounded — triggering sync');
       }
       appState.syncService.requestSync();
       unawaited(appState.refreshNotificationPermissionState());
@@ -209,7 +209,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) debugPrint('[KoolanApp] build');
+    if (kDebugMode) debugPrint('[OnemarketApp] build');
 
     if (_bootstrapPending) {
       return MaterialApp(
@@ -238,7 +238,7 @@ class _KoolanAppState extends State<KoolanApp> with WidgetsBindingObserver {
     }
 
     final appState = _appState!;
-    return KoolanAppStateScope(
+    return OnemarketAppStateScope(
       notifier: appState,
       child: ListenableBuilder(
         listenable: appState,

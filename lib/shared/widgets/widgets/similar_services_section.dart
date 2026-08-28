@@ -17,7 +17,7 @@ class _SimilarServicesSectionState extends State<SimilarServicesSection> {
   List<Service> _similar = [];
   int _lastVersion = -1;
 
-  void _computeIfStale(KoolanAppState state) {
+  void _computeIfStale(OnemarketAppState state) {
     final v = state.allServices.length;
     if (v == _lastVersion) return;
     _lastVersion = v;
@@ -39,7 +39,7 @@ class _SimilarServicesSectionState extends State<SimilarServicesSection> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     _computeIfStale(state);
 
     if (_similar.isEmpty) {

@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/errors/safe_parse.dart';
 import '../models/hiring_post.dart';
-import '../models/koolan_cities.dart';
+import '../models/onemarket_cities.dart';
 import '../models/listing.dart';
 import '../models/service.dart';
 import 'image_prefetch_service.dart';
@@ -696,10 +696,10 @@ class MarketplaceRepository {
   /// The user's city is always first; other cities follow in tier order,
   /// skipping the user's city to avoid duplication.
   static List<String> _regionalTiers(String? userCity) {
-    final city = KoolanCities.resolve(userCity);
+    final city = OnemarketCities.resolve(userCity);
     final others = [
-      ...KoolanCities.nearby,
-      ...KoolanCities.extended,
+      ...OnemarketCities.nearby,
+      ...OnemarketCities.extended,
     ].where((c) => c.toLowerCase() != city.toLowerCase()).toList();
     return [city, ...others];
   }

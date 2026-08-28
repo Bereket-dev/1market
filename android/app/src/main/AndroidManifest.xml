@@ -45,7 +45,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="io.supabase.koolan"
+                    android:scheme="io.supabase.onemarket"
                     android:host="login-callback"
                     android:pathPrefix="/" />
             </intent-filter>
@@ -81,7 +81,7 @@
             android:resource="@color/notification_color" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="koolan_channel" />
+            android:value="onemarket_channel" />
     </application>
 
     <queries>

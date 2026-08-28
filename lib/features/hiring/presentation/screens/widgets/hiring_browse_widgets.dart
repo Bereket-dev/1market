@@ -58,7 +58,7 @@ class _HiringBrowseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
 

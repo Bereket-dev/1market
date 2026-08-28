@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
-import '../../../../shared/models/koolan_cities.dart';
+import '../../../../shared/models/onemarket_cities.dart';
 import '../../../../shared/models/listing.dart';
 import '../../../../shared/models/service.dart';
 import '../../../../shared/models/service_review.dart';
@@ -31,7 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Picks a banner image and uploads it; shows a loading overlay while busy.
-  Future<void> _pickBanner(KoolanAppState state) async {
+  Future<void> _pickBanner(OnemarketAppState state) async {
     setState(() => _bannerUploading = true);
     try {
       final err = await state.uploadBannerImage();
@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Picks a profile photo and uploads it; shows a loading overlay while busy.
-  Future<void> _pickAvatar(KoolanAppState state) async {
+  Future<void> _pickAvatar(OnemarketAppState state) async {
     setState(() => _avatarUploading = true);
     try {
       final err = await state.uploadAvatarImage();
@@ -58,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     final profile = state.profile;
     final myListings = state.getMyListings();
@@ -66,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final displayName = profile?.displayName ?? 'Your Name';
     final avatarUrl = profile?.avatarUrl;
     final bannerUrl = profile?.bannerUrl;
-    final city = profile?.city ?? KoolanCities.launchDefault;
+    final city = profile?.city ?? OnemarketCities.launchDefault;
 
     // Fallback banner when user hasn't set one yet — null uses a gradient.
     final String? effectiveBanner = bannerUrl?.isNotEmpty == true ? bannerUrl : null;
@@ -364,7 +364,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildTabContent(KoolanAppState state, List<Listing> myListings) {
+  Widget _buildTabContent(OnemarketAppState state, List<Listing> myListings) {
     switch (_activeTab) {
       case 'Services':
         return _ServicesTab(

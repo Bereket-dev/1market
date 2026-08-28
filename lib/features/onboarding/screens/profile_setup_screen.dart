@@ -26,7 +26,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     // Use non-registering read because initState must not call
     // dependOnInheritedWidgetOfExactType before the widget is mounted.
     final profile = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .getInheritedWidgetOfExactType<OnemarketAppStateScope>()!
         .notifier!
         .profile;
     _nameCtrl = TextEditingController(text: profile?.displayName ?? '');
@@ -40,7 +40,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     super.dispose();
   }
 
-  Future<void> _save(KoolanAppState state) async {
+  Future<void> _save(OnemarketAppState state) async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
@@ -55,7 +55,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;

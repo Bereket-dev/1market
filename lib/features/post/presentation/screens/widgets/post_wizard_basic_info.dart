@@ -1,7 +1,7 @@
 part of '../post_wizard_screen.dart';
 
 class _BasicInfoSection extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final VoidCallback onRebuild;
   const _BasicInfoSection({required this.state, required this.onRebuild});
 
@@ -157,7 +157,7 @@ class _BasicInfoSection extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CategoryPickerField extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final List<String> catKeys;
   final List<String> catLabels;
   final ValueChanged<String> onChanged;
@@ -254,7 +254,7 @@ class _CategoryPickerField extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SkillsRedirectCard extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _SkillsRedirectCard({required this.state});
 
   @override
@@ -395,7 +395,7 @@ class _MiniPill extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _LocationSection extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final VoidCallback onRebuild;
   const _LocationSection({required this.state, required this.onRebuild});
 
@@ -426,10 +426,10 @@ class _LocationSection extends StatelessWidget {
       s.wizardLocationKebele09,
     ];
 
-    final cityValue = KoolanCities.resolve(state.postCity);
+    final cityValue = OnemarketCities.resolve(state.postCity);
     final cityItems = <String>[
-      ...KoolanCities.all,
-      if (!KoolanCities.all
+      ...OnemarketCities.all,
+      if (!OnemarketCities.all
           .any((c) => c.toLowerCase() == cityValue.toLowerCase()))
         cityValue,
     ];

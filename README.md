@@ -4,7 +4,7 @@ Flutter marketplace app for East Ethiopia (buy, sell, hire, find services).
 
 **Store-facing name:** 1market  
 **Slogan:** One Place. Many Possibilities.  
-**Application ID:** `com.jigjigamarket.koolan` (unchanged for Firebase / Play continuity)
+**Application ID:** `com.onemarket.app`
 
 ## Run Locally
 
@@ -27,7 +27,7 @@ The app bundles **Supabase URL + anon key** in `assets/config/local.env`. That i
 
 ## Android / Firebase
 
-- Application ID: `com.jigjigamarket.koolan`
+- Application ID: `com.onemarket.app`
 - Firebase: `android/app/google-services.json`
 - Google Services plugin + Firebase BoM / Analytics / Crashlytics are wired in Gradle
 
@@ -42,7 +42,7 @@ cp android/key.properties.example android/key.properties
 ```
 
 `android/key.properties` and `*.jks` / `*.keystore` are gitignored.  
-Credentials backup (outside repo): `~/.koolan-keys/credentials.txt` — keep an offline copy.
+Credentials backup (outside repo): `~/.onemarket-keys/credentials.txt` — keep an offline copy.
 
 ### 2. Legal URLs
 

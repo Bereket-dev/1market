@@ -24,7 +24,7 @@ class _ServicesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs    = Theme.of(context).colorScheme;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s     = state.s;
 
     return Column(
@@ -145,7 +145,7 @@ class _ProfileServiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs      = Theme.of(context).colorScheme;
     final isAvail = service.availability;
-    final s       = KoolanAppStateScope.of(context).s;
+    final s       = OnemarketAppStateScope.of(context).s;
 
     return InkWell(
       onTap: onTap,

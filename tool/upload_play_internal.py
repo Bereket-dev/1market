@@ -7,7 +7,7 @@ Requires:
   (service account must be invited in Play Console → Users and permissions)
 
 Optional:
-  PLAY_PACKAGE_NAME=com.jigjigamarket.koolan
+  PLAY_PACKAGE_NAME=com.onemarket.app
   PLAY_AAB=build/app/outputs/bundle/release/app-release.aab
 """
 
@@ -31,7 +31,7 @@ def main() -> int:
         )
         return 1
 
-    package = os.environ.get("PLAY_PACKAGE_NAME", "com.jigjigamarket.koolan")
+    package = os.environ.get("PLAY_PACKAGE_NAME", "com.onemarket.app")
     aab = Path(os.environ.get("PLAY_AAB", ROOT / "build/app/outputs/bundle/release/app-release.aab"))
     if not aab.is_file():
         print(f"AAB not found: {aab}", file=sys.stderr)

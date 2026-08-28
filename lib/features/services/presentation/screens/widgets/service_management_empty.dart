@@ -5,7 +5,7 @@ part of '../service_management_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyServicesState extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ColorScheme cs;
   const _EmptyServicesState({required this.state, required this.cs});
 

@@ -1,4 +1,4 @@
-package com.jigjigamarket.koolan
+package com.onemarket.app
 
 import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity

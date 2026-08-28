@@ -6,7 +6,7 @@ part of '../service_management_screen.dart';
 
 Future<void> _confirmDeleteService(
   BuildContext context,
-  KoolanAppState state,
+  OnemarketAppState state,
   String serviceId,
   dynamic s,
 ) async {

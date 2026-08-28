@@ -27,7 +27,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       ScaffoldMessenger.of(context)
@@ -42,7 +42,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(KoolanAppStateScope.of(context).s.changePasswordSuccess)));
+          .showSnackBar(SnackBar(content: Text(OnemarketAppStateScope.of(context).s.changePasswordSuccess)));
       Navigator.of(context).pop();
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -61,7 +61,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return Scaffold(
       appBar: AppBar(title: Text(s.changePasswordTitle)),
       body: Padding(

@@ -5,7 +5,7 @@ part of '../public_profile_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ProfileSliverHeader extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final UserProfile? profile;
   final List<ServiceReview> reviews;
   final VoidCallback onBack;

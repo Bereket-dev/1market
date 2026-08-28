@@ -40,11 +40,11 @@ class _HiringBrowseScreenState extends State<HiringBrowseScreen> {
     if (!_scrollController.hasClients) return;
     final maxScroll = _scrollController.position.maxScrollExtent;
     if (_scrollController.offset >= maxScroll - 300) {
-      KoolanAppStateScope.of(context).loadMoreHiringPosts();
+      OnemarketAppStateScope.of(context).loadMoreHiringPosts();
     }
   }
 
-  Future<void> _onRefresh() => KoolanAppStateScope.of(context).loadAllData(forceRefresh: true);
+  Future<void> _onRefresh() => OnemarketAppStateScope.of(context).loadAllData(forceRefresh: true);
 
   List<HiringPost> _filter(List<HiringPost> all) {
     return all.where((p) {
@@ -63,7 +63,7 @@ class _HiringBrowseScreenState extends State<HiringBrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final results = _filter(state.getBrowsableHiringPosts());

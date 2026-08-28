@@ -2,7 +2,7 @@ part of '../public_profile_screen.dart';
 
 class _ServicesTab extends StatelessWidget {
   final List<Service> services;
-  final KoolanAppState state;
+  final OnemarketAppState state;
 
   const _ServicesTab({required this.services, required this.state});
 
@@ -44,7 +44,7 @@ class _ServicesTab extends StatelessWidget {
 
 class _ServiceListTile extends StatelessWidget {
   final Service service;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _ServiceListTile({required this.service, required this.state});
 
   @override
@@ -130,7 +130,7 @@ class _ServiceListTile extends StatelessWidget {
 
 class _ReviewsTab extends StatelessWidget {
   final List<ServiceReview> reviews;
-  final KoolanAppState state;
+  final OnemarketAppState state;
 
   const _ReviewsTab({required this.reviews, required this.state});
 

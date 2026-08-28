@@ -67,8 +67,8 @@ async function sendPush(
 ): Promise<SendResult> {
   const channelId =
     notificationType === 'new_message'
-      ? 'koolan_messages_channel'
-      : 'koolan_channel';
+      ? 'onemarket_messages_channel'
+      : 'onemarket_channel';
 
   const payload = {
     message: {

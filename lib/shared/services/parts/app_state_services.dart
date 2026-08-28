@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Services & recommendations ────────────────────────────────────────────────
 
-extension AppStateServices on KoolanAppState {
+extension AppStateServices on OnemarketAppState {
   // ── Recommendation helpers ────────────────────────────────────────────────────
 
   /// Records that the user navigated to an item detail screen.

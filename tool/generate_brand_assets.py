@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Koolan launcher + splash PNGs with transparent foreground on brand blue."""
+"""Generate 1market launcher + splash PNGs with transparent foreground on brand blue."""
 
 from __future__ import annotations
 

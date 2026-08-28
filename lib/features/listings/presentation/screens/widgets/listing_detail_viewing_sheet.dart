@@ -6,7 +6,7 @@ part of '../listing_detail_screen.dart';
 
 class _ViewingRequestSheet extends StatefulWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
 
   const _ViewingRequestSheet({
     required this.listing,

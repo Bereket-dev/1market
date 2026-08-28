@@ -94,7 +94,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   Widget _eyeToggle(BuildContext context,
       {required bool visible, required VoidCallback onToggle}) {
     final cs = Theme.of(context).colorScheme;
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     return Tooltip(
       message: visible ? s.authHidePassword : s.authShowPassword,
       child: IconButton(
@@ -109,7 +109,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   String _mapError(Object error) =>
-      ErrorMapper.userMessage(error, KoolanAppStateScope.of(context).s);
+      ErrorMapper.userMessage(error, OnemarketAppStateScope.of(context).s);
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
@@ -120,7 +120,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       setState(() {
-        _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable;
+        _error = OnemarketAppStateScope.of(context).s.authSupabaseUnavailable;
         _isLoading = false;
       });
       return;
@@ -142,10 +142,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       if (response.session == null) {
         // Email confirmation required — stay on screen and show message.
         setState(() =>
-            _error = KoolanAppStateScope.of(context).s.authConfirmationRequired);
+            _error = OnemarketAppStateScope.of(context).s.authConfirmationRequired);
         return;
       }
-      await KoolanAppStateScope.of(context).onFreshAuth();
+      await OnemarketAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
       setState(() => _error = _mapError(e));
     } catch (e) {
@@ -159,7 +159,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 

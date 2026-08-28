@@ -66,7 +66,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
     super.didChangeDependencies();
     if (_listing != null) return; // already initialised
 
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     _listing = state.getListingById(widget.listingId);
     if (_listing == null) return;
 
@@ -114,7 +114,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
         withReadStream: false,
       );
     } catch (e) {
-      setState(() => _uploadError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      setState(() => _uploadError = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
       return;
     }
 
@@ -136,7 +136,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_listing == null) return;
 
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     setState(() => _isSaving = true);
 
     try {
@@ -158,7 +158,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       if (!mounted) return;
       state.popScreen();
     } catch (e) {
-      setState(() => _uploadError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      setState(() => _uploadError = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -166,7 +166,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
 
     if (_listing == null) {
@@ -365,7 +365,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       };
 
   List<String> _conditionLabels(String cat) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return switch (cat) {
       'CARS' => [
           s.wizardCondCarNew,
@@ -390,7 +390,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
   // ── Spec helpers ─────────────────────────────────────────────────────────────
 
   List<Widget> _buildSpecFields(ColorScheme cs) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final specs = _specConfig(_category, s);
     final values = [_spec1, _spec2, _spec3, _spec4];
     final setters = [
@@ -595,7 +595,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       'LAND': Icons.landscape_rounded,
       'OTHERS': Icons.category_outlined,
     };
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final labels = {
       'CARS': s.wizardCatCarsTitle,
       'HOUSES': s.wizardCatHousesTitle,

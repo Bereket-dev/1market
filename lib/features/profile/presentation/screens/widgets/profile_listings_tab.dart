@@ -16,7 +16,7 @@ class _ListingsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs    = Theme.of(context).colorScheme;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

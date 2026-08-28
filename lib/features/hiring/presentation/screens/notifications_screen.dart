@@ -18,7 +18,7 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final notifications = state.notifications;
@@ -76,7 +76,7 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
 

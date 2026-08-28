@@ -41,7 +41,7 @@ class CompareOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     if (listings.length < 2) return const SizedBox();
     final cs    = Theme.of(context).colorScheme;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s     = state.s;
     final rows  = _buildRows(s);
 

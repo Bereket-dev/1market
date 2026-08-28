@@ -6,7 +6,7 @@ part of '../listing_detail_screen.dart';
 
 class _InfoSection extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _InfoSection({required this.listing, required this.state});
 
   @override
@@ -130,7 +130,7 @@ class _SpecsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
 
     // Collect only the slots that are fully populated
     final specs = <({String label, String value})>[];
@@ -200,7 +200,7 @@ class _SpecsSection extends StatelessWidget {
 
 class _DescriptionSection extends StatefulWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _DescriptionSection({required this.listing, required this.state});
 
   @override
@@ -273,7 +273,7 @@ class _DescriptionSectionState extends State<_DescriptionSection> {
 
 class _MapSection extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _MapSection({required this.listing, required this.state});
 
   @override

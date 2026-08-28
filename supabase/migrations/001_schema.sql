@@ -1,4 +1,4 @@
--- Koolan Supabase schema: profiles, listings, favorites, chat, reports + RLS
+-- 1market Supabase schema: profiles, listings, favorites, chat, reports + RLS
 
 -- ── Profiles ────────────────────────────────────────────────────────────────
 create table if not exists public.profiles (
@@ -358,7 +358,7 @@ insert into public.listings (
    'Kebele 03, Jigjiga', true, 'Available', 'Hodan Ahmed',
    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
    5.0, 48, 'Professional housekeeper and plumber.',
-   'Category', 'House Help', 'Experience', '2 years', 'Skills', 'Cleaning, Cooking', 'Verified', 'Koolan Verified')
+   'Category', 'House Help', 'Experience', '2 years', 'Skills', 'Cleaning, Cooking', 'Verified', '1market Verified')
 on conflict do nothing;
 
 -- ── Hiring Posts ──────────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     // Serve cached reviews instantly — no spinner if we already have data.
     if (state.getReviewsForService(widget.serviceId).isNotEmpty) {
       _loading = false;
@@ -42,14 +42,14 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
   }
 
   Future<void> _load() async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     await state.loadReviewsForService(widget.serviceId);
     if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
 
     // Auth gate: submitting a review requires sign-in.
     if (!state.isSignedIn) {
@@ -77,7 +77,7 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _submitError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      setState(() => _submitError = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -85,7 +85,7 @@ class _InlineReviewsSectionState extends State<_InlineReviewsSection> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final reviews = state.getReviewsForService(widget.serviceId);
@@ -295,7 +295,7 @@ class _ReviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final name = review.reviewerName ?? s.reviewsFallbackUserName;
 
     return Card(

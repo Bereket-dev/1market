@@ -31,7 +31,7 @@ shot() {
 adb -s "$DEV" shell dumpsys window | grep -q 'mDreamingLockscreen=false' \
   || { echo "Device appears locked — unlock it and retry." >&2; exit 1; }
 
-adb -s "$DEV" shell am start -n com.jigjigamarket.koolan/.MainActivity >/dev/null
+adb -s "$DEV" shell am start -n com.onemarket.app/.MainActivity >/dev/null
 sleep 3
 echo "Capturing current screen as next shot. Navigate manually between prompts."
 n=1

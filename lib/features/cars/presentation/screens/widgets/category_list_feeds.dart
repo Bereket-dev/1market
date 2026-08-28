@@ -4,7 +4,7 @@ part of '../category_list_screen.dart';
 
 class _ListFeed extends StatelessWidget {
   final List<Listing> results;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ScrollController scrollController;
   const _ListFeed({required this.results, required this.state, required this.scrollController});
 
@@ -29,7 +29,7 @@ class _ListFeed extends StatelessWidget {
 
 class _GridFeed extends StatelessWidget {
   final List<Listing> results;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ScrollController scrollController;
   const _GridFeed({required this.results, required this.state, required this.scrollController});
 

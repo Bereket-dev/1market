@@ -17,7 +17,7 @@ class _ApplicantRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s  = state.s;
     final cs = Theme.of(context).colorScheme;
     final displayName =
@@ -107,7 +107,7 @@ class _ApplicantListError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
@@ -140,7 +140,7 @@ class _ApplicantListEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Center(
       child: Text(s.hiringNoApplicantsYet,

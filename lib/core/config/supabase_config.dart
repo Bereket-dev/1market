@@ -49,9 +49,9 @@ class AppSupabaseConfig {
     if (v.isNotEmpty) return v;
     // Try the legacy dotenv key too.
     try {
-      return dotenv.env['SUPABASE_GOOGLE_CALLBACK'] ?? 'io.supabase.koolan://login-callback/';
+      return dotenv.env['SUPABASE_GOOGLE_CALLBACK'] ?? 'io.supabase.onemarket://login-callback/';
     } catch (_) {
-      return 'io.supabase.koolan://login-callback/';
+      return 'io.supabase.onemarket://login-callback/';
     }
   }
 

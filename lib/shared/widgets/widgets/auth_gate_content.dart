@@ -16,8 +16,8 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
 
   bool get _isLoading => _loadingGoogle;
 
-  KoolanAppState? get _appState =>
-      context.getInheritedWidgetOfExactType<KoolanAppStateScope>()?.notifier;
+  OnemarketAppState? get _appState =>
+      context.getInheritedWidgetOfExactType<OnemarketAppStateScope>()?.notifier;
 
   Future<void> _signInWithGoogle() async {
     final appState = _appState;

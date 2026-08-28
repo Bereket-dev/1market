@@ -48,7 +48,7 @@ class _CvUploadButtonState extends State<CvUploadButton> {
       _errorMessage = null;
     });
 
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final result = await CvUploadService.instance.pickAndUpload(
       serviceId: widget.serviceId,
     );
@@ -97,7 +97,7 @@ class _CvUploadButtonState extends State<CvUploadButton> {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
 
     final hasFile =

@@ -29,7 +29,7 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
     super.didChangeDependencies();
     if (_markedRead) return;
     _markedRead = true;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     if (widget.sessionIndex >= 0 &&
         widget.sessionIndex < state.chatSessions.length) {
       final id = state.chatSessions[widget.sessionIndex].id;
@@ -42,7 +42,7 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     if (widget.sessionIndex < 0 ||
         widget.sessionIndex >= state.chatSessions.length) {
@@ -75,7 +75,7 @@ class _ActiveChatScreenState extends State<ActiveChatScreen> {
                 ? const CircleAvatar(radius: 18, child: Icon(Icons.person))
                 : CachedNetworkImage(
                     imageUrl: session.partnerAvatar,
-                    cacheManager: KoolanImageCacheManager.instance,
+                    cacheManager: OnemarketImageCacheManager.instance,
                     imageBuilder: (_, provider) => CircleAvatar(
                       radius: 18,
                       backgroundImage: provider,
@@ -195,7 +195,7 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
 
     // My bubbles: primaryContainer bg, onPrimaryContainer text — guaranteed contrast.
     // Incoming: surfaceContainerHighest bg, onSurface text.

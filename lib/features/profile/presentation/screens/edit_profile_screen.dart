@@ -3,7 +3,7 @@ import '../../../../core/constants/colors.dart';
 import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../shared/models/app_strings.dart';
-import '../../../../shared/models/koolan_cities.dart';
+import '../../../../shared/models/onemarket_cities.dart';
 import '../../../../shared/models/syncable_entity.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/recommendation_engine.dart'
@@ -30,7 +30,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _bioController;
   late final TextEditingController _phoneController;
 
-  String _selectedCity = KoolanCities.launchDefault;
+  String _selectedCity = OnemarketCities.launchDefault;
   String? _selectedCategory; // null = "None"
 
   /// True while [submitProfileUpdate] is awaited.
@@ -57,18 +57,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.didChangeDependencies();
     if (!_controllersInitialized) {
       // Use getInheritedWidgetOfExactType instead of .of() so we do NOT
-      // register this widget as a dependent of KoolanAppStateScope.
+      // register this widget as a dependent of OnemarketAppStateScope.
       // Registering a dependency here causes the "_dependents.isEmpty"
       // assertion to fire when notifyListeners() is called during save while
       // the widget is being disposed. We only need the profile data once for
       // the initial controller text — we don't need rebuild notifications.
       final scope = context
-          .getInheritedWidgetOfExactType<KoolanAppStateScope>();
+          .getInheritedWidgetOfExactType<OnemarketAppStateScope>();
       final profile = scope?.notifier?.profile;
       _nameController.text = profile?.displayName ?? '';
       _bioController.text = profile?.bio ?? '';
       _phoneController.text = profile?.phone ?? '';
-      _selectedCity = KoolanCities.resolve(profile?.city);
+      _selectedCity = OnemarketCities.resolve(profile?.city);
 
       // Sanitize preferredCategory: legacy profiles may have stored a
       // translated goal label (e.g. "Find a car") instead of the category code
@@ -99,7 +99,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   // ── Save all text fields ──────────────────────────────────────────────────
 
-  Future<void> _save(KoolanAppState appState) async {
+  Future<void> _save(OnemarketAppState appState) async {
     if (!_formKey.currentState!.validate()) return;
 
     // Prevent clearing an existing phone number — only allow adding/changing.
@@ -123,7 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s)),
+            content: Text(ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -135,7 +135,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   // ── Photo helpers ─────────────────────────────────────────────────────────
 
-  Future<void> _pickAvatar(KoolanAppState appState) async {
+  Future<void> _pickAvatar(OnemarketAppState appState) async {
     setState(() => _avatarUploading = true);
     try {
       final err = await appState.uploadAvatarImage();
@@ -148,7 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _pickBanner(KoolanAppState appState) async {
+  Future<void> _pickBanner(OnemarketAppState appState) async {
     setState(() => _bannerUploading = true);
     try {
       final err = await appState.uploadBannerImage();
@@ -167,7 +167,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     // Use getInheritedWidgetOfExactType (non-registering) here so that
     // _EditProfileScreenState's element is NOT added to
-    // KoolanAppStateScope._dependents.  Using the registering .of() would
+    // OnemarketAppStateScope._dependents.  Using the registering .of() would
     // crash with '_dependents.isEmpty': is not true when the second
     // notifyListeners() inside submitProfileUpdate fires after its async gap
     // while the screen element is in the deactivating window.
@@ -181,7 +181,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // lookup during the setState rebuild that clears _isSaving — no separate
     // reactive subscription is needed or safe here.
     final scope = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>();
+        .getInheritedWidgetOfExactType<OnemarketAppStateScope>();
     final appState = scope!.notifier!;
     final profile = appState.profile;
     final cs = Theme.of(context).colorScheme;
@@ -409,8 +409,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       items: [
                         for (final city in [
-                          ...KoolanCities.all,
-                          if (!KoolanCities.all.any((c) =>
+                          ...OnemarketCities.all,
+                          if (!OnemarketCities.all.any((c) =>
                               c.toLowerCase() ==
                               _selectedCity.toLowerCase()))
                             _selectedCity,

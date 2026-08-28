@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Data loading, navigation & listings ───────────────────────────────────────
 
-extension AppStateData on KoolanAppState {
+extension AppStateData on OnemarketAppState {
 
   // ── MarketplaceRepository accessor ───────────────────────────────────────────
 
@@ -537,7 +537,7 @@ extension AppStateData on KoolanAppState {
 
   // ── Navigation actions ────────────────────────────────────────────────────
 
-  void pushScreen(KoolanScreen screen) {
+  void pushScreen(OnemarketScreen screen) {
     navigationStack.add(screen);
     notifyListeners();
   }
@@ -549,7 +549,7 @@ extension AppStateData on KoolanAppState {
     }
   }
 
-  void switchTab(KoolanScreen rootTab) {
+  void switchTab(OnemarketScreen rootTab) {
     navigationStack
       ..clear()
       ..add(HomeScreenRoute());
@@ -579,7 +579,7 @@ extension AppStateData on KoolanAppState {
 
   // ── Phase 3: Search index integration ────────────────────────────────────
   //
-  // [searchIndexResults] and [lastIndexedQuery] are declared on KoolanAppState
+  // [searchIndexResults] and [lastIndexedQuery] are declared on OnemarketAppState
   // (extensions can't hold instance fields in Dart).  The async query result
   // is cached there so the synchronous getFilteredListings() can use it.
 

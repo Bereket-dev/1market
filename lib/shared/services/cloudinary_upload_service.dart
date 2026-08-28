@@ -79,9 +79,9 @@ class CloudinaryUploadService {
 
   static String _cloudFolder(CloudinaryImageType type) {
     return switch (type) {
-      CloudinaryImageType.avatar => 'koolan/avatars',
-      CloudinaryImageType.banner => 'koolan/banners',
-      CloudinaryImageType.listing => 'koolan/listings',
+      CloudinaryImageType.avatar => 'onemarket/avatars',
+      CloudinaryImageType.banner => 'onemarket/banners',
+      CloudinaryImageType.listing => 'onemarket/listings',
     };
   }
 
@@ -89,7 +89,7 @@ class CloudinaryUploadService {
       '${_cloudFolder(type)}/$userId';
 
   static String _listingPublicId(String userId, String listingId, int index) =>
-      'koolan/listings/$userId/${listingId}_$index';
+      'onemarket/listings/$userId/${listingId}_$index';
 
   static Future<String> localCachePath(
     CloudinaryImageType type,
@@ -229,7 +229,7 @@ class CloudinaryUploadService {
       '.webp' => '.webp',
       _ => ext.isNotEmpty ? ext : '.pdf',
     };
-    final publicId = 'koolan/cvs/$userId/$serviceId/cv$safeExt';
+    final publicId = 'onemarket/cvs/$userId/$serviceId/cv$safeExt';
     final timestamp =
         (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
 

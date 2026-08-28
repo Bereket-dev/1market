@@ -6,7 +6,7 @@ part of '../listing_detail_screen.dart';
 
 class _StickyBar extends StatefulWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _StickyBar({required this.listing, required this.state});
 
   @override

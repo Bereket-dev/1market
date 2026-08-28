@@ -35,7 +35,7 @@ class _ContactActionsState extends State<_ContactActions> {
   }
 
   Future<void> _requestCall() async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s     = state.s;
 
     if (!state.isSignedIn) {
@@ -75,7 +75,7 @@ class _ContactActionsState extends State<_ContactActions> {
   @override
   Widget build(BuildContext context) {
     final cs    = Theme.of(context).colorScheme;
-    final s     = KoolanAppStateScope.of(context).s;
+    final s     = OnemarketAppStateScope.of(context).s;
     final phone = widget.resolvedPhone;
 
     if (!widget.fetchingPhone && (phone == null || phone.isEmpty)) {

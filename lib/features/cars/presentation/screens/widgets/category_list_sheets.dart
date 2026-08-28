@@ -39,7 +39,7 @@ class _PriceRangeSheetState extends State<_PriceRangeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
 
     return Padding(
@@ -160,7 +160,7 @@ class _YearRangeSheetState extends State<_YearRangeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
 
     return Padding(

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:koolan/shared/models/service.dart';
-import 'package:koolan/shared/models/syncable_entity.dart';
+import 'package:onemarket/shared/models/service.dart';
+import 'package:onemarket/shared/models/syncable_entity.dart';
 
 void main() {
   test('Service round-trips through JSON and preserves sync metadata', () {

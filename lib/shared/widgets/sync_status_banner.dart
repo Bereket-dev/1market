@@ -40,7 +40,7 @@ class _SyncStatusBannerState extends State<SyncStatusBanner>
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s     = state.s;
     final cs    = Theme.of(context).colorScheme;
     final isDark = state.isDarkMode;

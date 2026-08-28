@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Hiring posts, applications & notifications ────────────────────────────────
 
-extension AppStateHiring on KoolanAppState {
+extension AppStateHiring on OnemarketAppState {
   // ── Hiring post helpers ───────────────────────────────────────────────────────
 
   List<HiringPost> getMyHiringPosts() {

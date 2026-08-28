@@ -1,10 +1,10 @@
-/// Launch cities for Koolan across East Ethiopia.
+/// Launch cities for 1market across East Ethiopia.
 ///
 /// Listings store a free-text `location` like `"Kebele 03, Dire Dawa"`.
 /// The city portion must match these names so regional sync filters
 /// (`ilike '%City%'`) and browse chips stay consistent.
-class KoolanCities {
-  KoolanCities._();
+class OnemarketCities {
+  OnemarketCities._();
 
   /// First launch market — prefer this when profile city is unset.
   static const String launchDefault = 'Dire Dawa';

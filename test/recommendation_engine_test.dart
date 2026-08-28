@@ -10,7 +10,7 @@
 //   - rankSimilarTo excludes the anchor and uses same-category as dominant signal
 //   - Weight renormalisation when location is absent
 import 'package:flutter_test/flutter_test.dart';
-import 'package:koolan/shared/services/recommendation_engine.dart';
+import 'package:onemarket/shared/services/recommendation_engine.dart';
 
 // ── Minimal Scorable stub ─────────────────────────────────────────────────────
 

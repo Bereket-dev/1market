@@ -10,7 +10,7 @@ class _AuthHeadline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     return Column(
@@ -54,7 +54,7 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
@@ -106,7 +106,7 @@ class _AuthBottomLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

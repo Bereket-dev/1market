@@ -1,18 +1,18 @@
-# Koolan — Low-Bandwidth & Offline-First Implementation Plan
+# 1market — Low-Bandwidth & Offline-First Implementation Plan
 
 **Scope:** Flutter Android app targeting Jijiga, Dire Dawa, and broader Ethiopia.  
-**Goal:** Make Koolan feel fast and reliable on slow, unstable, and metered mobile networks — not merely “work offline sometimes.”  
+**Goal:** Make 1market feel fast and reliable on slow, unstable, and metered mobile networks — not merely “work offline sometimes.”  
 **Principle:** Optimize the full path — database → API → JSON → sync → local storage → search → images → UI → user actions.
 
 ---
 
 ## Executive summary
 
-The recommendations in the original analysis are sound. Koolan already has useful foundations (Hive write queues, image disk cache, pagination, optimistic favorites, profile/listings fallback cache), but the **dominant UX path is still network-first**: opening the marketplace waits on Supabase before showing content.
+The recommendations in the original analysis are sound. 1market already has useful foundations (Hive write queues, image disk cache, pagination, optimistic favorites, profile/listings fallback cache), but the **dominant UX path is still network-first**: opening the marketplace waits on Supabase before showing content.
 
 The highest-impact shift is **local-first rendering with background cloud reconciliation** — show Hive/SharedPreferences data immediately, sync deltas in the background, update only changed cards.
 
-This document maps all 26 recommendations to Koolan’s current codebase, identifies gaps, and defines a phased implementation plan with concrete targets, file touchpoints, and acceptance criteria.
+This document maps all 26 recommendations to 1market’s current codebase, identifies gaps, and defines a phased implementation plan with concrete targets, file touchpoints, and acceptance criteria.
 
 ---
 
@@ -30,11 +30,11 @@ This document maps all 26 recommendations to Koolan’s current codebase, identi
 | **List queries** | `fetchListings()` uses `select('*, profiles!seller_id(...)')` | Heavy payload for cards; no list vs detail split |
 | **Delta sync** | None — full page fetch (`kPageSize = 30`) ordered by `created_at` | Every refresh re-downloads up to 30 full rows |
 | **Deletes / tombstones** | Soft hide via `is_hidden`; enqueue uses `deleted_at` in payload for some entities | No `deleted_at` column or tombstone pull sync |
-| **Images** | `CachedImageWidget` + `KoolanImageCacheManager` (90d, 2000 files) | Single URL per image; cards may load full-size originals |
+| **Images** | `CachedImageWidget` + `1marketImageCacheManager` (90d, 2000 files) | Single URL per image; cards may load full-size originals |
 | **Search** | In-memory filter over `allListings` via `searchQuery` | No local search index; no background server merge |
 | **Chat sync** | Loaded inside `loadAllData()` for signed-in users | Should lazy-load on chat tab entry |
 | **Optimistic UI** | Favorites already optimistic (`toggleSaveListing`) | Other actions (follow, profile edits) partially queued but not uniformly optimistic |
-| **Architecture** | `KoolanAppState` → `SupabaseRepository` + `SyncService` | No dedicated inbound `SyncEngine`; logic spread across AppState parts |
+| **Architecture** | `1marketAppState` → `SupabaseRepository` + `SyncService` | No dedicated inbound `SyncEngine`; logic spread across AppState parts |
 | **Observability** | Debug `debugPrint` only | No `SyncStatus`, bandwidth telemetry, or “Updated X min ago” indicator |
 | **Data Saver** | Not implemented | Settings has no low-data mode |
 
@@ -53,7 +53,7 @@ lib/shared/widgets/cached_image_widget.dart        ← image disk cache
 
 ---
 
-## Recommendation analysis (mapped to Koolan)
+## Recommendation analysis (mapped to 1market)
 
 ### 1. Local-first UX, cloud-authoritative
 
@@ -67,7 +67,7 @@ Open app → read local mirror → show marketplace immediately
          → check network quality → delta sync → merge → patch affected UI
 ```
 
-**Koolan-specific:** Unify cache reads through one `LocalMarketplaceRepository` instead of splitting between `LocalStorage` and unused Hive listing boxes.
+**1market-specific:** Unify cache reads through one `LocalMarketplaceRepository` instead of splitting between `LocalStorage` and unused Hive listing boxes.
 
 ---
 
@@ -352,7 +352,7 @@ Implement via per-entity `lastFetchedAt` in `SyncMetadata`; skip network if with
 **Verdict:** Incremental — Phase 2–4.
 
 ```text
-UI → KoolanAppState (thin) → MarketplaceRepository → SyncEngine → Hive
+UI → 1marketAppState (thin) → MarketplaceRepository → SyncEngine → Hive
 ```
 
 Move fetch/merge logic out of `app_state_data.dart` into repository + sync parts. AppState holds UI-facing lists and delegates refresh to repository streams/notifiers.
@@ -415,7 +415,7 @@ Card thumbnail:   target < 80 KB
                  └──────────┬──────────┘
                             │
                  ┌──────────▼──────────┐
-                 │   KoolanAppState    │  ← thin: lists, filters, navigation
+                 │   1marketAppState    │  ← thin: lists, filters, navigation
                  └──────────┬──────────┘
                             │
                  ┌──────────▼──────────┐
@@ -754,4 +754,4 @@ Phase 4 — Scale ✅
 > Don't optimize only database synchronization.  
 > Optimize the entire path: **database → API → JSON → sync → local storage → search → images → UI → user actions.**
 
-That is what makes Koolan genuinely good in low-connectivity environments — not simply smaller Supabase requests.
+That is what makes 1market genuinely good in low-connectivity environments — not simply smaller Supabase requests.

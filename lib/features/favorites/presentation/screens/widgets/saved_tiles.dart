@@ -5,7 +5,7 @@ part of '../saved_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CompareBanner extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ColorScheme cs;
   const _CompareBanner({required this.state, required this.cs});
 
@@ -54,7 +54,7 @@ class _CompareBanner extends StatelessWidget {
 
 class _SavedListingTile extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final bool isChosen;
 
   const _SavedListingTile({
@@ -164,7 +164,7 @@ class _Thumbnail extends StatelessWidget {
 
 class _TileInfo extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _TileInfo({required this.listing, required this.state});
 
   @override
@@ -252,7 +252,7 @@ class _TileInfo extends StatelessWidget {
 
 class _TileActions extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final bool isChosen;
 
   const _TileActions({

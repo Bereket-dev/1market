@@ -58,7 +58,7 @@ def main() -> None:
     barrel = f"{IMPORTS}\n"
     for filename, mixin_name, _, _, _ in SECTIONS:
         barrel += f"import '{filename.replace('.dart', '')}.dart';\n"
-    barrel += "\n/// Composed data-state mixin — import this from [KoolanAppState].\n"
+    barrel += "\n/// Composed data-state mixin — import this from [OnemarketAppState].\n"
     barrel += "mixin DataStateMixin on ChangeNotifier\n"
     barrel += "    with\n"
     for i, name in enumerate(mixin_names):

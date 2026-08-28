@@ -5,8 +5,8 @@ import '../services/app_state.dart';
 /// A soft dismissible banner that re-prompts the user to grant location
 /// permission after they skipped during onboarding.
 ///
-/// Visibility is controlled entirely by [KoolanAppState.showLocationCta].
-/// Dismissed state is persisted via [KoolanAppState.snoozeLocationCta]
+/// Visibility is controlled entirely by [OnemarketAppState.showLocationCta].
+/// Dismissed state is persisted via [OnemarketAppState.snoozeLocationCta]
 /// (3-day snooze) so the banner doesn't spam the user on every open.
 ///
 /// Usage: place this widget near the top of the scrollable home body.
@@ -28,14 +28,14 @@ class _LocationCtaBannerState extends State<LocationCtaBanner> {
     // without blocking the build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        KoolanAppStateScope.of(context).checkLocationCtaVisibility();
+        OnemarketAppStateScope.of(context).checkLocationCtaVisibility();
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
 
     if (!state.showLocationCta) return const SizedBox.shrink();
 
@@ -155,7 +155,7 @@ class _LocationCtaBannerState extends State<LocationCtaBanner> {
     );
   }
 
-  Future<void> _onAllow(KoolanAppState state) async {
+  Future<void> _onAllow(OnemarketAppState state) async {
     setState(() => _loading = true);
     await state.grantLocationFromCta();
     if (mounted) setState(() => _loading = false);

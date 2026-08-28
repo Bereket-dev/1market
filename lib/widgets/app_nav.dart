@@ -54,10 +54,10 @@ class _LoadingBarState extends State<_LoadingBar>
 
 /// The bottom nav bar.  Receives [appState] directly (passed from
 /// _ShellScaffold which already owns a ListenableBuilder) so this widget
-/// doesn't need to call KoolanAppStateScope.of(context) — avoiding an
+/// doesn't need to call OnemarketAppStateScope.of(context) — avoiding an
 /// additional listener registration that would contribute to the crash.
 class _BottomNavBar extends StatelessWidget {
-  final KoolanAppState appState;
+  final OnemarketAppState appState;
   final VoidCallback onPostFab;
 
   const _BottomNavBar({
@@ -238,7 +238,7 @@ class _BottomNavBar extends StatelessWidget {
     );
   }
 
-  static bool _isSelected(KoolanScreen current, KoolanScreen route) {
+  static bool _isSelected(OnemarketScreen current, OnemarketScreen route) {
     if (route is HomeScreenRoute) {
       return current is HomeScreenRoute || current is CategoryListScreenRoute;
     }
@@ -257,7 +257,7 @@ class _Tab {
   final String label;
   final IconData unselectedIcon;
   final IconData selectedIcon;
-  final KoolanScreen route;
+  final OnemarketScreen route;
   final bool isFab;
 
   const _Tab(

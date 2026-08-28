@@ -7,7 +7,7 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     final profile = state.profile;
     final avatarUrl = profile?.avatarUrl;
@@ -149,7 +149,7 @@ class _HomeHeader extends StatelessWidget {
                 child: avatarUrl != null && avatarUrl.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: avatarUrl,
-                        cacheManager: KoolanImageCacheManager.instance,
+                        cacheManager: OnemarketImageCacheManager.instance,
                         imageBuilder: (ctx, provider) => Image(
                           image: provider,
                           fit: BoxFit.cover,

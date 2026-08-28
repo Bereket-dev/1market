@@ -80,7 +80,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
   void _startAutoScroll() {
     Future.delayed(const Duration(seconds: 4), () {
       if (!mounted) return;
-      final slides = _buildSlides(KoolanAppStateScope.of(context));
+      final slides = _buildSlides(OnemarketAppStateScope.of(context));
       final next = (_page + 1) % slides.length;
       _ctrl.animateToPage(
         next,
@@ -98,7 +98,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
   }
 
   /// Builds the view-model list.  Prefers DB promos; falls back to hardcoded.
-  List<_SlideVM> _buildSlides(KoolanAppState state) {
+  List<_SlideVM> _buildSlides(OnemarketAppState state) {
     final dbPromos = state.homePromos;
     if (dbPromos.isNotEmpty) {
       return [
@@ -127,7 +127,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final slides = _buildSlides(state);
 
     return Column(
@@ -216,7 +216,7 @@ class _PromoSlideCard extends StatelessWidget {
             if (_hasImage)
               CachedNetworkImage(
                 imageUrl: vm.imageUrl!,
-                cacheManager: KoolanImageCacheManager.instance,
+                cacheManager: OnemarketImageCacheManager.instance,
                 fit: BoxFit.cover,
                 alignment: Alignment.center,
                 placeholder: (_, __) => ColoredBox(color: vm.theme.accentLight),

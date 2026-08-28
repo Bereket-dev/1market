@@ -117,9 +117,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Public IDs must stay under koolan/ and include the caller's user id.
+  // Public IDs must stay under onemarket/ and include the caller's user id.
   const publicId = params.public_id;
-  if (!publicId.startsWith('koolan/') || !publicId.includes(user.id)) {
+  if (!publicId.startsWith('onemarket/') || !publicId.includes(user.id)) {
     return new Response(JSON.stringify({ error: 'forbidden_public_id' }), {
       status: 403,
       headers: { ...headers, 'Content-Type': 'application/json' },

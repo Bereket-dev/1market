@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Reviews & public profiles ─────────────────────────────────────────────────
 
-extension AppStateReviews on KoolanAppState {
+extension AppStateReviews on OnemarketAppState {
   List<ServiceReview> getReviewsForService(String serviceId) =>
       _reviewsCache[serviceId] ?? [];
 

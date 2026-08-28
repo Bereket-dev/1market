@@ -310,7 +310,7 @@ class _ContactInfoRow extends StatelessWidget {
 
 // ── Debug sync section (only visible in debug builds) ────────────────────────
 //
-// Shows aggregate sync metrics from [KoolanAppState.syncObservability] so
+// Shows aggregate sync metrics from [OnemarketAppState.syncObservability] so
 // developers can verify the Phase 4 version-cursor path, bandwidth targets,
 // and queue health without opening a separate debug overlay.
 //
@@ -321,7 +321,7 @@ class _ContactInfoRow extends StatelessWidget {
 class _SyncDebugSection extends StatelessWidget {
   const _SyncDebugSection({required this.appState});
 
-  final KoolanAppState appState;
+  final OnemarketAppState appState;
 
   @override
   Widget build(BuildContext context) {
@@ -513,7 +513,7 @@ class _LanguageRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .getInheritedWidgetOfExactType<OnemarketAppStateScope>()!
         .notifier!
         .s;
 

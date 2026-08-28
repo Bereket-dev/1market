@@ -42,14 +42,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     state.recordItemViewed(widget.listingId);
     _maybeLoadSellerPhone(state);
   }
 
   /// If the listing already carries a phone number we use it directly.
   /// Otherwise we kick off a profile fetch using the seller_id.
-  void _maybeLoadSellerPhone(KoolanAppState state) {
+  void _maybeLoadSellerPhone(OnemarketAppState state) {
     final listing = state.getListingById(widget.listingId);
     if (listing == null) return;
 
@@ -85,7 +85,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state   = KoolanAppStateScope.of(context);
+    final state   = OnemarketAppStateScope.of(context);
     final listing = state.getListingById(widget.listingId);
 
     if (listing == null) {

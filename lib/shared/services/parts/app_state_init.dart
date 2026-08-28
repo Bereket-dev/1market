@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Initialization & Onboarding ───────────────────────────────────────────────
 
-extension AppStateInit on KoolanAppState {
+extension AppStateInit on OnemarketAppState {
   Future<void> _initialize() async {
     final t0 = DateTime.now().millisecondsSinceEpoch;
     if (kDebugMode) debugPrint('[AUTH] _initialize started at ${t0}ms');

@@ -1,69 +1,69 @@
-/// Sealed-class navigation routes used by [KoolanAppState].
-abstract class KoolanScreen {}
+/// Sealed-class navigation routes used by [OnemarketAppState].
+abstract class OnemarketScreen {}
 
-class HomeScreenRoute extends KoolanScreen {}
+class HomeScreenRoute extends OnemarketScreen {}
 
-class SavedScreenRoute extends KoolanScreen {}
+class SavedScreenRoute extends OnemarketScreen {}
 
-class MessagesScreenRoute extends KoolanScreen {}
+class MessagesScreenRoute extends OnemarketScreen {}
 
-class ProfileScreenRoute extends KoolanScreen {}
+class ProfileScreenRoute extends OnemarketScreen {}
 
-class CategoryListScreenRoute extends KoolanScreen {
+class CategoryListScreenRoute extends OnemarketScreen {
   final String category;
   CategoryListScreenRoute(this.category);
 }
 
-class ListingDetailScreenRoute extends KoolanScreen {
+class ListingDetailScreenRoute extends OnemarketScreen {
   final String listingId;
   ListingDetailScreenRoute(this.listingId);
 }
 
-class PostWizardScreenRoute extends KoolanScreen {}
+class PostWizardScreenRoute extends OnemarketScreen {}
 
-class ActiveChatScreenRoute extends KoolanScreen {
+class ActiveChatScreenRoute extends OnemarketScreen {
   final int sessionIndex;
   ActiveChatScreenRoute(this.sessionIndex);
 }
 
-class ServiceManagementScreenRoute extends KoolanScreen {}
+class ServiceManagementScreenRoute extends OnemarketScreen {}
 
-class ServiceEditScreenRoute extends KoolanScreen {
+class ServiceEditScreenRoute extends OnemarketScreen {
   final String? serviceId;
   ServiceEditScreenRoute(this.serviceId);
 }
 
-class ServiceBrowseScreenRoute extends KoolanScreen {}
+class ServiceBrowseScreenRoute extends OnemarketScreen {}
 
-class ServiceDetailScreenRoute extends KoolanScreen {
+class ServiceDetailScreenRoute extends OnemarketScreen {
   final String serviceId;
   ServiceDetailScreenRoute(this.serviceId);
 }
 
-class ServiceReviewsScreenRoute extends KoolanScreen {
+class ServiceReviewsScreenRoute extends OnemarketScreen {
   final String serviceId;
   ServiceReviewsScreenRoute(this.serviceId);
 }
 
-class SettingsScreenRoute extends KoolanScreen {}
+class SettingsScreenRoute extends OnemarketScreen {}
 
-class EditProfileScreenRoute extends KoolanScreen {}
+class EditProfileScreenRoute extends OnemarketScreen {}
 
 // ── Phase C Part 2: Hiring posts ─────────────────────────────────────────────
 
-class HiringManagementScreenRoute extends KoolanScreen {}
+class HiringManagementScreenRoute extends OnemarketScreen {}
 
-class HiringEditScreenRoute extends KoolanScreen {
+class HiringEditScreenRoute extends OnemarketScreen {
   final String? postId;
   HiringEditScreenRoute(this.postId);
 }
 
-class HiringApplicantListScreenRoute extends KoolanScreen {
+class HiringApplicantListScreenRoute extends OnemarketScreen {
   final String postId;
   HiringApplicantListScreenRoute(this.postId);
 }
 
-class HiringApplicantDetailScreenRoute extends KoolanScreen {
+class HiringApplicantDetailScreenRoute extends OnemarketScreen {
   final String applicationId;
   final String postId;
   HiringApplicantDetailScreenRoute({
@@ -72,25 +72,25 @@ class HiringApplicantDetailScreenRoute extends KoolanScreen {
   });
 }
 
-class HiringBrowseScreenRoute extends KoolanScreen {}
+class HiringBrowseScreenRoute extends OnemarketScreen {}
 
-class HiringDetailScreenRoute extends KoolanScreen {
+class HiringDetailScreenRoute extends OnemarketScreen {
   final String postId;
   HiringDetailScreenRoute(this.postId);
 }
 
-class MyApplicationsScreenRoute extends KoolanScreen {}
+class MyApplicationsScreenRoute extends OnemarketScreen {}
 
-class NotificationsScreenRoute extends KoolanScreen {}
+class NotificationsScreenRoute extends OnemarketScreen {}
 
-class MyListingsScreenRoute extends KoolanScreen {}
+class MyListingsScreenRoute extends OnemarketScreen {}
 
-class EditListingScreenRoute extends KoolanScreen {
+class EditListingScreenRoute extends OnemarketScreen {
   final String listingId;
   EditListingScreenRoute(this.listingId);
 }
 
-class PublicProfileScreenRoute extends KoolanScreen {
+class PublicProfileScreenRoute extends OnemarketScreen {
   final String userId;
   PublicProfileScreenRoute(this.userId);
 }

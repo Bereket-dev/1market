@@ -10,7 +10,7 @@ class _CategoryGridSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s  = state.s;
     final cs = Theme.of(context).colorScheme;
 
@@ -91,7 +91,7 @@ class _HomeSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -128,7 +128,7 @@ class _FindJobsBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s  = state.s;
     final cs = Theme.of(context).colorScheme;
     return Padding(
@@ -191,7 +191,7 @@ class _RecentlyAddedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s  = state.s;
     final cs = Theme.of(context).colorScheme;
     return Padding(

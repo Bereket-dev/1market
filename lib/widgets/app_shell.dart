@@ -8,7 +8,7 @@ class _AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Use getInheritedWidgetOfExactType (non-registering) so that _AppShell
-    // itself is NOT added to KoolanAppStateScope's listener set.
+    // itself is NOT added to OnemarketAppStateScope's listener set.
     //
     // Why this matters: _AppShell is the root shell widget — it lives above
     // the AnimatedSwitcher that drives all screen transitions.  If it
@@ -25,7 +25,7 @@ class _AppShell extends StatelessWidget {
     // each rebuild at the right time in the right scope without pulling
     // _AppShell along with them.
     final appState = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .getInheritedWidgetOfExactType<OnemarketAppStateScope>()!
         .notifier!;
     // isDarkMode is only needed for the static desktop-layout colours below.
     // It rarely changes (never mid-transition), so a non-registering read is safe.
@@ -73,7 +73,7 @@ class _AppShell extends StatelessWidget {
     );
   }
 
-  static Widget _screenFor(KoolanScreen screen) {
+  static Widget _screenFor(OnemarketScreen screen) {
     if (screen is HomeScreenRoute) {
       return const HomeScreen(key: ValueKey('home'));
     } else if (screen is SavedScreenRoute) {
@@ -182,7 +182,7 @@ class _AppShell extends StatelessWidget {
 //
 // Each of these widgets holds its own ListenableBuilder so that rebuilds are
 // scoped to the smallest possible subtree.  _AppShell itself no longer
-// registers as a KoolanAppStateScope listener, which prevents the
+// registers as a OnemarketAppStateScope listener, which prevents the
 // "Tried to build dirty widget in the wrong build scope" assertion that fires
 // when notifyListeners() is called while AnimatedSwitcher is mid-transition.
 
@@ -195,7 +195,7 @@ class _AppShell extends StatelessWidget {
 /// Pull-to-refresh is wired at this level so every top-level screen benefits
 /// from it — the user can drag down anywhere to trigger [loadAllData].
 class _ShellScaffold extends StatefulWidget {
-  final KoolanAppState appState;
+  final OnemarketAppState appState;
   final VoidCallback onPostFab;
 
   const _ShellScaffold({required this.appState, required this.onPostFab});

@@ -17,12 +17,12 @@ class _RecommendedSectionState extends State<_RecommendedSection> {
   int _lastDataVersion = -1;
 
   /// Returns the current data version from [state] (sum of list lengths).
-  static int _dataVersion(KoolanAppState state) =>
+  static int _dataVersion(OnemarketAppState state) =>
       state.allListings.length +
       state.allServices.length +
       state.allHiringPosts.length;
 
-  void _computeIfStale(KoolanAppState state) {
+  void _computeIfStale(OnemarketAppState state) {
     final version = _dataVersion(state);
     if (version == _lastDataVersion) return;
     _lastDataVersion = version;
@@ -96,7 +96,7 @@ class _RecommendedSectionState extends State<_RecommendedSection> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
 
@@ -187,7 +187,7 @@ class _RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
 
     return GestureDetector(
       onTap: onTap,

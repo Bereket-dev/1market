@@ -15,7 +15,7 @@ import '../services/app_state.dart';
 /// Phone is required for all posts — there is no skip path.
 Future<bool> showPhonePromptIfNeeded(
   BuildContext context,
-  KoolanAppState state,
+  OnemarketAppState state,
 ) async {
   final phone = state.profile?.phone ?? '';
   if (phone.trim().isNotEmpty) return true;

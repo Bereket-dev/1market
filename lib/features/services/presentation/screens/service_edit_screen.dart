@@ -79,7 +79,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
     if (_initialized) return;
     _initialized = true;
 
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     _service = widget.serviceId == null
         ? null
         : state.getServiceById(widget.serviceId!);
@@ -127,7 +127,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
         withReadStream: false,
       );
     } catch (e) {
-      setState(() => _imageError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      setState(() => _imageError = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
       return;
     }
     if (result == null || result.files.isEmpty) return;
@@ -142,7 +142,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final currentUser = state.currentUser;
     if (currentUser == null) return;
 
@@ -196,7 +196,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
   }
 
   Future<void> _confirmDelete() async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -255,7 +255,7 @@ class _ServiceEditScreenState extends State<ServiceEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final isEditing = _service != null;

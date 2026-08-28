@@ -41,7 +41,7 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     // Serve from cache immediately — no spinner if we already have data.
     if (state.getReviewsForService(widget.serviceId).isNotEmpty) {
       _loading = false;
@@ -50,7 +50,7 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
   }
 
   Future<void> _load() async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final service = state.getServiceById(widget.serviceId);
     final isOwn = service != null &&
         state.currentUser?.id != null &&
@@ -68,7 +68,7 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
 
     // Auth gate: review submission requires sign-in.
     if (!state.isSignedIn) {
@@ -99,7 +99,7 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _submitError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      setState(() => _submitError = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -113,7 +113,7 @@ class _ServiceReviewsScreenState extends State<ServiceReviewsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final reviews = state.getReviewsForService(widget.serviceId);

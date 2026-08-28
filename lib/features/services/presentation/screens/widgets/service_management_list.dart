@@ -6,7 +6,7 @@ part of '../service_management_screen.dart';
 
 class _ServiceList extends StatelessWidget {
   final List<Service> services;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ColorScheme cs;
   const _ServiceList(
       {required this.services, required this.state, required this.cs});
@@ -88,7 +88,7 @@ class _SectionHeader extends StatelessWidget {
 
 class _ServiceCard extends StatelessWidget {
   final Service service;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _ServiceCard({required this.service, required this.state});
 
   @override

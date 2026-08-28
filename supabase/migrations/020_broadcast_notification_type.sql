@@ -1,6 +1,6 @@
 -- Migration 020: allow admin broadcast notification type
 --
--- The koolan-admin site inserts app_notifications rows with type = 'broadcast'
+-- The 1market-admin site inserts app_notifications rows with type = 'broadcast'
 -- when sending mass (or single-user admin) push notifications. Widen the CHECK
 -- constraint so those inserts succeed and still fire the existing push webhook.
 

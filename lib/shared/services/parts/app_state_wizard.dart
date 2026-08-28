@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Post wizard ───────────────────────────────────────────────────────────────
 
-extension AppStateWizard on KoolanAppState {
+extension AppStateWizard on OnemarketAppState {
   /// Opens the system image picker and appends up to (8 − current count)
   /// images to [postImagePaths].
   Future<void> pickListingImages(BuildContext context) async {
@@ -53,7 +53,7 @@ extension AppStateWizard on KoolanAppState {
     postPrice = '';
     postDescription = '';
     postLocation = 'Kebele 06';
-    postCity = KoolanCities.resolve(profile?.city);
+    postCity = OnemarketCities.resolve(profile?.city);
     postPhysicalAddress = '';
     postMainPhotoAttached = false;
     postImagePaths = [];
@@ -141,7 +141,7 @@ extension AppStateWizard on KoolanAppState {
         title: titleStr,
         price: priceStr,
         imageUrl: primaryImageUrl,
-        location: '${postLocation.trim()}, ${KoolanCities.resolve(postCity)}',
+        location: '${postLocation.trim()}, ${OnemarketCities.resolve(postCity)}',
         conditionOrStatus: postCondition.trim().isEmpty
             ? 'Available'
             : postCondition.trim(),

@@ -36,7 +36,7 @@ class _SaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     // Use fully opaque backgrounds so the label is always legible
     // regardless of what image or colour sits behind the button.
     final bgColor   = isSaved ? const Color(0xFFE53935) : cs.surface;
@@ -88,7 +88,7 @@ class _MyAdBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(

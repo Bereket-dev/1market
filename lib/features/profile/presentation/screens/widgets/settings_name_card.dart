@@ -8,7 +8,7 @@ part of '../settings_screen.dart';
 // EditProfileScreen (reachable via the "Edit Profile" row below).
 //
 // Uses getInheritedWidgetOfExactType (non-registering) so this widget's
-// element is NOT added to KoolanAppStateScope._dependents. We only need
+// element is NOT added to OnemarketAppStateScope._dependents. We only need
 // the profile data once for the initial controller text — we don't need
 // automatic rebuild notifications from the scope. Any mutation-driven
 // state changes are covered by setState.
@@ -63,7 +63,7 @@ class _InlineNameCardState extends State<_InlineNameCard> {
 
     // Non-registering read — safe inside a State method (not build()).
     // We only need the appState reference here; no reactive subscription needed.
-    final scope = context.getInheritedWidgetOfExactType<KoolanAppStateScope>();
+    final scope = context.getInheritedWidgetOfExactType<OnemarketAppStateScope>();
     final appState = scope?.notifier;
     if (appState == null) return;
 
@@ -80,7 +80,7 @@ class _InlineNameCardState extends State<_InlineNameCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s))),
+          SnackBar(content: Text(ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s))),
         );
       }
     } finally {
@@ -103,7 +103,7 @@ class _InlineNameCardState extends State<_InlineNameCard> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     // Read strings via non-registering lookup (consistent with _save above).
-    final scope = context.getInheritedWidgetOfExactType<KoolanAppStateScope>();
+    final scope = context.getInheritedWidgetOfExactType<OnemarketAppStateScope>();
     final s = scope?.notifier?.s;
 
     return Card(

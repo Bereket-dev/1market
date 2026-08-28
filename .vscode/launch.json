@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Koolan (debug)",
+      "name": "1market (debug)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "name": "Koolan (profile)",
+      "name": "1market (profile)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "profile",
@@ -21,7 +21,7 @@
       ]
     },
     {
-      "name": "Koolan (release)",
+      "name": "1market (release)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "release",

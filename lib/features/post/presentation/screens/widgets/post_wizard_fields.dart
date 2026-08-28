@@ -50,7 +50,7 @@ class _DropdownOrOtherState extends State<_DropdownOrOther> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
 
     // Resolve the dropdown value: if _isOther use the sentinel, otherwise use
     // the currentValue if it's in the known keys (else null = no selection).
@@ -236,7 +236,7 @@ class _TextInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

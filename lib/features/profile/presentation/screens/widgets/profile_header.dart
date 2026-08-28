@@ -21,7 +21,7 @@ class _ProfileBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final hasImage = bannerUrl != null && bannerUrl!.isNotEmpty;
     return SizedBox(
       height: 180,
@@ -166,7 +166,7 @@ class _ProfileNameRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
@@ -222,7 +222,7 @@ class _ProfileStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Card(
       color: cs.surfaceContainerHighest,
@@ -274,7 +274,7 @@ class _ProfileTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     const tabs = ['Services', 'Listings', 'About', 'Reviews'];
     return SingleChildScrollView(

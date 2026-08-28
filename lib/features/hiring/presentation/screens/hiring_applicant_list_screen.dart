@@ -46,7 +46,7 @@ class _HiringApplicantListScreenState
 
   Future<void> _load() async {
     if (!mounted) return;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final hasCached =
         state.getApplicationsForPost(widget.postId).isNotEmpty;
     setState(() {
@@ -59,7 +59,7 @@ class _HiringApplicantListScreenState
         state.updateHiringPostApplicantCount(widget.postId, apps.length);
       }
     } catch (e) {
-      if (mounted) setState(() => _errorMessage = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      if (mounted) setState(() => _errorMessage = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -68,7 +68,7 @@ class _HiringApplicantListScreenState
   /// Opens the detail screen. If the application was "submitted", auto-mark
   /// it as "reviewed" so the poster's action is recorded.
   Future<void> _openDetail(
-    KoolanAppState state,
+    OnemarketAppState state,
     Application app,
   ) async {
     if (app.status == ApplicationStatus.submitted) {
@@ -99,7 +99,7 @@ class _HiringApplicantListScreenState
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final post = state.getHiringPostById(widget.postId);

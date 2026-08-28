@@ -19,10 +19,10 @@ class PermissionService {
 
   // ── Notification channel definition (Android 8+) ───────────────────────────
 
-  static const _kChannelId = 'koolan_channel';
+  static const _kChannelId = 'onemarket_channel';
   static const _kChannelName = '1market Notifications';
   static const _kChannelDesc = 'Marketplace updates, messages, and alerts';
-  static const _kMessagesChannelId = 'koolan_messages_channel';
+  static const _kMessagesChannelId = 'onemarket_messages_channel';
   static const _kMessagesChannelName = 'New Messages';
   static const _kMessagesChannelDesc = 'Chat and direct message alerts';
 

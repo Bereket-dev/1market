@@ -1,6 +1,6 @@
 # Play Console — ready-to-paste answers
 
-Use with package `com.jigjigamarket.koolan`. Privacy / Terms must stay live.
+Use with package `com.onemarket.app`. Privacy / Terms must stay live.
 
 | Field | Value |
 |-------|--------|
@@ -91,6 +91,6 @@ Optional API upload (needs a Play Developer API service account JSON):
 
 ```bash
 export PLAY_SERVICE_ACCOUNT_JSON=/path/to/play-api.json
-export PLAY_PACKAGE_NAME=com.jigjigamarket.koolan
+export PLAY_PACKAGE_NAME=com.onemarket.app
 python3 tool/upload_play_internal.py
 ```

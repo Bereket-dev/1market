@@ -17,7 +17,7 @@ class _CategoryDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>();
+        .getInheritedWidgetOfExactType<OnemarketAppStateScope>();
     final s = scope!.notifier!.s;
 
     return DropdownButtonFormField<String?>(
@@ -70,7 +70,7 @@ class _ProfileSaveSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>();
+        .getInheritedWidgetOfExactType<OnemarketAppStateScope>();
     final s = scope!.notifier!.s;
 
     return Column(

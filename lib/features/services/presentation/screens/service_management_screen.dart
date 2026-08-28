@@ -14,7 +14,7 @@ part 'widgets/service_management_actions.dart';
 // This is the hub for a professional user's service profile.
 //
 // Context for first-time users:
-//   A "service" on Koolan is your professional profile card — it tells
+//   A "service" on 1market is your professional profile card — it tells
 //   employers and clients what you do, your rate, and whether you are
 //   currently available for hire. Toggling availability instantly makes you
 //   discoverable (or hidden) in the marketplace search results.
@@ -30,7 +30,7 @@ class ServiceManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state    = KoolanAppStateScope.of(context);
+    final state    = OnemarketAppStateScope.of(context);
     final s        = state.s;
     final cs       = Theme.of(context).colorScheme;
     final services = state.getMyServices();

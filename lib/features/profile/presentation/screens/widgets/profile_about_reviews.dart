@@ -9,7 +9,7 @@ class _AboutTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(s.profileProfSummary,
@@ -32,8 +32,8 @@ class _AboutTab extends StatelessWidget {
         spacing: 8,
         runSpacing: 8,
         children: [
-          KoolanAppStateScope.of(context).profile?.city ??
-              KoolanCities.launchDefault,
+          OnemarketAppStateScope.of(context).profile?.city ??
+              OnemarketCities.launchDefault,
           s.profileVerifiedBadge,
         ].map((tag) {
           return Container(
@@ -57,7 +57,7 @@ class _AboutTab extends StatelessWidget {
 // ── Reviews tab (real data) ───────────────────────────────────────────────────
 
 class _ReviewsTab extends StatefulWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _ReviewsTab({required this.state});
 
   @override

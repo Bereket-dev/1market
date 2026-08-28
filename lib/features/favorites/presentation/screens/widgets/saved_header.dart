@@ -5,7 +5,7 @@ part of '../saved_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ColorScheme cs;
   final bool compareModeEnabled;
 
@@ -116,7 +116,7 @@ class _CategoryChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
 
     return SizedBox(
       height: 40,

@@ -4,28 +4,28 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorage {
-  static const _languageKey = 'koolan_language';
-  static const _sessionRestoredKey = 'koolan_session_restored';
-  static const _onboardingPhaseKey = 'koolan_onboarding_phase';
-  static const _onboardingCompleteKey = 'koolan_onboarding_complete';
-  static const _profileCacheKey = 'koolan_profile_cache';
-  static const _listingsCacheKey = 'koolan_listings_cache';
-  static const _servicesCacheKey = 'koolan_services_cache';
+  static const _languageKey = 'onemarket_language';
+  static const _sessionRestoredKey = 'onemarket_session_restored';
+  static const _onboardingPhaseKey = 'onemarket_onboarding_phase';
+  static const _onboardingCompleteKey = 'onemarket_onboarding_complete';
+  static const _profileCacheKey = 'onemarket_profile_cache';
+  static const _listingsCacheKey = 'onemarket_listings_cache';
+  static const _servicesCacheKey = 'onemarket_services_cache';
   // Device-level prefs — persisted across logout, never cleared on sign-out.
-  static const _darkModeKey = 'koolan_dark_mode';
-  static const _preferredCategoryKey = 'koolan_preferred_category';
+  static const _darkModeKey = 'onemarket_dark_mode';
+  static const _preferredCategoryKey = 'onemarket_preferred_category';
 
   // Notification preferences — device-level, persisted across logout.
-  static const _notifPushEnabledKey    = 'koolan_notif_push_enabled';
-  static const _notifMessagesEnabledKey = 'koolan_notif_messages_enabled';
-  static const _notifPriceAlertsKey    = 'koolan_notif_price_alerts';
+  static const _notifPushEnabledKey    = 'onemarket_notif_push_enabled';
+  static const _notifMessagesEnabledKey = 'onemarket_notif_messages_enabled';
+  static const _notifPriceAlertsKey    = 'onemarket_notif_price_alerts';
 
   // Location CTA — stores the Unix-ms timestamp until which the CTA is snoozed.
-  static const _locationCtaSnoozedUntilKey = 'koolan_location_cta_snoozed_until';
+  static const _locationCtaSnoozedUntilKey = 'onemarket_location_cta_snoozed_until';
 
   // Location permission — persisted so the CTA banner and onboarding don't
   // re-prompt after the user has already granted location access.
-  static const _locationPermissionGrantedKey = 'koolan_location_permission_granted';
+  static const _locationPermissionGrantedKey = 'onemarket_location_permission_granted';
 
   static final Map<String, Object?> _memoryStore = {};
 
@@ -329,7 +329,7 @@ class LocalStorage {
     return _memoryStore[_notifPriceAlertsKey] as bool? ?? false;
   }
 
-  static const _dataSaverKey = 'koolan_data_saver_enabled';
+  static const _dataSaverKey = 'onemarket_data_saver_enabled';
 
   static Future<void> saveDataSaverEnabled(bool value) async {
     final prefs = await _prefsOrNull();
@@ -391,8 +391,8 @@ class LocalStorage {
 
   // ── Chat local state (per-device read + archive) ─────────────────────────────
 
-  static const _chatLastReadKey = 'koolan_chat_last_read';
-  static const _chatArchivedKey = 'koolan_chat_archived';
+  static const _chatLastReadKey = 'onemarket_chat_last_read';
+  static const _chatArchivedKey = 'onemarket_chat_archived';
 
   /// Map of threadId → last-read UTC ms.
   static Future<Map<String, int>> getChatLastReadMap() async {

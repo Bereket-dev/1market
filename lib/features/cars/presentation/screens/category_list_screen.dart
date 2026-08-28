@@ -33,7 +33,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = KoolanAppStateScope.of(context);
+      final state = OnemarketAppStateScope.of(context);
       state.selectedCategory = widget.categoryName;
       state.searchQuery = '';
     });
@@ -52,18 +52,18 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
     final maxScroll = _scrollController.position.maxScrollExtent;
     final current = _scrollController.offset;
     if (current >= maxScroll - 300) {
-      KoolanAppStateScope.of(context).loadMoreListings();
+      OnemarketAppStateScope.of(context).loadMoreListings();
     }
   }
 
   Future<void> _onRefresh() async {
-    await KoolanAppStateScope.of(context).loadAllData(forceRefresh: true);
+    await OnemarketAppStateScope.of(context).loadAllData(forceRefresh: true);
   }
 
   // ── Filter actions ────────────────────────────────────────────────────────
 
   void _showConditionPicker() {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final options = [
       (label: s.catFilterAll,  value: 'all'),
       (label: s.catFilterSale, value: 'For Sale'),
@@ -78,7 +78,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 
   void _showBedroomPicker() {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final options = [
       (label: s.catFilterAll, value: 'all'),
       (label: '1+', value: '1'),
@@ -97,7 +97,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 
   void _showLandUsePicker() {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final options = [
       (label: s.catFilterAll,         value: 'all'),
       (label: s.catLandResidential,   value: 'Residential'),
@@ -115,7 +115,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 
   void _showFuelTypePicker() {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final options = [
       (label: s.catFilterAll,    value: 'all'),
       (label: s.catFuelPetrol,   value: 'Petrol'),
@@ -134,7 +134,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 
   void _showTransmissionPicker() {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final options = [
       (label: s.catFilterAll,    value: 'all'),
       (label: s.catTransAuto,    value: 'Automatic'),
@@ -171,7 +171,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 
   void _showSortPicker() {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final options = [
       (label: s.catSortNewest,   value: 'newest'),
       (label: s.catSortPriceAsc, value: 'priceAsc'),
@@ -266,7 +266,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
 

@@ -1,7 +1,7 @@
 part of '../post_wizard_screen.dart';
 
 class _PhotosSection extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final VoidCallback onRebuild;
   const _PhotosSection({required this.state, required this.onRebuild});
 
@@ -194,7 +194,7 @@ class _AddImageButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SubmitFooter extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final double bottom;
   final VoidCallback onSubmit;
   const _SubmitFooter({
@@ -256,7 +256,7 @@ class _SubmitFooter extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _OfflineBanner extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _OfflineBanner({required this.state});
 
   @override

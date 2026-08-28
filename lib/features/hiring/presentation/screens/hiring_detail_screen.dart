@@ -41,11 +41,11 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
     super.didChangeDependencies();
     _checkAlreadyApplied();
     // Record this view for the interaction penalty in recommendations.
-    KoolanAppStateScope.of(context).recordItemViewed(widget.postId);
+    OnemarketAppStateScope.of(context).recordItemViewed(widget.postId);
   }
 
   void _checkAlreadyApplied() {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final userId = state.currentUser?.id;
     if (userId == null) return;
     // Check in-memory: if any application in myApplications matches this post.
@@ -58,7 +58,7 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
   }
 
   Future<void> _startApply(BuildContext context) async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
 
     // Auth gate: guests cannot apply — show soft-gate sheet instead.
     if (!state.isSignedIn) {
@@ -158,7 +158,7 @@ class _HiringDetailScreenState extends State<HiringDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final post = state.getHiringPostById(widget.postId);

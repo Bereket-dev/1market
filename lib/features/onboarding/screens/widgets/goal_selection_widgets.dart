@@ -13,7 +13,7 @@ class _GoalOption {
   final String Function(dynamic s) label;
   final String Function(dynamic s) description;
 
-  /// Stable key passed to [KoolanAppState.completeGoalSelection].
+  /// Stable key passed to [OnemarketAppState.completeGoalSelection].
   /// Must be one of: 'CARS', 'HOUSES', 'LAND', 'SKILLS', 'OTHERS'.
   final String key;
 
@@ -128,7 +128,7 @@ class _GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state     = KoolanAppStateScope.of(context);
+    final state     = OnemarketAppStateScope.of(context);
     final s         = state.s;
     final cs        = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;

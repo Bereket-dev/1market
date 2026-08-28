@@ -35,7 +35,7 @@ class CvViewer {
   }
 
   static Future<void> openExternal(BuildContext context, String url) async {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final uri = Uri.tryParse(url);
     if (uri == null || !(uri.isScheme('https') || uri.isScheme('http'))) {
       _showFailed(context, s.servicesCvOpenFailed);
@@ -57,7 +57,7 @@ class CvViewer {
   static Future<void> copyLink(BuildContext context, String url) async {
     await Clipboard.setData(ClipboardData(text: url));
     if (!context.mounted) return;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(s.servicesCvLinkCopied),
@@ -67,7 +67,7 @@ class CvViewer {
   }
 
   static Future<void> _showImagePreview(BuildContext context, String url) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return showDialog<void>(
       context: context,

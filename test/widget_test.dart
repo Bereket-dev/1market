@@ -1,22 +1,22 @@
-// Basic smoke test for the Koolan Flutter Web app.
+// Basic smoke test for the 1market Flutter Web app.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:koolan/app.dart';
+import 'package:onemarket/app.dart';
 
 void main() {
-  testWidgets('Koolan app renders without crashing', (
+  testWidgets('1market app renders without crashing', (
     WidgetTester tester,
   ) async {
     // bootstrapPending paints branded boot UI without blocking on services.
-    await tester.pumpWidget(const KoolanApp(bootstrapPending: true));
+    await tester.pumpWidget(const OnemarketApp(bootstrapPending: true));
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 
-  testWidgets('Koolan app shows branded boot while pending', (
+  testWidgets('1market app shows branded boot while pending', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const KoolanApp(bootstrapPending: true));
+    await tester.pumpWidget(const OnemarketApp(bootstrapPending: true));
     await tester.pump();
 
     expect(find.byType(MaterialApp), findsOneWidget);

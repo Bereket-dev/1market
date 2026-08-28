@@ -169,7 +169,7 @@ class _LocalImageTile extends StatelessWidget {
               color: cs.primary.withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(KoolanAppStateScope.of(context).s.commonNew,
+            child: Text(OnemarketAppStateScope.of(context).s.commonNew,
                 style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,

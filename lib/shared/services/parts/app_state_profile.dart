@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 
-extension AppStateProfile on KoolanAppState {
+extension AppStateProfile on OnemarketAppState {
   /// Writes a profile update directly to Supabase and updates local state.
   Future<void> submitProfileUpdate({
     required String displayName,

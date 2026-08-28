@@ -134,7 +134,7 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
 
   // ── Save and proceed ────────────────────────────────────────────────────────
 
-  Future<void> _proceed(KoolanAppState state) async {
+  Future<void> _proceed(OnemarketAppState state) async {
     if (_selectedIndex < 0 || _isSaving) return;
     setState(() => _isSaving = true);
     try {
@@ -151,7 +151,7 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;

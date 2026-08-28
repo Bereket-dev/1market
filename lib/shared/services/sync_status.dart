@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 /// Observable sync status model — tracks aggregate metrics across all sync passes.
 ///
-/// Exposed on [KoolanAppState.syncObservability] and consumed by [SyncDebugOverlay]
+/// Exposed on [OnemarketAppState.syncObservability] and consumed by [SyncDebugOverlay]
 /// in debug builds and by [SyncStatusBanner] for the "Updated X min ago" label.
 ///
 /// Named [SyncObservabilityStatus] to avoid collision with the [SyncStatus]

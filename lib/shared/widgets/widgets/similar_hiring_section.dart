@@ -16,7 +16,7 @@ class _SimilarHiringSectionState extends State<SimilarHiringSection> {
   List<HiringPost> _similar = [];
   int _lastVersion = -1;
 
-  void _computeIfStale(KoolanAppState state) {
+  void _computeIfStale(OnemarketAppState state) {
     final v = state.allHiringPosts.length;
     if (v == _lastVersion) return;
     _lastVersion = v;
@@ -34,7 +34,7 @@ class _SimilarHiringSectionState extends State<SimilarHiringSection> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     _computeIfStale(state);
 
     if (_similar.isEmpty) {

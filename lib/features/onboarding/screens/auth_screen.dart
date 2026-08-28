@@ -64,7 +64,7 @@ class _AuthScreenState extends State<AuthScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       bool shouldSignUp = widget.fromOnboarding;
-      final appState = KoolanAppStateScope.of(context);
+      final appState = OnemarketAppStateScope.of(context);
       if (appState.pendingSignUpMode) {
         shouldSignUp = true;
         appState.clearPendingSignUpMode();
@@ -87,7 +87,7 @@ class _AuthScreenState extends State<AuthScreen> {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   String _mapError(Object error) =>
-      ErrorMapper.userMessage(error, KoolanAppStateScope.of(context).s);
+      ErrorMapper.userMessage(error, OnemarketAppStateScope.of(context).s);
 
   InputDecoration _fieldDeco(
     BuildContext context, {
@@ -128,7 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _eyeToggle(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     return Tooltip(
       message: _passwordVisible ? s.authHidePassword : s.authShowPassword,
       child: IconButton(
@@ -152,7 +152,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       setState(() {
-        _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable;
+        _error = OnemarketAppStateScope.of(context).s.authSupabaseUnavailable;
         _isLoading = false;
       });
       return;
@@ -163,7 +163,7 @@ class _AuthScreenState extends State<AuthScreen> {
         password: _passwordCtrl.text,
       );
       if (!mounted) return;
-      await KoolanAppStateScope.of(context).onFreshAuth();
+      await OnemarketAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
       setState(() => _error = _mapError(e));
     } catch (e) {
@@ -180,7 +180,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       setState(() {
-        _error = KoolanAppStateScope.of(context).s.authSupabaseUnavailable;
+        _error = OnemarketAppStateScope.of(context).s.authSupabaseUnavailable;
         _isLoading = false;
       });
       return;
@@ -198,7 +198,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (googleUser == null) {
         if (mounted) {
           setState(() => _error =
-              KoolanAppStateScope.of(context).s.authGoogleCancelled);
+              OnemarketAppStateScope.of(context).s.authGoogleCancelled);
         }
         return;
       }
@@ -209,14 +209,14 @@ class _AuthScreenState extends State<AuthScreen> {
         throw Exception('Google tokens were not returned.');
       }
       if (!mounted) return;
-      KoolanAppStateScope.of(context).markOAuthPending();
+      OnemarketAppStateScope.of(context).markOAuthPending();
       await client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
         accessToken: accessToken,
       );
       if (!mounted) return;
-      await KoolanAppStateScope.of(context).onFreshAuth();
+      await OnemarketAppStateScope.of(context).onFreshAuth();
     } on AuthException catch (e) {
       setState(() => _error = _mapError(e));
     } catch (e) {
@@ -230,7 +230,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = KoolanAppStateScope.of(context);
+    final appState = OnemarketAppStateScope.of(context);
     final s  = appState.s;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;

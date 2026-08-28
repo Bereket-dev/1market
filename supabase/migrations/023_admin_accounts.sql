@@ -1,5 +1,5 @@
 -- Migration 023: Admin accounts table
--- Stores admin users with roles and permissions for the Koolan admin portal.
+-- Stores admin users with roles and permissions for the 1market admin portal.
 -- super_admin is seeded from env at server startup; all other admins are created
 -- through the admin portal by the super_admin.
 

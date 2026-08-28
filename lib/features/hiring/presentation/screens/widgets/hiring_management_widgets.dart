@@ -12,7 +12,7 @@ class _HiringPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s  = state.s;
     final cs = Theme.of(context).colorScheme;
 
@@ -147,7 +147,7 @@ class _HiringPostCard extends StatelessWidget {
 
 Future<void> _confirmDeletePost(
   BuildContext context,
-  KoolanAppState state,
+  OnemarketAppState state,
   dynamic s,
   String postId,
 ) async {
@@ -226,7 +226,7 @@ class _HiringManagementEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(

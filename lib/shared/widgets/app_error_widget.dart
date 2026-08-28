@@ -16,7 +16,7 @@ class AppErrorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context
-            .getInheritedWidgetOfExactType<KoolanAppStateScope>()
+            .getInheritedWidgetOfExactType<OnemarketAppStateScope>()
             ?.notifier
             ?.s;
     final title = s?.errorSomethingWrong ?? 'Something went wrong';

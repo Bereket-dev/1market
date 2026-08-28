@@ -31,12 +31,12 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Record this view for the interaction penalty in recommendations.
-    KoolanAppStateScope.of(context).recordItemViewed(widget.serviceId);
+    OnemarketAppStateScope.of(context).recordItemViewed(widget.serviceId);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final service = state.getServiceById(widget.serviceId);

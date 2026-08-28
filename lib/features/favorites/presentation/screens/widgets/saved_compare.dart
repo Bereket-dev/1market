@@ -5,7 +5,7 @@ part of '../saved_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CompareActionBar extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ColorScheme cs;
   final VoidCallback onCompare;
 
@@ -120,7 +120,7 @@ class _CompareActionBar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ColorScheme cs;
   const _EmptyState({required this.state, required this.cs});
 
@@ -184,7 +184,7 @@ class _FilterEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return Expanded(
       child: Center(
         child: Column(

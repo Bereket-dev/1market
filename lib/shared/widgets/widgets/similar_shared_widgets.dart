@@ -14,7 +14,7 @@ class _SimilarShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
 
     return Column(
@@ -50,7 +50,7 @@ class _SimilarShell extends StatelessWidget {
 class _SimilarEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -162,7 +162,7 @@ class _SimilarServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -237,7 +237,7 @@ class _SimilarHiringCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return GestureDetector(
       onTap: onTap,
       child: Container(

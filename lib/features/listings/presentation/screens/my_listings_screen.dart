@@ -22,7 +22,7 @@ class MyListingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs    = Theme.of(context).colorScheme;
     final posts = state.getMyListings();
 

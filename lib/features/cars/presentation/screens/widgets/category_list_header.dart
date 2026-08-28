@@ -24,7 +24,7 @@ class _CategoryHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
@@ -93,7 +93,7 @@ class _FilterStripRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     final sortLabel = switch (sortMode) {
       _SortMode.newest    => s.catSortNewest,
@@ -167,7 +167,7 @@ class _FilterChipsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
@@ -269,7 +269,7 @@ class _ResultCountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),

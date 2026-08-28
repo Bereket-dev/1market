@@ -2,8 +2,8 @@
 # Create a Play upload keystore outside the repo (never commit it).
 set -euo pipefail
 
-OUT_DIR="${HOME}/.koolan-keys"
-KEYSTORE="${OUT_DIR}/koolan-upload.jks"
+OUT_DIR="${HOME}/.onemarket-keys"
+KEYSTORE="${OUT_DIR}/onemarket-upload.jks"
 ALIAS="upload"
 PROPS="$(cd "$(dirname "$0")/.." && pwd)/android/key.properties"
 

@@ -5,7 +5,7 @@ part of '../post_wizard_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PostFormHeader extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final double top;
   const _PostFormHeader({required this.state, required this.top});
 
@@ -60,7 +60,7 @@ class _FormSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     // required indicator: use the AppStrings getter (goes through _t)
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

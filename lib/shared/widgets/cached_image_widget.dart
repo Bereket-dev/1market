@@ -24,12 +24,12 @@ enum CachedImageDelivery {
 
 /// A cache manager that keeps images for 90 days and holds up to 2 000 files.
 /// Using a named singleton ensures every widget shares the same on-disk store.
-class KoolanImageCacheManager extends CacheManager with ImageCacheManager {
-  static const _key = 'koolanImageCache';
+class OnemarketImageCacheManager extends CacheManager with ImageCacheManager {
+  static const _key = 'onemarketImageCache';
 
-  static final KoolanImageCacheManager instance = KoolanImageCacheManager._();
+  static final OnemarketImageCacheManager instance = OnemarketImageCacheManager._();
 
-  KoolanImageCacheManager._()
+  OnemarketImageCacheManager._()
       : super(
           Config(
             _key,
@@ -93,7 +93,7 @@ class CachedImageWidget extends StatelessWidget {
 
     Widget imageWidget = CachedNetworkImage(
       imageUrl: resolvedUrl,
-      cacheManager: KoolanImageCacheManager.instance,
+      cacheManager: OnemarketImageCacheManager.instance,
       fit: fit,
       width: width,
       height: height,
@@ -217,7 +217,7 @@ class CachedCircularImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CachedNetworkImage(
       imageUrl: imageUrl,
-      cacheManager: KoolanImageCacheManager.instance,
+      cacheManager: OnemarketImageCacheManager.instance,
       imageBuilder: (context, imageProvider) => CircleAvatar(
         radius: radius,
         backgroundImage: imageProvider,

@@ -10,7 +10,7 @@ import '../models/hiring_post.dart';
 // custom redirect server) are set up, replace this with the real domain so
 // the link opens the app directly.  Even as a plain URL it gives recipients a
 // meaningful destination and improves SEO.
-const _kBaseUrl = 'https://koolan.app';
+const _kBaseUrl = 'https://1market.app';
 
 /// Lightweight helper that builds a rich share message and invokes the OS
 /// native share sheet (WhatsApp, Telegram, Facebook, SMS, copy, …).

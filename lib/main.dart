@@ -40,15 +40,15 @@ Future<void> main() async {
     String initialLocale = 'en';
     try {
       final prefs = await SharedPreferences.getInstance();
-      initialDarkMode = prefs.getBool('koolan_dark_mode') ?? false;
-      initialLocale = prefs.getString('koolan_language') ?? 'en';
+      initialDarkMode = prefs.getBool('onemarket_dark_mode') ?? false;
+      initialLocale = prefs.getString('onemarket_language') ?? 'en';
     } catch (_) {
       // SharedPreferences unavailable — use defaults.
     }
 
     // Paint first frame immediately (native splash → branded boot UI).
-    // Firebase / Supabase / notifications init inside [KoolanApp].
-    runApp(KoolanApp(
+    // Firebase / Supabase / notifications init inside [OnemarketApp].
+    runApp(OnemarketApp(
       initialDarkMode: initialDarkMode,
       initialLocale: initialLocale,
       bootstrapPending: true,

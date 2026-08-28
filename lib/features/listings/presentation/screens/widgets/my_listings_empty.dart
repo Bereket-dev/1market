@@ -5,7 +5,7 @@ part of '../my_listings_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyMyListings extends StatelessWidget {
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final ColorScheme cs;
   const _EmptyMyListings({required this.state, required this.cs});
 

@@ -40,7 +40,7 @@ class _OverlayCircleButton extends StatelessWidget {
 
 class _SavePill extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _SavePill({required this.listing, required this.state});
 
   @override

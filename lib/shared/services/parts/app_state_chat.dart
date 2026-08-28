@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Chat & reports ────────────────────────────────────────────────────────────
 
-extension AppStateChat on KoolanAppState {
+extension AppStateChat on OnemarketAppState {
   /// Total unread messages across non-archived threads (for nav badge / filters).
   int get totalUnreadChatCount => chatSessions
       .where((s) => !s.isArchived)

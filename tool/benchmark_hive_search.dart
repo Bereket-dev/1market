@@ -1,4 +1,4 @@
-// Koolan — Hive search benchmark
+// 1market — Hive search benchmark
 //
 // Compares two local search strategies at 1k/5k/10k simulated listing rows:
 //   A. Full-scan: iterate all entries, decode JSON, check title.contains(query)
@@ -223,7 +223,7 @@ void _printTable(List<({int rows, int fullUs, int idxUs})> data) {
 
   // Total inner width = columns + 3 inner column separators (╦ chars).
   const innerWidth = w1 + w2 + w3 + w4 + 3;
-  const title = 'Koolan Hive search benchmark (in-memory)';
+  const title = '1market Hive search benchmark (in-memory)';
   // Centre the title within innerWidth.
   final leftPad = (innerWidth - title.length) ~/ 2;
   final rightPad = innerWidth - title.length - leftPad;

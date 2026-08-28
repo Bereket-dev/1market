@@ -90,7 +90,7 @@ class _ReportSheetState extends State<_ReportSheet> {
       _selectedReason!.startsWith('Other') &&
       _detailsController.text.trim().isEmpty;
 
-  Future<void> _submit(KoolanAppState state, AppStrings s) async {
+  Future<void> _submit(OnemarketAppState state, AppStrings s) async {
     // Auth guard — redirect to sign-in sheet.
     if (!state.isSignedIn) {
       if (!mounted) return;
@@ -148,7 +148,7 @@ class _ReportSheetState extends State<_ReportSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final mq = MediaQuery.of(context);

@@ -66,7 +66,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
     if (_initialized) return;
     _initialized = true;
 
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     _post = widget.postId == null
         ? null
         : state.getHiringPostById(widget.postId!);
@@ -101,7 +101,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
         withReadStream: false,
       );
     } catch (e) {
-      setState(() => _imageError = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      setState(() => _imageError = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
       return;
     }
     if (result == null || result.files.isEmpty) return;
@@ -116,7 +116,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final userId = state.currentUser?.id;
     if (userId == null) return;
 
@@ -166,7 +166,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
   }
 
   Future<void> _confirmDelete() async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -205,7 +205,7 @@ class _HiringEditScreenState extends State<HiringEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
     final isEditing = _post != null;

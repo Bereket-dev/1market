@@ -25,7 +25,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.jigjigamarket.koolan"
+    namespace = "com.onemarket.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -40,7 +40,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.jigjigamarket.koolan"
+        applicationId = "com.onemarket.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -16,7 +16,7 @@ class _SessionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final lastMsg = session.messages.lastOrNull;
     final archived = session.isArchived;
     final unread = archived ? 0 : session.unreadCount;
@@ -50,7 +50,7 @@ class _SessionCard extends StatelessWidget {
                         )
                       : CachedNetworkImage(
                           imageUrl: session.partnerAvatar,
-                          cacheManager: KoolanImageCacheManager.instance,
+                          cacheManager: OnemarketImageCacheManager.instance,
                           imageBuilder: (ctx, provider) => CircleAvatar(
                             radius: 28,
                             backgroundImage: provider,

@@ -50,7 +50,7 @@ class _HiringApplicantDetailScreenState
   }
 
   Future<void> _loadExtras() async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final app = _application(state);
     if (app == null) {
       setState(() => _loadingExtras = false);
@@ -63,7 +63,7 @@ class _HiringApplicantDetailScreenState
     if (mounted) setState(() => _loadingExtras = false);
   }
 
-  Application? _application(KoolanAppState state) {
+  Application? _application(OnemarketAppState state) {
     final list = state.getApplicationsForPost(widget.postId);
     try {
       return list.firstWhere((a) => a.id == widget.applicationId);
@@ -75,7 +75,7 @@ class _HiringApplicantDetailScreenState
   // ── Status actions ────────────────────────────────────────────────────────
 
   Future<void> _setStatus(
-    KoolanAppState state,
+    OnemarketAppState state,
     ApplicationStatus newStatus,
   ) async {
     await state.updateApplicationStatus(
@@ -85,7 +85,7 @@ class _HiringApplicantDetailScreenState
     );
   }
 
-  Future<void> _openChat(KoolanAppState state, Application app) async {
+  Future<void> _openChat(OnemarketAppState state, Application app) async {
     setState(() => _chatLoading = true);
     final post = state.getHiringPostById(widget.postId);
     if (post == null) {
@@ -122,7 +122,7 @@ class _HiringApplicantDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
 

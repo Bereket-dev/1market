@@ -41,7 +41,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     // If already cached, show instantly with no spinner.
     if (state.getCachedPublicProfile(widget.userId) != null) {
       _loading = false;
@@ -56,7 +56,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
   }
 
   Future<void> _load() async {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     try {
       // Run both fetches in parallel — single await for both.
       await Future.wait([
@@ -64,14 +64,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
         state.loadReviewsForUser(widget.userId),
       ]);
     } catch (e) {
-      if (mounted) setState(() => _error = ErrorMapper.userMessage(e, KoolanAppStateScope.of(context).s));
+      if (mounted) setState(() => _error = ErrorMapper.userMessage(e, OnemarketAppStateScope.of(context).s));
     }
     if (mounted) setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
 

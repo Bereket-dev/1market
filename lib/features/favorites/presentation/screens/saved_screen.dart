@@ -24,7 +24,7 @@ class _SavedScreenState extends State<SavedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs    = Theme.of(context).colorScheme;
     final all   = state.getSavedListings();
 

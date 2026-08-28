@@ -14,7 +14,7 @@ class _ServiceHeroCarousel extends StatefulWidget {
   final List<String> imageUrls;
 
   final String ownerId;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   final String serviceId;
 
   const _ServiceHeroCarousel({

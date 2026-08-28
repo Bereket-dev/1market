@@ -25,7 +25,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     super.initState();
     // Ensure unread/archived flags are applied after hot reload / cold start.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = KoolanAppStateScope.of(context);
+      final state = OnemarketAppStateScope.of(context);
       state.refreshChatSessions();
     });
   }
@@ -63,7 +63,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return result;
   }
 
-  Future<void> _refresh(KoolanAppState state) async {
+  Future<void> _refresh(OnemarketAppState state) async {
     await state.refreshChatSessions();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -73,7 +73,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     final filtered = _filtered(state.chatSessions);
     final unreadTotal = state.totalUnreadChatCount;

@@ -3,7 +3,7 @@ part of '../app.dart';
 // ── Onboarding gate ───────────────────────────────────────────────────────────
 
 class _RootGate extends StatelessWidget {
-  final KoolanAppState appState;
+  final OnemarketAppState appState;
 
   const _RootGate({required this.appState});
 
@@ -159,7 +159,7 @@ class _InitializingScreen extends StatelessWidget {
   }
 }
 
-/// Shown when Firebase/Supabase bootstrap fails before [KoolanAppState] exists.
+/// Shown when Firebase/Supabase bootstrap fails before [OnemarketAppState] exists.
 class _BootstrapFailureScreen extends StatelessWidget {
   const _BootstrapFailureScreen({
     required this.retrying,

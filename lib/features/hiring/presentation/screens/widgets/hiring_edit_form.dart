@@ -46,7 +46,7 @@ class _HiringImagePicker extends StatelessWidget {
     return SizedBox(
       height: 120,
       child: Row(children: [
-        _AddTile(cs: cs, label: KoolanAppStateScope.of(context).s.addCoverPhotoLabel, onTap: onPick),
+        _AddTile(cs: cs, label: OnemarketAppStateScope.of(context).s.addCoverPhotoLabel, onTap: onPick),
       ]),
     );
   }
@@ -99,7 +99,7 @@ class _HiringStatusToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
     return Row(
       children: [

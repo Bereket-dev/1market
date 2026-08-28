@@ -29,7 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context
-          .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+          .getInheritedWidgetOfExactType<OnemarketAppStateScope>()!
           .notifier!
           .refreshNotificationPermissionState();
       if (mounted) setState(() {});
@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       context
-          .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+          .getInheritedWidgetOfExactType<OnemarketAppStateScope>()!
           .notifier!
           .refreshNotificationPermissionState()
           .then((_) {
@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     }
   }
 
-  Future<void> _onPushToggle(bool value, KoolanAppState appState) async {
+  Future<void> _onPushToggle(bool value, OnemarketAppState appState) async {
     if (_pushToggleBusy) return;
     setState(() => _pushToggleBusy = true);
     try {
@@ -106,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     }
   }
 
-  Future<void> _onMessagesToggle(bool value, KoolanAppState appState) async {
+  Future<void> _onMessagesToggle(bool value, OnemarketAppState appState) async {
     if (_messagesToggleBusy) return;
     setState(() => _messagesToggleBusy = true);
     try {
@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppStrings(
           context
-                  .getInheritedWidgetOfExactType<KoolanAppStateScope>()
+                  .getInheritedWidgetOfExactType<OnemarketAppStateScope>()
                   ?.notifier
                   ?.locale ??
               'en',
@@ -135,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     final appState = context
-        .getInheritedWidgetOfExactType<KoolanAppStateScope>()!
+        .getInheritedWidgetOfExactType<OnemarketAppStateScope>()!
         .notifier!;
     final s = appState.s;
     final cs = Theme.of(context).colorScheme;
@@ -358,7 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     );
   }
 
-  Future<void> _confirmDeleteAccount(KoolanAppState appState) async {
+  Future<void> _confirmDeleteAccount(OnemarketAppState appState) async {
     final s = appState.s;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -405,7 +405,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
 // EditProfileScreen (reachable via the "Edit Profile" row below).
 //
 // Uses getInheritedWidgetOfExactType (non-registering) so this widget's
-// element is NOT added to KoolanAppStateScope._dependents. We only need
+// element is NOT added to OnemarketAppStateScope._dependents. We only need
 // the profile data once for the initial controller text — we don't need
 // automatic rebuild notifications from the scope. Any mutation-driven
 // state changes are covered by setState.

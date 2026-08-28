@@ -6,7 +6,7 @@ part of '../listing_detail_screen.dart';
 
 class _SellerCard extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _SellerCard({required this.listing, required this.state});
 
   @override
@@ -46,7 +46,7 @@ class _SellerCard extends StatelessWidget {
                       ? ClipOval(
                           child: CachedNetworkImage(
                             imageUrl: listing.sellerImage,
-                            cacheManager: KoolanImageCacheManager.instance,
+                            cacheManager: OnemarketImageCacheManager.instance,
                             width: 52,
                             height: 52,
                             fit: BoxFit.cover,

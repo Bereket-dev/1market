@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
-import '../../../../shared/models/koolan_cities.dart';
+import '../../../../shared/models/onemarket_cities.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/widgets/phone_prompt.dart';
 import '../../../../shared/widgets/sync_status_badge.dart';
@@ -41,11 +41,11 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      KoolanAppStateScope.of(context).resetWizard();
+      OnemarketAppStateScope.of(context).resetWizard();
     });
   }
 
-  Future<void> _onSubmit(KoolanAppState state) async {
+  Future<void> _onSubmit(OnemarketAppState state) async {
     setState(() => _submitAttempted = true);
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -63,7 +63,7 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     final top = MediaQuery.of(context).padding.top;
     final bottom = MediaQuery.of(context).padding.bottom;

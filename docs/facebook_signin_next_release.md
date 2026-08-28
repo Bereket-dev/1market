@@ -9,9 +9,9 @@ Use this checklist when you re-add it in a later release.
 
 1. Meta Developer app with **Facebook Login** product enabled.
 2. Valid **App ID** + **Client Token** (Settings → Basic / Advanced).
-3. Android package `com.jigjigamarket.koolan` + key hashes registered in Meta.
+3. Android package `com.onemarket.app` + key hashes registered in Meta.
 4. Supabase Auth → Providers → **Facebook** enabled with the same App ID / secret.
-5. Supabase redirect URL includes `io.supabase.koolan://login-callback/` (already used for Google browser OAuth).
+5. Supabase redirect URL includes `io.supabase.onemarket://login-callback/` (already used for Google browser OAuth).
 
 ## App wiring (restore)
 

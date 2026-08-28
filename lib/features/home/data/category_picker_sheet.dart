@@ -17,7 +17,7 @@ class CategoryPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
 
     final options = [

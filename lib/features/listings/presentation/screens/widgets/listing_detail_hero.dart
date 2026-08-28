@@ -7,7 +7,7 @@ part of '../listing_detail_screen.dart';
 
 class _HeroImage extends StatefulWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _HeroImage({required this.listing, required this.state});
 
   @override
@@ -69,7 +69,7 @@ class _HeroImageState extends State<_HeroImage> {
             // Single image — no PageView overhead
             CachedNetworkImage(
               imageUrl: images.first,
-              cacheManager: KoolanImageCacheManager.instance,
+              cacheManager: OnemarketImageCacheManager.instance,
               fit: BoxFit.cover,
               placeholder: (_, _) => Container(
                 color: cs.surfaceContainerHighest,
@@ -91,7 +91,7 @@ class _HeroImageState extends State<_HeroImage> {
               onPageChanged: (i) => setState(() => _currentPage = i),
               itemBuilder: (_, i) => CachedNetworkImage(
                 imageUrl: images[i],
-                cacheManager: KoolanImageCacheManager.instance,
+                cacheManager: OnemarketImageCacheManager.instance,
                 fit: BoxFit.cover,
                 placeholder: (_, _) => Container(
                   color: cs.surfaceContainerHighest,

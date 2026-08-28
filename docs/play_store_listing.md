@@ -5,7 +5,7 @@ Use this when filling Play Console. Hosted legal pages must stay live.
 | Field | Value |
 |-------|--------|
 | App name | **1market** |
-| Package | `com.jigjigamarket.koolan` |
+| Package | `com.onemarket.app` |
 | Short slogan | One Place. Many Possibilities. |
 | Privacy Policy | https://1market-privacy-policy.vercel.app/ |
 | Terms of Service | https://1market-terms.vercel.app/ |

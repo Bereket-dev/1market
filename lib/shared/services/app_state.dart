@@ -20,7 +20,7 @@ import '../models/application.dart';
 import '../models/chat.dart';
 import '../models/hiring_post.dart';
 import '../models/home_promo.dart';
-import '../models/koolan_cities.dart';
+import '../models/onemarket_cities.dart';
 import '../models/listing.dart';
 import '../models/profile.dart';
 import '../models/service.dart';
@@ -66,9 +66,9 @@ enum OnboardingPhase {
   ready,
 }
 
-/// Central application state. Shared via [KoolanAppStateScope].
-class KoolanAppState extends ChangeNotifier {
-  KoolanAppState({
+/// Central application state. Shared via [OnemarketAppStateScope].
+class OnemarketAppState extends ChangeNotifier {
+  OnemarketAppState({
     bool initialDarkMode = false,
     String initialLocale = 'en',
   }) {
@@ -248,7 +248,7 @@ class KoolanAppState extends ChangeNotifier {
   bool get isSignedIn => currentUser != null;
 
   // ── Navigation ────────────────────────────────────────────────────────────────
-  final List<KoolanScreen> navigationStack = [HomeScreenRoute()];
+  final List<OnemarketScreen> navigationStack = [HomeScreenRoute()];
 
   // ── Locale ────────────────────────────────────────────────────────────────────
   String locale = 'en';
@@ -367,18 +367,18 @@ class KoolanAppState extends ChangeNotifier {
   }
 }
 
-/// Makes [KoolanAppState] accessible anywhere in the widget tree.
-class KoolanAppStateScope extends InheritedNotifier<KoolanAppState> {
-  const KoolanAppStateScope({
+/// Makes [OnemarketAppState] accessible anywhere in the widget tree.
+class OnemarketAppStateScope extends InheritedNotifier<OnemarketAppState> {
+  const OnemarketAppStateScope({
     super.key,
-    required KoolanAppState notifier,
+    required OnemarketAppState notifier,
     required super.child,
   }) : super(notifier: notifier);
 
-  static KoolanAppState of(BuildContext context) {
+  static OnemarketAppState of(BuildContext context) {
     final scope = context
-        .dependOnInheritedWidgetOfExactType<KoolanAppStateScope>();
-    assert(scope != null, 'No KoolanAppStateScope found in context');
+        .dependOnInheritedWidgetOfExactType<OnemarketAppStateScope>();
+    assert(scope != null, 'No OnemarketAppStateScope found in context');
     return scope!.notifier!;
   }
 }

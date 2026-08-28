@@ -85,7 +85,7 @@ class _CreateAccountForm extends StatelessWidget {
     required VoidCallback onToggle,
   }) {
     final cs = Theme.of(context).colorScheme;
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     return Tooltip(
       message: visible ? s.authHidePassword : s.authShowPassword,
       child: IconButton(
@@ -101,7 +101,7 @@ class _CreateAccountForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s  = KoolanAppStateScope.of(context).s;
+    final s  = OnemarketAppStateScope.of(context).s;
     final cs = Theme.of(context).colorScheme;
 
     return Form(

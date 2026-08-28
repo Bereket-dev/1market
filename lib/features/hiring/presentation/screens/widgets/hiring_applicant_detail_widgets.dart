@@ -30,7 +30,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final color = switch (status) {
       ApplicationStatus.submitted => cs.primary,
       ApplicationStatus.reviewed => cs.tertiary,

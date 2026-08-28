@@ -6,7 +6,7 @@ part of '../my_listings_screen.dart';
 
 class _MyListingTile extends StatelessWidget {
   final Listing listing;
-  final KoolanAppState state;
+  final OnemarketAppState state;
   const _MyListingTile({required this.listing, required this.state});
 
   Future<void> _confirmDelete(BuildContext context) async {

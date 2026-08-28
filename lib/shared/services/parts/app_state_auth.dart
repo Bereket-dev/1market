@@ -3,7 +3,7 @@ part of '../app_state.dart';
 
 // ── Auth & private helpers ────────────────────────────────────────────────────
 
-extension AppStateAuth on KoolanAppState {
+extension AppStateAuth on OnemarketAppState {
   /// Puts the app into guest/browse mode without wiping first-install flags.
   ///
   /// Called after:

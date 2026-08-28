@@ -15,7 +15,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = KoolanAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final s = state.s;
     final cs = Theme.of(context).colorScheme;
 
@@ -107,7 +107,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
     );
   }
 
-  Future<void> _onAllow(KoolanAppState state) async {
+  Future<void> _onAllow(OnemarketAppState state) async {
     setState(() => _isRequesting = true);
 
     // Request location permission and GPS position.

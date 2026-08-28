@@ -27,7 +27,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSending = true);
 
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     final client = AppSupabaseConfig.clientOrNull();
     if (client == null) {
       ScaffoldMessenger.of(context)
@@ -43,7 +43,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(KoolanAppStateScope.of(context).s.resetPasswordEmailSent)),
+        SnackBar(content: Text(OnemarketAppStateScope.of(context).s.resetPasswordEmailSent)),
       );
       Navigator.of(context).pop();
     } on AuthException catch (e) {
@@ -63,7 +63,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final s = KoolanAppStateScope.of(context).s;
+    final s = OnemarketAppStateScope.of(context).s;
     return Scaffold(
       appBar: AppBar(title: Text(s.resetPasswordTitle)),
       body: Padding(

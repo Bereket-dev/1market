@@ -184,7 +184,7 @@ class SyncQueueEntry {
 class SyncService {
   SyncService(this._appState);
 
-  final KoolanAppState _appState;
+  final OnemarketAppState _appState;
   final HiveSyncStore _store = HiveSyncStore.instance;
   final _queue = StreamController<void>.broadcast();
   bool _isSyncing = false;
