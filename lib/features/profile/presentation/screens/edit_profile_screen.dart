@@ -115,6 +115,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         city: _selectedCity,
         preferredCategory: _selectedCategory,
       );
+      if (mounted) appState.popScreen();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

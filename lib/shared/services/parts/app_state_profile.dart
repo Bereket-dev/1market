@@ -42,6 +42,9 @@ extension AppStateProfile on OnemarketAppState {
     try {
       await _repo?.updateProfile(fields);
       profile = profile?.copyWith(syncStatus: SyncStatus.synced);
+      if (profile != null) {
+        await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+      }
       notifyListeners();
     } catch (e) {
       profile = profile?.copyWith(syncStatus: SyncStatus.failed);

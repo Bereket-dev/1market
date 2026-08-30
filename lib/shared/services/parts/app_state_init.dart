@@ -4,6 +4,75 @@ part of '../app_state.dart';
 // ── Initialization & Onboarding ───────────────────────────────────────────────
 
 extension AppStateInit on OnemarketAppState {
+  /// True when onboarding can be skipped (local flag, remote flag, or legacy
+  /// profile fields that imply all steps were finished).
+  bool _isOnboardingFinished(UserProfile? p, bool locallyDone) {
+    if (locallyDone) return true;
+    if (p?.onboardingComplete == true) return true;
+    final lang = p?.language;
+    final category = p?.preferredCategory;
+    return lang != null &&
+        lang.isNotEmpty &&
+        category != null &&
+        category.isNotEmpty;
+  }
+
+  void _applyProfileToState(UserProfile p) {
+    profile = p;
+    notifMessagesEnabled = p.notifMessagesEnabled;
+    notifPushEnabled = p.notifPushEnabled;
+    if (p.language != null && p.language!.isNotEmpty) {
+      locale = p.language!;
+    }
+    if (p.preferredCategory != null && p.preferredCategory!.isNotEmpty) {
+      onboardingGoal = p.preferredCategory;
+    }
+  }
+
+  Future<void> _persistOnboardingComplete(UserProfile? current) async {
+    await app_local.LocalStorage.markOnboardingComplete();
+    await app_local.LocalStorage.markSessionRestored();
+    await app_local.LocalStorage.clearOnboardingPhase();
+    if (current == null) return;
+    final updated = current.copyWith(onboardingComplete: true);
+    profile = updated;
+    await app_local.LocalStorage.saveProfileCache(updated.toJson());
+    if (_repo != null) {
+      try {
+        await _repo!.updateProfile({'onboarding_complete': true});
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[Onboarding] remote onboarding_complete write failed: $e');
+        }
+      }
+    }
+  }
+
+  Future<void> _refreshProfileInBackground() async {
+    if (_repo == null || !isSignedIn) return;
+    try {
+      final fresh = await _repo!.ensureProfile();
+      _applyProfileToState(fresh);
+      await app_local.LocalStorage.saveProfileCache(fresh.toJson());
+      await app_local.LocalStorage.saveNotifMessagesEnabled(
+        fresh.notifMessagesEnabled,
+      );
+      await app_local.LocalStorage.saveNotifPushEnabled(fresh.notifPushEnabled);
+      if (fresh.language != null) {
+        await app_local.LocalStorage.saveLanguage(fresh.language!);
+      }
+      if (_isOnboardingFinished(fresh, false)) {
+        await app_local.LocalStorage.markOnboardingComplete();
+      }
+      notifyListeners();
+      await loadAllData();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[init] background profile refresh failed: $e');
+      }
+    }
+  }
+
   Future<void> _initialize() async {
     final t0 = DateTime.now().millisecondsSinceEpoch;
     if (kDebugMode) debugPrint('[AUTH] _initialize started at ${t0}ms');
@@ -33,8 +102,63 @@ extension AppStateInit on OnemarketAppState {
       locationPermissionGranted =
           await app_local.LocalStorage.getLocationPermissionGranted();
 
-      // Start NetworkMonitor so quality classification is ready before sync.
+      // Start NetworkMonitor early — needed for offline detection below.
       await NetworkMonitor.instance.initialize();
+
+      final locallyDone =
+          await app_local.LocalStorage.isOnboardingComplete();
+      final cachedProfileJson =
+          await app_local.LocalStorage.getProfileCache();
+      UserProfile? cachedProfile;
+      if (cachedProfileJson != null) {
+        try {
+          cachedProfile = UserProfile.fromJson(cachedProfileJson);
+        } catch (e) {
+          if (kDebugMode) debugPrint('[init] corrupt profile cache: $e');
+        }
+      }
+
+      // Cache-first: skip onboarding UI when the device already knows we're done.
+      if (_isOnboardingFinished(cachedProfile, locallyDone)) {
+        if (cachedProfile != null) {
+          _applyProfileToState(cachedProfile);
+        }
+        if (!locallyDone) {
+          await app_local.LocalStorage.markOnboardingComplete();
+        }
+        final isOfflineEarly = NetworkMonitor.instance.isOffline;
+        if (!isOfflineEarly) {
+          unawaited(
+            _sessionReadyCompleter.future.timeout(
+              const Duration(seconds: 5),
+              onTimeout: () {
+                if (!_sessionReadyCompleter.isCompleted) {
+                  _sessionReadyCompleter.complete(null);
+                }
+                return null;
+              },
+            ),
+          );
+        } else if (!_sessionReadyCompleter.isCompleted) {
+          _sessionReadyCompleter.complete(null);
+        }
+        if (isSignedIn && _repo != null) {
+          await _enterApp();
+          unawaited(_refreshProfileInBackground());
+          return;
+        }
+        onboardingPhase = OnboardingPhase.ready;
+        notifyListeners();
+        try {
+          await syncService.init();
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[init] syncService.init() failed in cache-first guest path: $e');
+          }
+        }
+        unawaited(loadAllData());
+        return;
+      }
 
       // Only wait for Supabase's initialSession when the device is online.
       // Offline: skip straight to local data so the app opens instantly.
@@ -126,12 +250,28 @@ extension AppStateInit on OnemarketAppState {
       final onboardingDone =
           await app_local.LocalStorage.isOnboardingComplete();
 
-      if (onboardingDone || resolvedProfile?.onboardingComplete == true) {
+      if (_isOnboardingFinished(resolvedProfile, onboardingDone)) {
         if (!sessionRestored) {
           await app_local.LocalStorage.markSessionRestored();
         }
         if (!onboardingDone) {
           await app_local.LocalStorage.markOnboardingComplete();
+        }
+        if (resolvedProfile != null &&
+            !resolvedProfile.onboardingComplete &&
+            _repo != null) {
+          try {
+            await _repo!.updateProfile({'onboarding_complete': true});
+            resolvedProfile = resolvedProfile.copyWith(onboardingComplete: true);
+            profile = resolvedProfile;
+            await app_local.LocalStorage.saveProfileCache(
+              resolvedProfile.toJson(),
+            );
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('[Onboarding] backfill onboarding_complete failed: $e');
+            }
+          }
         }
         await _enterApp();
         return;
@@ -217,15 +357,22 @@ extension AppStateInit on OnemarketAppState {
     }
 
     final locallyDone = await app_local.LocalStorage.isOnboardingComplete();
-    final sessionRestored = await app_local.LocalStorage.wasSessionRestored();
     final profileDone = profile?.onboardingComplete == true;
+    final savedPhase = await app_local.LocalStorage.getOnboardingPhase();
 
-    if (locallyDone || sessionRestored || profileDone) {
+    if (_isOnboardingFinished(profile, locallyDone || profileDone)) {
       if (profile?.language != null) {
         locale = profile!.language!;
         await app_local.LocalStorage.saveLanguage(locale);
       }
+      await _persistOnboardingComplete(profile);
       await _enterApp();
+      return;
+    }
+
+    if (savedPhase != null) {
+      onboardingPhase = _parsePhase(savedPhase) ?? OnboardingPhase.language;
+      notifyListeners();
       return;
     }
 
@@ -275,6 +422,9 @@ extension AppStateInit on OnemarketAppState {
       await _repo!.updateLanguage(language);
     }
     profile = profile?.copyWith(language: language);
+    if (profile != null) {
+      await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+    }
     await app_local.LocalStorage.markSessionRestored();
     await app_local.LocalStorage.saveOnboardingPhase('location');
     onboardingPhase = OnboardingPhase.location;
@@ -312,6 +462,7 @@ extension AppStateInit on OnemarketAppState {
   Future<void> completeLocationOnboarding({
     double? lat,
     double? lng,
+    String? fcmToken,
   }) async {
     locationPermissionGranted = lat != null && lng != null;
     if (lat != null && lng != null) {
@@ -321,6 +472,34 @@ extension AppStateInit on OnemarketAppState {
     await app_local.LocalStorage.saveLocationPermissionGranted(
       locationPermissionGranted,
     );
+
+    if (fcmToken != null) {
+      notifPushEnabled = true;
+      notifMessagesEnabled = true;
+      await app_local.LocalStorage.saveNotifPushEnabled(true);
+      await app_local.LocalStorage.saveNotifMessagesEnabled(true);
+      profile = profile?.copyWith(
+        notifPushEnabled: true,
+        notifMessagesEnabled: true,
+      );
+      if (_repo != null) {
+        try {
+          await _repo!.updateProfile({
+            'fcm_token': fcmToken,
+            'notif_push_enabled': true,
+            'notif_messages_enabled': true,
+          });
+          if (profile != null) {
+            await app_local.LocalStorage.saveProfileCache(profile!.toJson());
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[LocationOnboarding] notification prefs save failed: $e');
+          }
+        }
+      }
+    }
+
     await app_local.LocalStorage.saveOnboardingPhase('goal');
     onboardingPhase = OnboardingPhase.goal;
     notifyListeners();
@@ -372,25 +551,36 @@ extension AppStateInit on OnemarketAppState {
     await app_local.LocalStorage.savePreferredCategory(goal);
     if (_repo != null) {
       try {
-        await _repo!.updateProfile({'preferred_category': goal});
+        await _repo!.updateProfile({
+          'preferred_category': goal,
+          'onboarding_complete': true,
+        });
         profile = profile?.copyWith(
           preferredCategory: goal,
+          onboardingComplete: true,
           syncStatus: SyncStatus.synced,
         );
-        if (kDebugMode) debugPrint('[GoalSelection] preferred_category saved to DB: $goal');
+        if (kDebugMode) {
+          debugPrint('[GoalSelection] preferred_category saved to DB: $goal');
+        }
       } catch (e) {
         profile = profile?.copyWith(
           preferredCategory: goal,
+          onboardingComplete: true,
           syncStatus: SyncStatus.pending,
         );
-        if (kDebugMode) debugPrint('[GoalSelection] DB write failed (will sync later): $e');
+        if (kDebugMode) {
+          debugPrint('[GoalSelection] DB write failed (will sync later): $e');
+        }
       }
     } else {
-      profile = profile?.copyWith(preferredCategory: goal);
+      profile = profile?.copyWith(
+        preferredCategory: goal,
+        onboardingComplete: true,
+      );
     }
-    await app_local.LocalStorage.clearOnboardingPhase();
-    onboardingPhase = OnboardingPhase.ready;
-    notifyListeners();
+    await _persistOnboardingComplete(profile);
+    await _enterApp();
   }
 
   Future<void> _enterApp() async {

@@ -128,6 +128,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
     await state.completeLocationOnboarding(
       lat: position?.latitude,
       lng: position?.longitude,
+      fcmToken: token,
     );
   }
 }
