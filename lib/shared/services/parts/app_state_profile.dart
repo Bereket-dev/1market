@@ -68,18 +68,6 @@ extension AppStateProfile on OnemarketAppState {
     );
   }
 
-  /// Lets the user pick an image from their gallery and uploads it as their
-  /// profile banner. Updates [profile.bannerUrl] optimistically on success.
-  Future<String?> uploadBannerImage() async {
-    return _pickAndUploadProfileImage(
-      imageType: CloudinaryImageType.banner,
-      onSuccess: (url) async {
-        profile = profile?.copyWith(bannerUrl: url);
-        await _syncProfileField('banner_url', url);
-      },
-    );
-  }
-
   Future<String?> _pickAndUploadProfileImage({
     required CloudinaryImageType imageType,
     required Future<void> Function(String secureUrl) onSuccess,

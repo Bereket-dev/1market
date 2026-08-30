@@ -188,5 +188,5 @@ class _PublicProfileScreenState extends State<PublicProfileScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sliver header: banner, avatar, name, bio, stats
+// Sliver header: avatar, name, bio, stats
 // ─────────────────────────────────────────────────────────────────────────────

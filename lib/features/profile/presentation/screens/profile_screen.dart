@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/onemarket_cities.dart';
 import '../../../../shared/models/listing.dart';
@@ -30,18 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// Picks a banner image and uploads it; shows a loading overlay while busy.
-  Future<void> _pickBanner(OnemarketAppState state) async {
-    setState(() => _bannerUploading = true);
-    try {
-      final err = await state.uploadBannerImage();
-      // err is null on success or user-cancel; non-null is a real error message.
-      if (err != null && mounted) _showSnack(err);
-    } finally {
-      if (mounted) setState(() => _bannerUploading = false);
-    }
-  }
-
   /// Picks a profile photo and uploads it; shows a loading overlay while busy.
   Future<void> _pickAvatar(OnemarketAppState state) async {
     setState(() => _avatarUploading = true);
@@ -53,7 +40,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  bool _bannerUploading = false;
   bool _avatarUploading = false;
 
   @override
@@ -65,92 +51,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final displayName = profile?.displayName ?? 'Your Name';
     final avatarUrl = profile?.avatarUrl;
-    final bannerUrl = profile?.bannerUrl;
     final city = profile?.city ?? OnemarketCities.launchDefault;
-
-    // Fallback banner when user hasn't set one yet — null uses a gradient.
-    final String? effectiveBanner = bannerUrl?.isNotEmpty == true ? bannerUrl : null;
 
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // ── Banner ───────────────────────────────────────────────────────
-            SizedBox(
-              height: 180,
-              width: double.infinity,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Banner image (user's own) or brand gradient fallback
-                  effectiveBanner != null
-                      ? CachedImageWidget(
-                          imageUrl: effectiveBanner,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 180,
-                        )
-                      : Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: kBrandBannerGradient,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                        ),
-                  Container(color: Colors.black.withValues(alpha: 0.38)),
-
-                  // Settings button — top-right
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white.withValues(alpha: 0.18),
-                      child: IconButton(
-                        icon: const Icon(Icons.settings, color: Colors.white),
-                        onPressed: () => state.pushScreen(SettingsScreenRoute()),
-                      ),
-                    ),
-                  ),
-
-                  // ── Banner edit pencil — top-left ────────────────────────
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    child: _bannerUploading
-                        ? const CircleAvatar(
-                            backgroundColor: Colors.black38,
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          )
-                        : CircleAvatar(
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.18),
-                            child: IconButton(
-                              tooltip: state.s.editProfileChangeBanner,
-                              icon: const Icon(Icons.edit, color: Colors.white),
-                              onPressed: () => _pickBanner(state),
-                            ),
-                          ),
-                  ),
-                ],
+            SafeArea(
+              bottom: false,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: state.s.settingsTitle,
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => state.pushScreen(SettingsScreenRoute()),
+                ),
               ),
             ),
-
-            // ── Profile card pulled up over banner ───────────────────────────
-            Transform.translate(
-              offset: const Offset(0, -50),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
                     // ── Avatar with camera badge ─────────────────────────────
                     GestureDetector(
                       onTap: _avatarUploading ? null : () => _pickAvatar(state),
@@ -354,8 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 20),
                     _buildTabContent(state, myListings),
-                  ],
-                ),
+                ],
               ),
             ),
           ],

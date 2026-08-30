@@ -1,7 +1,7 @@
 part of '../public_profile_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sliver header: banner, avatar, name, bio, stats
+// Sliver header: avatar, name, bio, stats
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ProfileSliverHeader extends StatelessWidget {
@@ -30,110 +30,56 @@ class _ProfileSliverHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Banner + back button ─────────────────────────────────────────
-          SizedBox(
-            height: 200,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Banner
-                if (profile?.bannerUrl != null &&
-                    profile!.bannerUrl!.isNotEmpty)
-                  CachedNetworkImage(
-                    imageUrl: profile!.bannerUrl!,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) =>
-                        Container(color: cs.primaryContainer.withValues(alpha: 0.25)),
-                    errorWidget: (_, _, _) =>
-                        Container(color: cs.primaryContainer.withValues(alpha: 0.25)),
-                  )
-                else
-                  Container(color: cs.primaryContainer.withValues(alpha: 0.25)),
-
-                // Gradient scrim
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.center,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.4),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Back button
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  left: 16,
-                  child: Material(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: onBack,
-                      child: const Padding(
-                        padding: EdgeInsets.all(9),
-                        child: Icon(Icons.arrow_back,
-                            size: 22, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          // ── Back button ──────────────────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 8,
+              right: 8,
             ),
-          ),
-
-          // ── Avatar row ───────────────────────────────────────────────────
-          Transform.translate(
-            offset: const Offset(0, -40),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Avatar
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: cs.surface, width: 4),
-                    ),
-                    child: CircleAvatar(
-                      radius: 44,
-                      backgroundColor: cs.primaryContainer,
-                      child: profile?.avatarUrl != null &&
-                              profile!.avatarUrl!.isNotEmpty
-                          ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: profile!.avatarUrl!,
-                                width: 88,
-                                height: 88,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, _, _) =>
-                                    _InitialsFallback(name: displayName, cs: cs),
-                              ),
-                            )
-                          : _InitialsFallback(name: displayName, cs: cs),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: onBack,
               ),
             ),
           ),
 
-          // ── Name + bio + rating ──────────────────────────────────────────
-          Transform.translate(
-            offset: const Offset(0, -24),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          // ── Avatar ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: cs.surface, width: 4),
+              ),
+              child: CircleAvatar(
+                radius: 44,
+                backgroundColor: cs.primaryContainer,
+                child: profile?.avatarUrl != null &&
+                        profile!.avatarUrl!.isNotEmpty
+                    ? ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl: profile!.avatarUrl!,
+                          width: 88,
+                          height: 88,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) =>
+                              _InitialsFallback(name: displayName, cs: cs),
+                        ),
+                      )
+                    : _InitialsFallback(name: displayName, cs: cs),
+              ),
+            ),
+          ),
+
+          // ── Name + bio + rating ────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                   Text(
                     displayName,
                     style: TextStyle(
@@ -178,7 +124,6 @@ class _ProfileSliverHeader extends StatelessWidget {
                 ],
               ),
             ),
-          ),
         ],
       ),
     );

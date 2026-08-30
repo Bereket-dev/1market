@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../shared/models/app_strings.dart';
@@ -38,9 +37,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   /// True while avatar upload is in progress.
   bool _avatarUploading = false;
-
-  /// True while banner upload is in progress.
-  bool _bannerUploading = false;
 
   bool _controllersInitialized = false;
 
@@ -148,19 +144,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _pickBanner(OnemarketAppState appState) async {
-    setState(() => _bannerUploading = true);
-    try {
-      final err = await appState.uploadBannerImage();
-      if (err != null && mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(err)));
-      }
-    } finally {
-      if (mounted) setState(() => _bannerUploading = false);
-    }
-  }
-
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -174,7 +157,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     //
     // This screen does NOT need automatic rebuilds driven by notifyListeners()
     // because every state change it cares about is already covered by setState:
-    //   - _isSaving / _avatarUploading / _bannerUploading: explicit setState
+    //   - _isSaving / _avatarUploading: explicit setState
     //   - profile.syncStatus: read on each setState-triggered rebuild below
     //   - text field initial values: read once in didChangeDependencies
     // The SyncStatusBadge reads profile.syncStatus from this same non-registering
@@ -186,8 +169,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final profile = appState.profile;
     final cs = Theme.of(context).colorScheme;
     final s = appState.s;
-
-    const String? fallbackBanner = null; // No stock image fallback in release
 
     return Scaffold(
       appBar: AppBar(
@@ -208,67 +189,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
 
-              // ══ Photos section ════════════════════════════════════════════
-
-              // ── Banner picker ─────────────────────────────────────────────
-              GestureDetector(
-                onTap: _bannerUploading ? null : () => _pickBanner(appState),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Banner image or brand gradient when none set
-                    SizedBox(
-                      height: 140,
-                      width: double.infinity,
-                      child: (profile?.bannerUrl?.isNotEmpty == true)
-                          ? CachedImageWidget(
-                              imageUrl: profile!.bannerUrl!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: 140,
-                            )
-                          : Container(
-                              height: 140,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: kBrandBannerGradient,
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                            ),
-                    ),
-                    // Dark overlay
-                    Container(
-                      height: 140,
-                      color: Colors.black.withValues(alpha: 0.45),
-                    ),
-                    // Uploading spinner or camera label
-                    if (_bannerUploading)
-                      const CircularProgressIndicator(color: Colors.white)
-                    else
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.photo_camera_outlined,
-                              color: Colors.white, size: 32),
-                          const SizedBox(height: 6),
-                          Text(
-                            s.editProfileChangeBanner,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
+              // ══ Photo section ═════════════════════════════════════════════
 
               // ── Avatar picker ─────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.only(top: 16, left: 24, bottom: 8),
+                padding: const EdgeInsets.only(top: 24, left: 24, bottom: 8),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -336,14 +261,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: cs.primary),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            s.editProfileChangeBanner,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: cs.onSurfaceVariant
-                                    .withValues(alpha: 0.7)),
                           ),
                         ],
                       ),

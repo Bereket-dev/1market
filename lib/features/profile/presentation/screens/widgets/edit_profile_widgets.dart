@@ -4,78 +4,6 @@ part of '../edit_profile_screen.dart';
 // Edit-profile screen sub-widgets
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Banner picker with dark overlay and camera label.
-class _BannerPickerSection extends StatelessWidget {
-  final String? bannerUrl;
-  final bool uploading;
-  final VoidCallback onTap;
-  final String changeBannerLabel;
-
-  const _BannerPickerSection({
-    required this.bannerUrl,
-    required this.uploading,
-    required this.onTap,
-    required this.changeBannerLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final hasImage = bannerUrl != null && bannerUrl!.isNotEmpty;
-    return GestureDetector(
-      onTap: uploading ? null : onTap,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            height: 140,
-            width: double.infinity,
-            child: hasImage
-                ? CachedImageWidget(
-                    imageUrl: bannerUrl!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 140,
-                  )
-                : Container(
-                    height: 140,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: kBrandBannerGradient,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                  ),
-          ),
-          Container(
-            height: 140,
-            color: Colors.black.withValues(alpha: 0.45),
-          ),
-          if (uploading)
-            const CircularProgressIndicator(color: Colors.white)
-          else
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.photo_camera_outlined,
-                    color: Colors.white, size: 32),
-                const SizedBox(height: 6),
-                Text(
-                  changeBannerLabel,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Avatar picker circle with camera badge.
 class _AvatarPickerSection extends StatelessWidget {
   final String? avatarUrl;
@@ -83,7 +11,6 @@ class _AvatarPickerSection extends StatelessWidget {
   final bool uploading;
   final VoidCallback onTap;
   final String changePhotoLabel;
-  final String changeBannerLabel;
 
   const _AvatarPickerSection({
     required this.avatarUrl,
@@ -91,7 +18,6 @@ class _AvatarPickerSection extends StatelessWidget {
     required this.uploading,
     required this.onTap,
     required this.changePhotoLabel,
-    required this.changeBannerLabel,
   });
 
   @override
@@ -147,26 +73,13 @@ class _AvatarPickerSection extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  changePhotoLabel,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  changeBannerLabel,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
+            child: Text(
+              changePhotoLabel,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: cs.primary,
+              ),
             ),
           ),
         ],
