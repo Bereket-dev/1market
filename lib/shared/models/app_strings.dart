@@ -978,6 +978,11 @@ class AppStrings {
     'ባዮ ገና አልተጨመረም። መገለጫ አርትዕ ንካው ለመጨመር።',
     'Wali bio lama darin. Taabo Wax ka beddel xogta si aad u darto.',
   );
+  String get profileAddBio => _t(
+    'Add a bio…',
+    'ባዮ ያክሉ…',
+    'Ku dar bio…',
+  );
   String get profileVerifiedBadge => _t('Verified', 'የተረጋገጠ', 'Xaqiijiyey');
   String get profileNoServices => _t('No services posted yet', 'ምንም አገልግሎቶች አልተለጠፉም', 'Wali adeeg la ma dajin');
   String get profileNoServicesSub => _t(

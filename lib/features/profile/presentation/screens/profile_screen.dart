@@ -52,6 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final displayName = profile?.displayName ?? 'Your Name';
     final avatarUrl = profile?.avatarUrl;
     final city = profile?.city ?? OnemarketCities.launchDefault;
+    void openEdit() => state.pushScreen(EditProfileScreenRoute());
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -129,60 +130,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // ── Name row with inline-edit pencil ────────────────────
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            displayName,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: cs.onSurface,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        // Pencil button — navigates to the full edit profile screen
-                        const SizedBox(width: 4),
-                        Tooltip(
-                          message: state.s.editProfileEditName,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () =>
-                                state.pushScreen(EditProfileScreenRoute()),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Icon(
-                                Icons.edit_outlined,
-                                size: 18,
-                                color: cs.onSurfaceVariant.withValues(
-                                    alpha: 0.65),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      displayName,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       city,
                       style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 14),
 
-                    // Edit Profile text button
-                    OutlinedButton.icon(
-                      onPressed: () => state.pushScreen(EditProfileScreenRoute()),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: Text(state.s.editProfileTitle),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                      ),
+                    _ProfileAboutSection(
+                      bio: profile?.bio,
+                      preferredCategory: profile?.preferredCategory,
+                      onEdit: openEdit,
                     ),
                     const SizedBox(height: 16),
 
@@ -231,49 +198,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Tab buttons
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          'Services',
-                          'Listings',
-                          'About',
-                          'Reviews',
-                        ].map((tab) {
-                          final isSel = _activeTab == tab;
-                          final label = switch (tab) {
-                            'Services' => state.s.profileTabServices,
-                            'Listings' => state.s.profileTabListingsLong,
-                            'About' => state.s.profileTabAbout,
-                            _ => state.s.profileTabReviews,
-                          };
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ElevatedButton(
-                              onPressed: () =>
-                                  setState(() => _activeTab = tab),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isSel
-                                    ? cs.primary
-                                    : cs.surfaceContainerHighest,
-                                foregroundColor: isSel
-                                    ? cs.onPrimary
-                                    : cs.onSurfaceVariant,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20)),
+                    // Tab buttons — Services, Listings, Reviews (About is above)
+                    Row(
+                      children: [
+                        for (final tab in ['Services', 'Listings', 'Reviews'])
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: tab != 'Reviews' ? 8 : 0,
                               ),
-                              child: Text(label,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12)),
+                              child: _ProfileTabChip(
+                                label: switch (tab) {
+                                  'Services' => state.s.profileTabServices,
+                                  'Listings' => state.s.profileTabListingsLong,
+                                  _ => state.s.profileTabReviews,
+                                },
+                                selected: _activeTab == tab,
+                                onTap: () => setState(() => _activeTab = tab),
+                              ),
                             ),
-                          );
-                        }).toList(),
-                      ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     _buildTabContent(state, myListings),
                 ],
               ),
@@ -304,11 +251,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onManageTap: () => state.pushScreen(MyListingsScreenRoute()),
           onPostTap: () => state.pushScreen(PostWizardScreenRoute()),
         );
-      case 'About':
-        return _AboutTab(bio: state.profile?.bio);
       default:
         return _ReviewsTab(state: state);
     }
+  }
+}
+
+/// Compact tab chip used in the profile tab row.
+class _ProfileTabChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ProfileTabChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? cs.primary : cs.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

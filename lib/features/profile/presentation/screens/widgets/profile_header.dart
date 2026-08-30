@@ -179,7 +179,7 @@ class _ProfileStatsCard extends StatelessWidget {
   }
 }
 
-/// Horizontal scrollable tab bar for Services / Listings / About / Reviews.
+/// Horizontal tab row for Services / Listings / Reviews.
 class _ProfileTabBar extends StatelessWidget {
   final String activeTab;
   final ValueChanged<String> onTabSelected;
@@ -192,39 +192,25 @@ class _ProfileTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s  = OnemarketAppStateScope.of(context).s;
-    final cs = Theme.of(context).colorScheme;
-    const tabs = ['Services', 'Listings', 'About', 'Reviews'];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: tabs.map((tab) {
-          final isSel = activeTab == tab;
-          final label = switch (tab) {
-            'Services' => s.profileTabServices,
-            'Listings' => s.profileTabListingsLong,
-            'About'    => s.profileTabAbout,
-            _          => s.profileTabReviews,
-          };
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ElevatedButton(
-              onPressed: () => onTabSelected(tab),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isSel ? cs.primary : cs.surfaceContainerHighest,
-                foregroundColor:
-                    isSel ? cs.onPrimary : cs.onSurfaceVariant,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-              ),
-              child: Text(label,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 12)),
+    const tabs = ['Services', 'Listings', 'Reviews'];
+    return Row(
+      children: tabs.map((tab) {
+        final label = switch (tab) {
+          'Services' => s.profileTabServices,
+          'Listings' => s.profileTabListingsLong,
+          _          => s.profileTabReviews,
+        };
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: tab != 'Reviews' ? 8 : 0),
+            child: _ProfileTabChip(
+              label: label,
+              selected: activeTab == tab,
+              onTap: () => onTabSelected(tab),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

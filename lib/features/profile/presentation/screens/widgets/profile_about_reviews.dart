@@ -1,56 +1,125 @@
 part of '../profile_screen.dart';
 
-// ── About tab (no escrow) ─────────────────────────────────────────────────────
+// ── About section (always visible in profile header) ─────────────────────────
 
-class _AboutTab extends StatelessWidget {
+class _ProfileAboutSection extends StatelessWidget {
   final String? bio;
-  const _AboutTab({this.bio});
+  final String? preferredCategory;
+  final VoidCallback onEdit;
+
+  const _ProfileAboutSection({
+    required this.bio,
+    required this.preferredCategory,
+    required this.onEdit,
+  });
+
+  String? _categoryLabel(dynamic s, String? code) {
+    if (code == null || code.isEmpty) return null;
+    return switch (code) {
+      'CARS' => s.homeCategoryCars,
+      'HOUSES' => s.homeCategoryHouses,
+      'LAND' => s.homeCategoryLand,
+      'SKILLS' => s.homeCategorySkills,
+      'OTHERS' => s.homeCategoryOthers,
+      _ => null,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = OnemarketAppStateScope.of(context).s;
+    final hasBio = bio != null && bio!.trim().isNotEmpty;
+    final categoryLabel = _categoryLabel(s, preferredCategory);
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(s.profileProfSummary,
-          style: TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 16, color: cs.onSurface)),
-      const SizedBox(height: 8),
-      Text(
-        bio != null && bio!.isNotEmpty
-            ? bio!
-            : s.profileNoBio,
-        style:
-            TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.5),
-      ),
-      const SizedBox(height: 20),
-      Text(s.profileSpecialties,
-          style: TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 16, color: cs.onSurface)),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          OnemarketAppStateScope.of(context).profile?.city ??
-              OnemarketCities.launchDefault,
-          s.profileVerifiedBadge,
-        ].map((tag) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: cs.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(24),
+    final tags = <String>[
+      ?categoryLabel,
+      s.profileVerifiedBadge,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text(
+              s.profileTabAbout,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: cs.onSurface,
+              ),
             ),
-            child: Text(tag,
+            const Spacer(),
+            TextButton(
+              onPressed: onEdit,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.edit_outlined, size: 14, color: cs.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    s.editProfileTitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: cs.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: onEdit,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(
+              hasBio ? bio!.trim() : s.profileAddBio,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                color: hasBio
+                    ? cs.onSurfaceVariant
+                    : cs.onSurfaceVariant.withValues(alpha: 0.65),
+                fontStyle: hasBio ? FontStyle.normal : FontStyle.italic,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: tags.map((tag) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                tag,
                 style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: cs.primary,
-                    fontSize: 11)),
-          );
-        }).toList(),
-      ),
-    ]);
+                  fontWeight: FontWeight.w600,
+                  color: cs.primary,
+                  fontSize: 11,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 }
 
