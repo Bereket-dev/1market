@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../services/app_state.dart';
 
-/// Opens a CV URL: image files preview in-app, PDFs/other files open externally.
+/// Opens a CV URL inside the app. Images use a preview dialog; PDFs use the in-app viewer.
 class CvViewer {
   CvViewer._();
 
@@ -24,34 +24,14 @@ class CvViewer {
     return last.isNotEmpty ? last : url;
   }
 
-  /// Preview images in a dialog; open PDFs and other files in an external app.
+  /// Preview images and PDFs inside the app.
   static Future<void> open(BuildContext context, String url) async {
     if (url.isEmpty) return;
     if (isImageUrl(url)) {
       await _showImagePreview(context, url);
       return;
     }
-    await openExternal(context, url);
-  }
-
-  static Future<void> openExternal(BuildContext context, String url) async {
-    final s = OnemarketAppStateScope.of(context).s;
-    final uri = Uri.tryParse(url);
-    if (uri == null || !(uri.isScheme('https') || uri.isScheme('http'))) {
-      _showFailed(context, s.servicesCvOpenFailed);
-      return;
-    }
-    try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!launched && context.mounted) {
-        _showFailed(context, s.servicesCvOpenFailed);
-      }
-    } catch (_) {
-      if (context.mounted) _showFailed(context, s.servicesCvOpenFailed);
-    }
+    await _showPdfPreview(context, url);
   }
 
   static Future<void> copyLink(BuildContext context, String url) async {
@@ -64,6 +44,12 @@ class CvViewer {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  static Future<void> _showPdfPreview(BuildContext context, String url) {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => _CvPdfScreen(url: url)));
   }
 
   static Future<void> _showImagePreview(BuildContext context, String url) {
@@ -137,13 +123,6 @@ class CvViewer {
             child: Text(s.servicesCvCopyLink),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              openExternal(context, url);
-            },
-            child: Text(s.servicesDetailCvView),
-          ),
-          TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(s.servicesCvClose),
           ),
@@ -151,10 +130,49 @@ class CvViewer {
       ),
     );
   }
+}
 
-  static void _showFailed(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+class _CvPdfScreen extends StatelessWidget {
+  final String url;
+  const _CvPdfScreen({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = OnemarketAppStateScope.of(context);
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          CvViewer.fileName(url),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          IconButton(
+            tooltip: state.s.servicesCvCopyLink,
+            icon: const Icon(Icons.link_rounded),
+            onPressed: () => CvViewer.copyLink(context, url),
+          ),
+        ],
+      ),
+      body: ColoredBox(
+        color: cs.surface,
+        child: SfPdfViewer.network(
+          url,
+          onDocumentLoadFailed: (details) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.s.servicesCvOpenFailed)),
+            );
+          },
+          canShowScrollHead: true,
+          canShowScrollStatus: true,
+          pageLayoutMode: PdfPageLayoutMode.continuous,
+          enableDoubleTapZooming: true,
+          interactionMode: PdfInteractionMode.pan,
+          scrollDirection: PdfScrollDirection.vertical,
+          initialZoomLevel: 1.0,
+        ),
+      ),
     );
   }
 }
