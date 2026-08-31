@@ -8,13 +8,16 @@ class _ServiceList extends StatelessWidget {
   final List<Service> services;
   final OnemarketAppState state;
   final ColorScheme cs;
-  const _ServiceList(
-      {required this.services, required this.state, required this.cs});
+  const _ServiceList({
+    required this.services,
+    required this.state,
+    required this.cs,
+  });
 
   @override
   Widget build(BuildContext context) {
     // Split into available vs unavailable so user can quickly see what to activate
-    final available   = services.where((s) => s.availability).toList();
+    final available = services.where((s) => s.availability).toList();
     final unavailable = services.where((s) => !s.availability).toList();
 
     return ListView(
@@ -28,10 +31,12 @@ class _ServiceList extends StatelessWidget {
             cs: cs,
           ),
           const SizedBox(height: 8),
-          ...unavailable.map((s) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _ServiceCard(service: s, state: state),
-              )),
+          ...unavailable.map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _ServiceCard(service: s, state: state),
+            ),
+          ),
           if (available.isNotEmpty) const SizedBox(height: 8),
         ],
 
@@ -42,10 +47,12 @@ class _ServiceList extends StatelessWidget {
             cs: cs,
           ),
           const SizedBox(height: 8),
-          ...available.map((s) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _ServiceCard(service: s, state: state),
-              )),
+          ...available.map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _ServiceCard(service: s, state: state),
+            ),
+          ),
         ],
       ],
     );
@@ -56,8 +63,11 @@ class _SectionHeader extends StatelessWidget {
   final String label;
   final IconData icon;
   final ColorScheme cs;
-  const _SectionHeader(
-      {required this.label, required this.icon, required this.cs});
+  const _SectionHeader({
+    required this.label,
+    required this.icon,
+    required this.cs,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +103,8 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs      = Theme.of(context).colorScheme;
-    final s       = state.s;
+    final cs = Theme.of(context).colorScheme;
+    final s = state.s;
     final isAvail = service.availability;
 
     return AnimatedContainer(
@@ -139,7 +149,9 @@ class _ServiceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Category chip + sync badge
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
                       children: [
                         _ServiceChip(
                           label: service.category,
@@ -148,6 +160,15 @@ class _ServiceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         SyncStatusBadge(status: service.syncStatus),
+                        _ServiceChip(
+                          label: isAvail
+                              ? s.servicesAvailable
+                              : s.servicesUnavailable,
+                          color: isAvail
+                              ? cs.primaryContainer.withValues(alpha: 0.35)
+                              : cs.errorContainer.withValues(alpha: 0.35),
+                          textColor: isAvail ? cs.primary : cs.error,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 5),
@@ -180,8 +201,11 @@ class _ServiceCard extends StatelessWidget {
                     // Location
                     Row(
                       children: [
-                        Icon(Icons.location_on_rounded,
-                            size: 12, color: cs.onSurfaceVariant),
+                        Icon(
+                          Icons.location_on_rounded,
+                          size: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
@@ -198,59 +222,17 @@ class _ServiceCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
 
-                    // ── Availability toggle row ─────────────────────────
-                    GestureDetector(
-                      onTap: () => state.toggleServiceAvailability(
-                          service.id, !isAvail),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isAvail ? cs.primary : cs.error,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isAvail
-                                ? s.servicesAvailable
-                                : s.servicesUnavailable,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isAvail ? cs.primary : cs.error,
-                            ),
-                          ),
-                          Transform.scale(
-                            scale: 0.75,
-                            child: Switch.adaptive(
-                              value: isAvail,
-                              onChanged: (v) =>
-                                  state.toggleServiceAvailability(
-                                      service.id, v),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
                     // ── Action pills row ───────────────────────────────
                     Row(
                       children: [
                         _CardAction(
                           icon: Icons.edit_rounded,
                           label: s.commonEdit,
-                          color: cs.secondaryContainer
-                              .withValues(alpha: 0.5),
+                          color: cs.secondaryContainer.withValues(alpha: 0.5),
                           iconColor: cs.secondary,
                           onTap: () => state.pushScreen(
-                              ServiceEditScreenRoute(service.id)),
+                            ServiceEditScreenRoute(service.id),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         _CardAction(
@@ -259,7 +241,11 @@ class _ServiceCard extends StatelessWidget {
                           color: cs.error.withValues(alpha: 0.1),
                           iconColor: cs.error,
                           onTap: () => _confirmDeleteService(
-                              context, state, service.id, s),
+                            context,
+                            state,
+                            service.id,
+                            s,
+                          ),
                         ),
                       ],
                     ),
@@ -280,26 +266,29 @@ class _ServiceImagePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: cs.primaryContainer.withValues(alpha: 0.25),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          Icons.work_outline_rounded,
-          color: cs.primary.withValues(alpha: 0.5),
-          size: 32,
-        ),
-      );
+    width: 80,
+    height: 80,
+    decoration: BoxDecoration(
+      color: cs.primaryContainer.withValues(alpha: 0.25),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Icon(
+      Icons.work_outline_rounded,
+      color: cs.primary.withValues(alpha: 0.5),
+      size: 32,
+    ),
+  );
 }
 
 class _ServiceChip extends StatelessWidget {
   final String label;
   final Color color;
   final Color textColor;
-  const _ServiceChip(
-      {required this.label, required this.color, required this.textColor});
+  const _ServiceChip({
+    required this.label,
+    required this.color,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -320,4 +309,3 @@ class _ServiceChip extends StatelessWidget {
     );
   }
 }
-

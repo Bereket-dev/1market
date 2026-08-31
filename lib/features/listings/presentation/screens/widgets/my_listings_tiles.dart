@@ -50,7 +50,9 @@ class _MyListingTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Category chip + condition
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
                       children: [
                         _SmallChip(
                           label: listing.category,
@@ -63,6 +65,16 @@ class _MyListingTile extends StatelessWidget {
                           color: cs.surfaceContainerHighest,
                           textColor: cs.onSurfaceVariant,
                           border: cs.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(width: 6),
+                        _SmallChip(
+                          label: listing.isHidden
+                              ? state.s.listingUnlisted
+                              : state.s.listingListed,
+                          color: listing.isHidden
+                              ? cs.errorContainer.withValues(alpha: 0.35)
+                              : cs.primaryContainer.withValues(alpha: 0.35),
+                          textColor: listing.isHidden ? cs.error : cs.primary,
                         ),
                       ],
                     ),

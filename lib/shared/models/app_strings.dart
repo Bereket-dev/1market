@@ -135,6 +135,10 @@ class AppStrings {
   String get listingUnavailable => _t('Unavailable', 'አይገኝም', 'Aan la heli karin');
   String get listingMakeUnavailable => _t('Make unavailable', 'እንዳይገኝ አድርግ', 'Ka dhig mid aan la heli karin');
   String get listingRelist => _t('Relist', 'እንደገና ለጥፍ', 'Dib u daabac');
+  String get listingListed => _t('Listed', 'የተዘረዘረ', 'La daabacay');
+  String get listingUnlisted => _t('Unlisted', 'ያልተዘረዘረ', 'Aan la daabicin');
+  String get listingUnlistAction => _t('Unlist', 'ከዝርዝር አስወግድ', 'Ka saar daabacaadda');
+  String get listingListAction => _t('List', 'ዘርዝር', 'Daabac');
   String get listingUnavailableBody => _t('This hides the listing from buyers. You can relist it later.', 'ይህ ማስታወቂያውን ከገዢዎች ይደብቃል። በኋላ እንደገና ማሳየት ይችላሉ።', 'Tani waxay ka qarinaysaa iibsadayaasha. Mar dambe waad dib u daabici kartaa.');
   String get deleteListingTitle =>
       _t('Delete listing?', 'ዝርዝር ይሰረዝ?', 'Tirtir xayaysiiska?');
@@ -1001,6 +1005,9 @@ class AppStrings {
   String get servicesAvailabilityLabel => _t('Availability', 'የአገልግሎት እቃ', 'Helitaan');
   String get servicesAvailable => _t('Available', 'ነው', 'La heli karo');
   String get servicesUnavailable => _t('Unavailable', 'አይገኝም', 'Aan la heli karin');
+  String get servicesMakeUnavailable => _t('Make unavailable', 'እንዳይገኝ አድርግ', 'Ka dhig mid aan la heli karin');
+  String get servicesMakeAvailable => _t('Make available', 'እንዲገኝ አድርግ', 'Ka dhig mid la heli karo');
+  String get servicesAvailabilityBody => _t('This changes whether clients can find your service.', 'ይህ ደንበኞች አገልግሎትዎን ማግኘት እንደሚችሉ ይቀይራል።', 'Tani waxay beddelaysaa haddii macaamiishu heli karaan adeeggaaga.');
   String get servicesToggleAvailability => _t('Toggle', 'ቅርጽ', 'Beddel');
   String get servicesCreateTitle => _t('Create Service', 'አገልግሎት ይፍጠሩ', 'Abuur Adeeg');
   String get servicesEditTitle => _t('Edit Service', 'አገልግሎት ያርትዑ', 'Wax ka beddel Adeeg');

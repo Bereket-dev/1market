@@ -187,7 +187,7 @@ class _OwnerListingActions extends StatelessWidget {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(state.s.listingMakeUnavailable),
+          title: Text(state.s.listingUnlistAction),
           content: Text(state.s.listingUnavailableBody),
           actions: [
             TextButton(
@@ -196,7 +196,7 @@ class _OwnerListingActions extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(state.s.listingMakeUnavailable),
+              child: Text(state.s.listingUnlistAction),
             ),
           ],
         ),
@@ -237,8 +237,8 @@ class _OwnerListingActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final label = listing.isHidden
-        ? state.s.listingRelist
-        : state.s.listingMakeUnavailable;
+        ? state.s.listingListAction
+        : state.s.listingUnlistAction;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       child: Column(

@@ -4,6 +4,7 @@ import '../../../../core/errors/error_mapper.dart';
 
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/rating_stars.dart';
+import '../../../../shared/models/service.dart';
 import '../../../../shared/models/service_review.dart';
 import '../../../../shared/services/app_state.dart';
 import '../../../../shared/services/share_service.dart';
@@ -168,9 +169,12 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         label: Text(state.s.detailViewProfile),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           side: BorderSide(color: cs.outlineVariant),
                           textStyle: const TextStyle(fontSize: 13),
                         ),
@@ -188,8 +192,11 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.flag_outlined,
-                                  size: 15, color: cs.onSurfaceVariant),
+                              Icon(
+                                Icons.flag_outlined,
+                                size: 15,
+                                color: cs.onSurfaceVariant,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 s.reportMenuLabel,
@@ -235,15 +242,18 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       _DetailRow(
                         icon: Icons.attach_file,
                         label: s.servicesDetailCv,
-                        value: service.cvFileUrl != null &&
+                        value:
+                            service.cvFileUrl != null &&
                                 service.cvFileUrl!.isNotEmpty
                             ? CvViewer.fileName(service.cvFileUrl!)
                             : s.servicesDetailNoCv,
-                        actionLabel: service.cvFileUrl != null &&
+                        actionLabel:
+                            service.cvFileUrl != null &&
                                 service.cvFileUrl!.isNotEmpty
                             ? s.servicesDetailCvView
                             : null,
-                        onAction: service.cvFileUrl != null &&
+                        onAction:
+                            service.cvFileUrl != null &&
                                 service.cvFileUrl!.isNotEmpty
                             ? () => CvViewer.open(context, service.cvFileUrl!)
                             : null,
@@ -254,6 +264,9 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       // ── Inline reviews (load + submit in place) ──────
                       _InlineReviewsSection(serviceId: widget.serviceId),
                       const SizedBox(height: 16),
+                      if (service.ownerId == state.profile?.id)
+                        _OwnerServiceActions(service: service, state: state),
+                      const SizedBox(height: 8),
                       // ── Similar services ─────────────────────────────
                       SimilarServicesSection(anchor: service),
                     ],
@@ -294,8 +307,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     _OverlayCircleButton(
                       icon: Icons.share_outlined,
                       onPressed: () {
-                        final box =
-                            context.findRenderObject() as RenderBox?;
+                        final box = context.findRenderObject() as RenderBox?;
                         ShareService.shareService(
                           service,
                           state.s,
@@ -310,8 +322,9 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       const SizedBox(width: 8),
                       _OverlayCircleButton(
                         icon: Icons.edit_outlined,
-                        onPressed: () =>
-                            state.pushScreen(ServiceEditScreenRoute(service.id)),
+                        onPressed: () => state.pushScreen(
+                          ServiceEditScreenRoute(service.id),
+                        ),
                       ),
                     ],
                   ],
@@ -330,3 +343,79 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 // or a single image / placeholder when it has zero or one.
 // Currently Service only carries imageUrl — the widget is structured to
 // accept a list so it can grow when imageUrls is added to the model.
+
+class _OwnerServiceActions extends StatelessWidget {
+  final Service service;
+  final OnemarketAppState state;
+
+  const _OwnerServiceActions({required this.service, required this.state});
+
+  Future<void> _toggle(BuildContext context) async {
+    final next = !service.availability;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          next
+              ? state.s.servicesMakeAvailable
+              : state.s.servicesMakeUnavailable,
+        ),
+        content: Text(state.s.servicesAvailabilityBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(state.s.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              next
+                  ? state.s.servicesMakeAvailable
+                  : state.s.servicesMakeUnavailable,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await state.toggleServiceAvailability(service.id, next);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final nextLabel = service.availability
+        ? state.s.servicesMakeUnavailable
+        : state.s.servicesMakeAvailable;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            state.s.servicesAvailabilityLabel,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _toggle(context),
+            icon: Icon(
+              service.availability
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
+            ),
+            label: Text(nextLabel),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
