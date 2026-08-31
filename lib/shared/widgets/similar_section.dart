@@ -29,8 +29,7 @@ class SimilarListingsSection extends StatefulWidget {
   const SimilarListingsSection({super.key, required this.anchor});
 
   @override
-  State<SimilarListingsSection> createState() =>
-      _SimilarListingsSectionState();
+  State<SimilarListingsSection> createState() => _SimilarListingsSectionState();
 }
 
 class _SimilarListingsSectionState extends State<SimilarListingsSection> {
@@ -45,8 +44,10 @@ class _SimilarListingsSectionState extends State<SimilarListingsSection> {
     _similar = _engine
         .rankSimilarTo<ScorableListing>(
           anchor: ScorableListing(widget.anchor),
-          candidates:
-              state.allListings.map((l) => ScorableListing(l)).toList(),
+          candidates: state.allListings
+              .where((l) => !l.isHidden && l.deletedAt == null)
+              .map((l) => ScorableListing(l))
+              .toList(),
         )
         .map((s) => s.listing)
         .toList();
@@ -61,11 +62,17 @@ class _SimilarListingsSectionState extends State<SimilarListingsSection> {
       return _SimilarEmptyState();
     }
 
-    return _SimilarListingsList(
-      listings: _similar,
-      onTap: (l) {
-        state.recordItemViewed(l.id);
-        state.pushScreen(ListingDetailScreenRoute(l.id));
+    return _SimilarShell(
+      itemCount: _similar.length,
+      itemBuilder: (context, i) {
+        final listing = _similar[i];
+        return _SimilarListingCard(
+          listing: listing,
+          onTap: () {
+            state.recordItemViewed(listing.id);
+            state.pushScreen(ListingDetailScreenRoute(listing.id));
+          },
+        );
       },
     );
   }
