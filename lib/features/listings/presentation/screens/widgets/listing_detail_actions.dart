@@ -17,7 +17,7 @@ class _StickyBarState extends State<_StickyBar> {
   bool _chatLoading = false;
 
   Future<void> _openChat() async {
-    final state   = widget.state;
+    final state = widget.state;
     final listing = widget.listing;
 
     if (!state.isSignedIn) {
@@ -30,7 +30,10 @@ class _StickyBarState extends State<_StickyBar> {
     final existing = state.getSessionForListing(listing.id);
     if (existing != null) {
       final idx = state.chatSessions.indexWhere((s) => s.id == existing.id);
-      if (idx != -1) { state.pushScreen(ActiveChatScreenRoute(idx)); return; }
+      if (idx != -1) {
+        state.pushScreen(ActiveChatScreenRoute(idx));
+        return;
+      }
     }
 
     // Slow path: create thread.
@@ -54,17 +57,16 @@ class _StickyBarState extends State<_StickyBar> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ViewingRequestSheet(
-        listing: widget.listing,
-        state: widget.state,
-      ),
+      builder: (_) =>
+          _ViewingRequestSheet(listing: widget.listing, state: widget.state),
     );
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    final cs      = Theme.of(context).colorScheme;
-    final s       = widget.state.s;
+    final cs = Theme.of(context).colorScheme;
+    final s = widget.state.s;
     final listing = widget.listing;
 
     return SizedBox(
@@ -73,7 +75,8 @@ class _StickyBarState extends State<_StickyBar> {
         decoration: BoxDecoration(
           color: cs.surface,
           border: Border(
-              top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3))),
+            top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -107,8 +110,8 @@ class _StickyBarState extends State<_StickyBar> {
                   child: OutlinedButton.icon(
                     onPressed: listing.category == 'SKILLS'
                         ? () => ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(s.detailRequestLogged)),
-                            )
+                            SnackBar(content: Text(s.detailRequestLogged)),
+                          )
                         : _openViewingSheet,
                     icon: Icon(
                       listing.category == 'SKILLS'
@@ -129,7 +132,8 @@ class _StickyBarState extends State<_StickyBar> {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 50),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       side: BorderSide(color: cs.primary),
                     ),
                   ),
@@ -143,17 +147,22 @@ class _StickyBarState extends State<_StickyBar> {
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: cs.onPrimary),
+                              strokeWidth: 2,
+                              color: cs.onPrimary,
+                            ),
                           )
                         : const Icon(Icons.chat_bubble_rounded, size: 18),
-                    label: Text(s.detailChat,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(
+                      s.detailChat,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     style: FilledButton.styleFrom(
                       backgroundColor: cs.primary,
                       foregroundColor: cs.onPrimary,
                       minimumSize: const Size(0, 50),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
@@ -161,6 +170,115 @@ class _StickyBarState extends State<_StickyBar> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OwnerListingActions extends StatelessWidget {
+  final Listing listing;
+  final OnemarketAppState state;
+
+  const _OwnerListingActions({required this.listing, required this.state});
+
+  Future<void> _toggleAvailability(BuildContext context) async {
+    final hidden = !listing.isHidden;
+    if (hidden) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(state.s.listingMakeUnavailable),
+          content: Text(state.s.listingUnavailableBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(state.s.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(state.s.listingMakeUnavailable),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    await state.setListingHidden(listing.id, hidden);
+  }
+
+  Future<void> _delete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(state.s.deleteListingTitle),
+        content: Text(state.s.deleteListingBody(listing.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(state.s.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(state.s.commonDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await state.deleteListing(listing.id);
+      if (context.mounted) state.popScreen();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final label = listing.isHidden
+        ? state.s.listingRelist
+        : state.s.listingMakeUnavailable;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            state.s.listingMyAd,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _toggleAvailability(context),
+            icon: Icon(
+              listing.isHidden
+                  ? Icons.visibility_rounded
+                  : Icons.visibility_off_rounded,
+            ),
+            label: Text(label),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _delete(context),
+            icon: Icon(Icons.delete_outline_rounded, color: cs.error),
+            label: Text(
+              state.s.commonDelete,
+              style: TextStyle(color: cs.error),
+            ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              side: BorderSide(color: cs.error.withValues(alpha: 0.6)),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -132,6 +132,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     resolvedPhone: _resolvedPhone,
                     fetchingPhone: _fetchingPhone,
                   ),
+                  if (listing.isOwnedByCurrentUser)
+                    _OwnerListingActions(listing: listing, state: state),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: SimilarListingsSection(anchor: listing),

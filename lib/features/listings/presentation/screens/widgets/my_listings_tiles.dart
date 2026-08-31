@@ -9,57 +9,6 @@ class _MyListingTile extends StatelessWidget {
   final OnemarketAppState state;
   const _MyListingTile({required this.listing, required this.state});
 
-  Future<void> _toggleAvailability(BuildContext context) async {
-    final hidden = !listing.isHidden;
-    if (hidden) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(state.s.listingMakeUnavailable),
-          content: Text(state.s.listingUnavailableBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(state.s.commonCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(state.s.listingMakeUnavailable),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-    await state.setListingHidden(listing.id, hidden);
-  }
-
-  Future<void> _confirmDelete(BuildContext context) async {
-    final cs = Theme.of(context).colorScheme;
-    final s = state.s;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.deleteListingTitle),
-        content: Text(s.deleteListingBody(listing.title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(s.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: cs.error),
-            child: Text(s.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && context.mounted) {
-      await state.deleteListing(listing.id);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -191,30 +140,6 @@ class _MyListingTile extends StatelessWidget {
                     iconColor: cs.primary,
                     onTap: () =>
                         state.pushScreen(ListingDetailScreenRoute(listing.id)),
-                  ),
-                  const SizedBox(height: 6),
-                  // Availability
-                  _ActionButton(
-                    icon: listing.isHidden
-                        ? Icons.visibility_rounded
-                        : Icons.visibility_off_rounded,
-                    label: listing.isHidden
-                        ? state.s.listingRelist
-                        : state.s.listingMakeUnavailable,
-                    color: listing.isHidden
-                        ? cs.primary.withValues(alpha: 0.12)
-                        : cs.tertiary.withValues(alpha: 0.12),
-                    iconColor: listing.isHidden ? cs.primary : cs.tertiary,
-                    onTap: () => _toggleAvailability(context),
-                  ),
-                  const SizedBox(height: 6),
-                  // Delete
-                  _ActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    label: state.s.commonDelete,
-                    color: cs.error.withValues(alpha: 0.1),
-                    iconColor: cs.error,
-                    onTap: () => _confirmDelete(context),
                   ),
                 ],
               ),
