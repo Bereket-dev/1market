@@ -26,7 +26,7 @@ class _ServiceList extends StatelessWidget {
         // Unavailable section — surfaces them first as a call to action
         if (unavailable.isNotEmpty) ...[
           _SectionHeader(
-            label: 'Currently unavailable — tap toggle to go live',
+            label: 'Currently unavailable',
             icon: Icons.visibility_off_rounded,
             cs: cs,
           ),
@@ -42,7 +42,7 @@ class _ServiceList extends StatelessWidget {
 
         if (available.isNotEmpty) ...[
           _SectionHeader(
-            label: 'Available — visible to employers',
+            label: 'Available',
             icon: Icons.visibility_rounded,
             cs: cs,
           ),
@@ -159,7 +159,6 @@ class _ServiceCard extends StatelessWidget {
                           textColor: cs.primary,
                         ),
                         const SizedBox(width: 6),
-                        SyncStatusBadge(status: service.syncStatus),
                         _ServiceChip(
                           label: isAvail
                               ? s.servicesAvailable
@@ -232,6 +231,16 @@ class _ServiceCard extends StatelessWidget {
                           iconColor: cs.secondary,
                           onTap: () => state.pushScreen(
                             ServiceEditScreenRoute(service.id),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _CardAction(
+                          icon: Icons.open_in_new_rounded,
+                          label: s.commonView,
+                          color: cs.primary.withValues(alpha: 0.12),
+                          iconColor: cs.primary,
+                          onTap: () => state.pushScreen(
+                            ServiceDetailScreenRoute(service.id),
                           ),
                         ),
                         const SizedBox(width: 8),

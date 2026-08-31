@@ -38,6 +38,8 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     final state = OnemarketAppStateScope.of(context);
     final cs = Theme.of(context).colorScheme;
     final posts = state.getMyListings();
+    final listed = posts.where((p) => !p.isHidden).toList();
+    final unlisted = posts.where((p) => p.isHidden).toList();
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -66,15 +68,70 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
       ),
       body: posts.isEmpty
           ? _EmptyMyListings(state: state, cs: cs)
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              itemCount: posts.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) =>
-                  _MyListingTile(listing: posts[index], state: state),
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+              children: [
+                if (unlisted.isNotEmpty) ...[
+                  _ListingSectionHeader(
+                    label: state.s.listingUnlisted,
+                    icon: Icons.visibility_off_rounded,
+                    cs: cs,
+                  ),
+                  const SizedBox(height: 8),
+                  ...unlisted.map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _MyListingTile(listing: p, state: state),
+                    ),
+                  ),
+                  if (listed.isNotEmpty) const SizedBox(height: 8),
+                ],
+                if (listed.isNotEmpty) ...[
+                  _ListingSectionHeader(
+                    label: state.s.listingListed,
+                    icon: Icons.visibility_rounded,
+                    cs: cs,
+                  ),
+                  const SizedBox(height: 8),
+                  ...listed.map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _MyListingTile(listing: p, state: state),
+                    ),
+                  ),
+                ],
+              ],
             ),
     );
   }
+}
+
+class _ListingSectionHeader extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final ColorScheme cs;
+
+  const _ListingSectionHeader({
+    required this.label,
+    required this.icon,
+    required this.cs,
+  });
+
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 14, color: cs.onSurfaceVariant),
+      const SizedBox(width: 6),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: cs.onSurfaceVariant,
+          letterSpacing: 0.3,
+        ),
+      ),
+    ],
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

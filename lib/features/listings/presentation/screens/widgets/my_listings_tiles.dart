@@ -9,6 +9,29 @@ class _MyListingTile extends StatelessWidget {
   final OnemarketAppState state;
   const _MyListingTile({required this.listing, required this.state});
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final cs = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(state.s.deleteListingTitle),
+        content: Text(state.s.deleteListingBody(listing.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(state.s.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: cs.error),
+            child: Text(state.s.commonDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await state.deleteListing(listing.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -152,6 +175,14 @@ class _MyListingTile extends StatelessWidget {
                     iconColor: cs.primary,
                     onTap: () =>
                         state.pushScreen(ListingDetailScreenRoute(listing.id)),
+                  ),
+                  const SizedBox(height: 6),
+                  _ActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    label: state.s.commonDelete,
+                    color: cs.error.withValues(alpha: 0.1),
+                    iconColor: cs.error,
+                    onTap: () => _confirmDelete(context),
                   ),
                 ],
               ),

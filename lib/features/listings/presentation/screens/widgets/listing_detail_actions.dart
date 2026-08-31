@@ -206,33 +206,6 @@ class _OwnerListingActions extends StatelessWidget {
     await state.setListingHidden(listing.id, hidden);
   }
 
-  Future<void> _delete(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(state.s.deleteListingTitle),
-        content: Text(state.s.deleteListingBody(listing.title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(state.s.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: Text(state.s.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await state.deleteListing(listing.id);
-      if (context.mounted) state.popScreen();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -263,19 +236,6 @@ class _OwnerListingActions extends StatelessWidget {
             label: Text(label),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
-            ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () => _delete(context),
-            icon: Icon(Icons.delete_outline_rounded, color: cs.error),
-            label: Text(
-              state.s.commonDelete,
-              style: TextStyle(color: cs.error),
-            ),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-              side: BorderSide(color: cs.error.withValues(alpha: 0.6)),
             ),
           ),
         ],

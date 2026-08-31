@@ -30,9 +30,9 @@ class ServiceManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state    = OnemarketAppStateScope.of(context);
-    final s        = state.s;
-    final cs       = Theme.of(context).colorScheme;
+    final state = OnemarketAppStateScope.of(context);
+    final s = state.s;
+    final cs = Theme.of(context).colorScheme;
     final services = state.getMyServices();
 
     return Scaffold(
@@ -55,8 +55,7 @@ class ServiceManagementScreen extends StatelessWidget {
             icon: Icon(Icons.add_rounded, size: 18, color: cs.primary),
             label: Text(
               'New Service',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: cs.primary),
+              style: TextStyle(fontWeight: FontWeight.bold, color: cs.primary),
             ),
           ),
         ],
