@@ -549,6 +549,14 @@ extension AppStateData on OnemarketAppState {
     }
   }
 
+  // Replace the current route with one notification so transitions do not
+  // observe an intermediate screen while a wizard is being dismissed.
+  void replaceTopScreen(OnemarketScreen screen) {
+    if (navigationStack.length > 1) navigationStack.removeLast();
+    navigationStack.add(screen);
+    notifyListeners();
+  }
+
   void switchTab(OnemarketScreen rootTab) {
     navigationStack
       ..clear()

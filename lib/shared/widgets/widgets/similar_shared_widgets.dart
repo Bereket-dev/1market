@@ -7,10 +7,7 @@ class _SimilarShell extends StatelessWidget {
   final int itemCount;
   final Widget Function(BuildContext, int) itemBuilder;
 
-  const _SimilarShell({
-    required this.itemCount,
-    required this.itemBuilder,
-  });
+  const _SimilarShell({required this.itemCount, required this.itemBuilder});
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +75,132 @@ class _SimilarEmptyState extends StatelessWidget {
   }
 }
 
+/// Vertical list layout for listing detail — avoids nested horizontal scroll
+/// inside the detail page's vertical scroll view (layout-safe on device).
+class _SimilarListingsList extends StatelessWidget {
+  final List<Listing> listings;
+  final void Function(Listing listing) onTap;
+
+  const _SimilarListingsList({
+    required this.listings,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final s = OnemarketAppStateScope.of(context).s;
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(),
+        const SizedBox(height: 12),
+        Text(
+          s.detailSimilarTitle,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (var i = 0; i < listings.length && i < 6; i++) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _SimilarListingRow(
+            listing: listings[i],
+            onTap: () => onTap(listings[i]),
+          ),
+        ],
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _SimilarListingRow extends StatelessWidget {
+  final Listing listing;
+  final VoidCallback onTap;
+
+  const _SimilarListingRow({required this.listing, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: listing.imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: listing.imageUrl,
+                          cacheManager: OnemarketImageCacheManager.instance,
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => ListingPlaceholder(
+                            category: listing.category,
+                            width: 56,
+                            height: 56,
+                          ),
+                        )
+                      : ListingPlaceholder(
+                          category: listing.category,
+                          width: 56,
+                          height: 56,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      listing.title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      listing.price,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: cs.primary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: cs.onSurfaceVariant, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Card variants ─────────────────────────────────────────────────────────────
 
 class _SimilarListingCard extends StatelessWidget {
@@ -92,33 +215,42 @@ class _SimilarListingCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 148,
+        height: 140,
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.35),
-          ),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.35)),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Thumbnail
-            Expanded(
-              flex: 3,
+            SizedBox(
+              height: 82,
+              width: double.infinity,
               child: listing.imageUrl.isNotEmpty
-                  ? Image.network(
-                      listing.imageUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: listing.imageUrl,
+                      cacheManager: OnemarketImageCacheManager.instance,
                       width: double.infinity,
+                      height: 82,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          ListingPlaceholder(category: listing.category),
+                      errorWidget: (_, _, _) => ListingPlaceholder(
+                        category: listing.category,
+                        width: double.infinity,
+                        height: 82,
+                      ),
                     )
-                  : ListingPlaceholder(category: listing.category),
+                  : ListingPlaceholder(
+                      category: listing.category,
+                      width: double.infinity,
+                      height: 82,
+                    ),
             ),
             // Label
-            Expanded(
-              flex: 2,
+            SizedBox(
+              height: 56,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Column(
@@ -128,18 +260,20 @@ class _SimilarListingCard extends StatelessWidget {
                     Text(
                       listing.title,
                       style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: cs.onSurface),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       listing.price,
                       style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: cs.primary),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: cs.primary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -167,12 +301,11 @@ class _SimilarServiceCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 148,
+        height: 140,
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.35),
-          ),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.35)),
         ),
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -187,24 +320,27 @@ class _SimilarServiceCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
-              child: Icon(Icons.construction_rounded,
-                  color: cs.primary, size: 28),
+              child: Icon(
+                Icons.construction_rounded,
+                color: cs.primary,
+                size: 28,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               service.title,
               style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: cs.onSurface),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: cs.onSurface,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const Spacer(),
+            const SizedBox(height: 6),
             // Availability chip — text label, not icon only (acc. criterion 6)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: service.availability
                     ? cs.primaryContainer.withValues(alpha: 0.3)
@@ -242,12 +378,11 @@ class _SimilarHiringCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 148,
+        height: 140,
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.35),
-          ),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.35)),
         ),
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -268,17 +403,17 @@ class _SimilarHiringCard extends StatelessWidget {
             Text(
               post.title,
               style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: cs.onSurface),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: cs.onSurface,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const Spacer(),
+            const SizedBox(height: 6),
             // Status chip — text label (acc. criterion 6)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: post.isOpen
                     ? cs.primaryContainer.withValues(alpha: 0.3)

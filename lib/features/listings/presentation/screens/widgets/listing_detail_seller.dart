@@ -38,6 +38,7 @@ class _SellerCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
                   radius: 26,
@@ -69,11 +70,13 @@ class _SellerCard extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                               color: cs.onSurface)),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           const Icon(Icons.star_rounded,
                               color: kBrandGold, size: 15),
-                          const SizedBox(width: 3),
                           Text(
                             listing.sellerRating.toStringAsFixed(1),
                             style: TextStyle(
@@ -81,15 +84,13 @@ class _SellerCard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: cs.onSurface),
                           ),
-                          const SizedBox(width: 4),
                           Text(
                             '(${listing.sellerReviewsCount} ${s.detailReviews})',
                             style: TextStyle(
                                 fontSize: 12,
                                 color: cs.onSurfaceVariant),
                           ),
-                          if (listing.verified) ...[
-                            const SizedBox(width: 8),
+                          if (listing.verified)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 2),
@@ -114,38 +115,45 @@ class _SellerCard extends StatelessWidget {
                                 ],
                               ),
                             ),
-                          ],
                         ],
                       ),
                     ],
                   ),
                 ),
-                OutlinedButton(
-                  onPressed: () {
-                    if (!state.isSignedIn) {
-                      showAuthGateSheet(context,
-                          reason: AuthGateReason.profile);
-                      return;
-                    }
-                    final sellerId = listing.sellerId;
-                    if (sellerId != null && sellerId.isNotEmpty) {
-                      state.pushScreen(PublicProfileScreenRoute(sellerId));
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(s.detailProfileVerified)),
-                      );
-                    }
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    side: BorderSide(color: cs.outlineVariant),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      if (!state.isSignedIn) {
+                        showAuthGateSheet(context,
+                            reason: AuthGateReason.profile);
+                        return;
+                      }
+                      final sellerId = listing.sellerId;
+                      if (sellerId != null && sellerId.isNotEmpty) {
+                        state.pushScreen(PublicProfileScreenRoute(sellerId));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(s.detailProfileVerified)),
+                        );
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 36),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      side: BorderSide(color: cs.outlineVariant),
+                    ),
+                    child: Text(
+                      s.detailViewProfile,
+                      style: TextStyle(fontSize: 12, color: cs.onSurface),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  child: Text(s.detailViewProfile,
-                      style:
-                          TextStyle(fontSize: 12, color: cs.onSurface)),
                 ),
               ],
             ),

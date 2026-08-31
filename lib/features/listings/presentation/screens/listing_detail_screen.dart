@@ -38,13 +38,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   /// enriched by a background profile fetch when it is missing.
   String? _resolvedPhone;
   bool _fetchingPhone = false;
+  bool _phoneCheckScheduled = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final state = OnemarketAppStateScope.of(context);
     state.recordItemViewed(widget.listingId);
-    _maybeLoadSellerPhone(state);
+
+    // Defer state updates until the AnimatedSwitcher has completed its current build.
+    if (!_phoneCheckScheduled) {
+      _phoneCheckScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _maybeLoadSellerPhone(state);
+      });
+    }
   }
 
   /// If the listing already carries a phone number we use it directly.
@@ -74,7 +82,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     // Fetch from Supabase.
     if (_fetchingPhone) return;
     setState(() => _fetchingPhone = true);
-    state.loadPublicProfile(sellerId).then((UserProfile? profile) {
+    state.loadPublicProfile(sellerId, notify: false).then((
+      UserProfile? profile,
+    ) {
       if (!mounted) return;
       setState(() {
         _resolvedPhone = profile?.phone;
@@ -85,7 +95,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state   = OnemarketAppStateScope.of(context);
+    final state = OnemarketAppStateScope.of(context);
     final listing = state.getListingById(widget.listingId);
 
     if (listing == null) {
@@ -102,36 +112,41 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Stack(
-        children: [
-          // ── Scrollable content ───────────────────────────────────────────
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _HeroImage(listing: listing, state: state),
-                _InfoSection(listing: listing, state: state),
-                _SpecsSection(listing: listing),
-                _DescriptionSection(listing: listing, state: state),
-                _MapSection(listing: listing, state: state),
-                _SellerCard(listing: listing, state: state),
-                _ContactActions(
-                  listing: listing,
-                  resolvedPhone: _resolvedPhone,
-                  fetchingPhone: _fetchingPhone,
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                  child: SimilarListingsSection(anchor: listing),
-                ),
-              ],
+      body: SizedBox.expand(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _HeroImage(listing: listing, state: state),
+                  _InfoSection(listing: listing, state: state),
+                  _SpecsSection(listing: listing),
+                  _DescriptionSection(listing: listing, state: state),
+                  _MapSection(listing: listing, state: state),
+                  _SellerCard(listing: listing, state: state),
+                  _ContactActions(
+                    listing: listing,
+                    resolvedPhone: _resolvedPhone,
+                    fetchingPhone: _fetchingPhone,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: SimilarListingsSection(anchor: listing),
+                  ),
+                ],
+              ),
             ),
-          ),
-
-          // ── Sticky CTA bar ───────────────────────────────────────────────
-          _StickyBar(listing: listing, state: state),
-        ],
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _StickyBar(listing: listing, state: state),
+            ),
+          ],
+        ),
       ),
     );
   }

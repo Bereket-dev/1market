@@ -74,12 +74,18 @@ extension AppStateReviews on OnemarketAppState {
   List<ServiceReview> getReviewsForUser(String userId) =>
       _userReviewsCache[userId] ?? [];
 
-  Future<UserProfile?> loadPublicProfile(String userId) async {
+  /// Loads a public profile and optionally notifies the app shell.
+  /// Detail screens that only need the returned phone number can opt out of
+  /// the global notification during navigation transitions.
+  Future<UserProfile?> loadPublicProfile(
+    String userId, {
+    bool notify = true,
+  }) async {
     if (_repo == null) return _publicProfileCache[userId];
     try {
       final p = await _repo!.fetchPublicProfile(userId);
       if (p != null) _publicProfileCache[userId] = p;
-      notifyListeners();
+      if (notify) notifyListeners();
       return p;
     } catch (e) {
       if (kDebugMode) debugPrint('loadPublicProfile error: $e');

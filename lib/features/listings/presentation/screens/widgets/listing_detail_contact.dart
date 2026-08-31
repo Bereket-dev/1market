@@ -152,7 +152,7 @@ class _ContactActionsState extends State<_ContactActions> {
                           style: const TextStyle(
                               fontWeight: FontWeight.bold)),
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(46),
+                        minimumSize: const Size(0, 46),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
@@ -176,7 +176,7 @@ class _ContactActionsState extends State<_ContactActions> {
                               color: cs.primary,
                               fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(46),
+                        minimumSize: const Size(0, 46),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                         side: BorderSide(color: cs.primary),

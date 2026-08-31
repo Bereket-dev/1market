@@ -154,7 +154,7 @@ class _ViewingRequestSheetState extends State<_ViewingRequestSheet> {
               label: Text(s.viewingConfirmButton,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
               style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
+                minimumSize: const Size(0, 52),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),

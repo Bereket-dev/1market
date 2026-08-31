@@ -6,6 +6,7 @@
 /// never on every widget rebuild or scroll frame.
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/router/routes.dart';
@@ -60,17 +61,11 @@ class _SimilarListingsSectionState extends State<SimilarListingsSection> {
       return _SimilarEmptyState();
     }
 
-    return _SimilarShell(
-      itemCount: _similar.length,
-      itemBuilder: (context, i) {
-        final l = _similar[i];
-        return _SimilarListingCard(
-          listing: l,
-          onTap: () {
-            state.recordItemViewed(l.id);
-            state.pushScreen(ListingDetailScreenRoute(l.id));
-          },
-        );
+    return _SimilarListingsList(
+      listings: _similar,
+      onTap: (l) {
+        state.recordItemViewed(l.id);
+        state.pushScreen(ListingDetailScreenRoute(l.id));
       },
     );
   }

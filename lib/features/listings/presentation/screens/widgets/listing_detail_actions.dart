@@ -67,16 +67,13 @@ class _StickyBarState extends State<_StickyBar> {
     final s       = widget.state.s;
     final listing = widget.listing;
 
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
+    return SizedBox(
+      width: MediaQuery.sizeOf(context).width,
       child: Container(
         decoration: BoxDecoration(
           color: cs.surface,
           border: Border(
-              top: BorderSide(
-                  color: cs.outlineVariant.withValues(alpha: 0.3))),
+              top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3))),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -86,7 +83,11 @@ class _StickyBarState extends State<_StickyBar> {
           ],
         ),
         padding: EdgeInsets.fromLTRB(
-          16, 10, 16, MediaQuery.of(context).padding.bottom + 12),
+          16,
+          10,
+          16,
+          MediaQuery.of(context).padding.bottom + 12,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -126,7 +127,7 @@ class _StickyBarState extends State<_StickyBar> {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
+                      minimumSize: const Size(0, 50),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                       side: BorderSide(color: cs.primary),
@@ -135,7 +136,6 @@ class _StickyBarState extends State<_StickyBar> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  flex: 1,
                   child: FilledButton.icon(
                     onPressed: _chatLoading ? null : _openChat,
                     icon: _chatLoading
@@ -151,7 +151,7 @@ class _StickyBarState extends State<_StickyBar> {
                     style: FilledButton.styleFrom(
                       backgroundColor: cs.primary,
                       foregroundColor: cs.onPrimary,
-                      minimumSize: const Size.fromHeight(50),
+                      minimumSize: const Size(0, 50),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                     ),

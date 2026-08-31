@@ -56,9 +56,9 @@ class _PostWizardScreenState extends State<PostWizardScreen> {
 
     final listingId = await state.submitPost();
     if (!mounted) return;
+    if (listingId.isEmpty) return;
     // Pop the wizard and open the newly created listing's detail screen.
-    state.popScreen();
-    state.pushScreen(ListingDetailScreenRoute(listingId));
+    state.replaceTopScreen(ListingDetailScreenRoute(listingId));
   }
 
   @override
