@@ -29,7 +29,7 @@ class _SimilarShell extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 140,
+          height: 156,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: itemCount,
@@ -89,7 +89,7 @@ class _SimilarListingCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 148,
-        height: 140,
+        height: 156,
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
@@ -124,7 +124,7 @@ class _SimilarListingCard extends StatelessWidget {
             ),
             // Label
             SizedBox(
-              height: 56,
+              height: 64,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Column(
@@ -175,7 +175,7 @@ class _SimilarServiceCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 148,
-        height: 140,
+        height: 156,
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
@@ -252,7 +252,7 @@ class _SimilarHiringCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 148,
-        height: 140,
+        height: 156,
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
