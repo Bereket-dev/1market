@@ -32,7 +32,8 @@ extension SupabaseRepositoryListings on SupabaseRepository {
         .range(offset, offset + limit - 1);
 
     final userId = currentUserId;
-    final favorites = savedIds ??
+    final favorites =
+        savedIds ??
         (userId != null ? await _fetchFavoriteIds(userId) : <String>{});
 
     return SafeParse.mapList(
@@ -43,6 +44,22 @@ extension SupabaseRepositoryListings on SupabaseRepository {
         isOwnedByCurrentUser: row['seller_id'] == userId,
       ),
       context: 'listings',
+    );
+  }
+
+  Future<List<Listing>> fetchMyListings() async {
+    final userId = currentUserId;
+    if (userId == null) return const [];
+    final rows = await _client
+        .from('listings')
+        .select(_kListingDetailSelect)
+        .eq('seller_id', userId)
+        .isFilter('deleted_at', null)
+        .order('created_at', ascending: false);
+    return SafeParse.mapList(
+      rows as List,
+      (row) => Listing.fromJson(row, isOwnedByCurrentUser: true),
+      context: 'my_listings',
     );
   }
 
@@ -58,9 +75,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
     int limit = 100,
     String? userCity,
   }) async {
-    var query = _client
-        .from('listings')
-        .select(_kListingListSelect);
+    var query = _client.from('listings').select(_kListingListSelect);
 
     if (cursor != null) {
       final iso = cursor.toUtc().toIso8601String();
@@ -72,9 +87,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       query = query.ilike('location', '%$userCity%');
     }
 
-    final rows = await query
-        .order('updated_at', ascending: true)
-        .limit(limit);
+    final rows = await query.order('updated_at', ascending: true).limit(limit);
 
     return (rows as List).cast<Map<String, dynamic>>();
   }
@@ -120,9 +133,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       query = query.ilike('location', '%$userCity%');
     }
 
-    final rows = await query
-        .order('updated_at', ascending: true)
-        .limit(limit);
+    final rows = await query.order('updated_at', ascending: true).limit(limit);
 
     return (rows as List).cast<Map<String, dynamic>>();
   }
@@ -151,9 +162,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       query = query.ilike('location', '%$userCity%');
     }
 
-    final rows = await query
-        .order('updated_at', ascending: true)
-        .limit(limit);
+    final rows = await query.order('updated_at', ascending: true).limit(limit);
 
     return (rows as List).cast<Map<String, dynamic>>();
   }
@@ -192,10 +201,7 @@ extension SupabaseRepositoryListings on SupabaseRepository {
   }) async {
     final response = await _client.rpc(
       'get_changes_since',
-      params: {
-        'since_version': sinceVersion,
-        'row_limit': limit,
-      },
+      params: {'since_version': sinceVersion, 'row_limit': limit},
     );
 
     if (response == null) return const [];
@@ -207,7 +213,10 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       rows = response;
     } else {
       // Unexpected shape — log in debug and return empty.
-      assert(false, '[getChangesSince] unexpected RPC response type: ${response.runtimeType}');
+      assert(
+        false,
+        '[getChangesSince] unexpected RPC response type: ${response.runtimeType}',
+      );
       return const [];
     }
 
@@ -298,10 +307,11 @@ extension SupabaseRepositoryListings on SupabaseRepository {
   ) async {
     final userId = currentUserId;
     if (userId == null) throw StateError('Not authenticated');
-    await _client.from('listings').update({
-      ...fields,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', listingId).eq('seller_id', userId);
+    await _client
+        .from('listings')
+        .update({...fields, 'updated_at': DateTime.now().toIso8601String()})
+        .eq('id', listingId)
+        .eq('seller_id', userId);
   }
 
   Future<void> deleteListing(String listingId) async {
@@ -309,7 +319,23 @@ extension SupabaseRepositoryListings on SupabaseRepository {
     if (userId == null) throw StateError('Not authenticated');
     await _client
         .from('listings')
-        .delete()
+        .update({
+          'deleted_at': DateTime.now().toUtc().toIso8601String(),
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', listingId)
+        .eq('seller_id', userId);
+  }
+
+  Future<void> setListingHidden(String listingId, bool hidden) async {
+    final userId = currentUserId;
+    if (userId == null) throw StateError('Not authenticated');
+    await _client
+        .from('listings')
+        .update({
+          'is_hidden': hidden,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
         .eq('id', listingId)
         .eq('seller_id', userId);
   }
@@ -331,5 +357,4 @@ extension SupabaseRepositoryListings on SupabaseRepository {
       });
     }
   }
-
 }

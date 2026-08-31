@@ -14,14 +14,19 @@ class Listing with SyncableEntity {
   final bool verified;
   final bool isSaved;
   final String conditionOrStatus;
+
   /// Seller display name — sourced from the joined profiles row.
   final String sellerName;
+
   /// Seller avatar URL — sourced from the joined profiles row.
   final String sellerImage;
+
   /// Seller rating — sourced from the joined profiles row.
   final double sellerRating;
+
   /// Seller review count — sourced from the joined profiles row.
   final int sellerReviewsCount;
+
   /// Seller phone — sourced from the joined profiles row.
   final String? sellerPhone;
   final String description;
@@ -48,6 +53,8 @@ class Listing with SyncableEntity {
 
   /// True when posted by the current user.
   final bool isOwnedByCurrentUser;
+  final bool isHidden;
+  final DateTime? deletedAt;
 
   // ── Translation fields ──────────────────────────────────────────────────────
   /// The language code of the original post (e.g. 'en', 'am', 'so').
@@ -94,6 +101,8 @@ class Listing with SyncableEntity {
     this.remoteUpdatedAt,
     this.syncStatus = SyncStatus.synced,
     this.isOwnedByCurrentUser = false,
+    this.isHidden = false,
+    this.deletedAt,
     this.originalLanguage = 'en',
     this.titleTranslations = const {},
     this.descriptionTranslations = const {},
@@ -129,7 +138,9 @@ class Listing with SyncableEntity {
       if (raw == null) return const {};
       if (raw is Map) {
         return Map<String, String>.fromEntries(
-          raw.entries.map((e) => MapEntry(e.key.toString(), e.value.toString())),
+          raw.entries.map(
+            (e) => MapEntry(e.key.toString(), e.value.toString()),
+          ),
         );
       }
       return const {};
@@ -149,32 +160,31 @@ class Listing with SyncableEntity {
       //    fall back to the denormalized columns for legacy/offline rows.
       sellerName: () {
         final p = json['profiles'] as Map<String, dynamic>?;
-        return p?['display_name'] as String?
-            ?? json['seller_name'] as String?
-            ?? 'Seller';
+        return p?['display_name'] as String? ??
+            json['seller_name'] as String? ??
+            'Seller';
       }(),
       sellerImage: () {
         final p = json['profiles'] as Map<String, dynamic>?;
-        return p?['avatar_url'] as String?
-            ?? json['seller_image'] as String?
-            ?? '';
+        return p?['avatar_url'] as String? ??
+            json['seller_image'] as String? ??
+            '';
       }(),
       sellerRating: () {
         final p = json['profiles'] as Map<String, dynamic>?;
-        return (p?['rating'] as num?)?.toDouble()
-            ?? (json['seller_rating'] as num?)?.toDouble()
-            ?? 4.8;
+        return (p?['rating'] as num?)?.toDouble() ??
+            (json['seller_rating'] as num?)?.toDouble() ??
+            4.8;
       }(),
       sellerReviewsCount: () {
         final p = json['profiles'] as Map<String, dynamic>?;
-        return (p?['reviews_count'] as int?)
-            ?? json['seller_reviews_count'] as int?
-            ?? 0;
+        return (p?['reviews_count'] as int?) ??
+            json['seller_reviews_count'] as int? ??
+            0;
       }(),
       sellerPhone: () {
         final p = json['profiles'] as Map<String, dynamic>?;
-        return p?['phone'] as String?
-            ?? json['seller_phone'] as String?;
+        return p?['phone'] as String? ?? json['seller_phone'] as String?;
       }(),
       description: json['description'] as String? ?? '',
       spec1Label: json['spec1_label'] as String?,
@@ -185,15 +195,19 @@ class Listing with SyncableEntity {
       spec3Value: json['spec3_value'] as String?,
       spec4Label: json['spec4_label'] as String?,
       spec4Value: json['spec4_value'] as String?,
-      sellerId: json['seller_id'] as String?,
+      isHidden: json['is_hidden'] as bool? ?? false,
+      deletedAt: DateTime.tryParse(json['deleted_at'] as String? ?? ''),
       localUpdatedAt: createdAt ?? DateTime.now(),
       remoteUpdatedAt: updatedAt,
       syncStatus: SyncStatus.synced,
       isOwnedByCurrentUser: isOwnedByCurrentUser,
       originalLanguage: json['original_language'] as String? ?? 'en',
       titleTranslations: parseTranslations(json['title_translations']),
-      descriptionTranslations: parseTranslations(json['description_translations']),
-      imageUrls: (json['image_urls'] as List<dynamic>?)
+      descriptionTranslations: parseTranslations(
+        json['description_translations'],
+      ),
+      imageUrls:
+          (json['image_urls'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],
@@ -226,6 +240,8 @@ class Listing with SyncableEntity {
     'title_translations': titleTranslations,
     'description_translations': descriptionTranslations,
     'image_urls': imageUrls,
+    'is_hidden': isHidden,
+    'deleted_at': deletedAt?.toIso8601String(),
   };
 
   Listing copyWith({
@@ -257,6 +273,8 @@ class Listing with SyncableEntity {
     DateTime? remoteUpdatedAt,
     SyncStatus? syncStatus,
     bool? isOwnedByCurrentUser,
+    bool? isHidden,
+    DateTime? deletedAt,
     String? originalLanguage,
     Map<String, String>? titleTranslations,
     Map<String, String>? descriptionTranslations,
@@ -291,9 +309,12 @@ class Listing with SyncableEntity {
       remoteUpdatedAt: remoteUpdatedAt ?? this.remoteUpdatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
       isOwnedByCurrentUser: isOwnedByCurrentUser ?? this.isOwnedByCurrentUser,
+      isHidden: isHidden ?? this.isHidden,
+      deletedAt: deletedAt ?? this.deletedAt,
       originalLanguage: originalLanguage ?? this.originalLanguage,
       titleTranslations: titleTranslations ?? this.titleTranslations,
-      descriptionTranslations: descriptionTranslations ?? this.descriptionTranslations,
+      descriptionTranslations:
+          descriptionTranslations ?? this.descriptionTranslations,
       imageUrls: imageUrls ?? this.imageUrls,
     );
   }

@@ -12,18 +12,31 @@ part 'widgets/my_listings_empty.dart';
 // Shows the current user's own marketplace posts (CARS / HOUSES / LAND).
 // Each tile lets the user:
 //   • View the live detail page
-//   • Delete their post (with confirmation)
+//   • Edit, unlist/relist, or delete their post
 //
 // "Post a new listing" navigates to the wizard.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class MyListingsScreen extends StatelessWidget {
+class MyListingsScreen extends StatefulWidget {
   const MyListingsScreen({super.key});
+
+  @override
+  State<MyListingsScreen> createState() => _MyListingsScreenState();
+}
+
+class _MyListingsScreenState extends State<MyListingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) OnemarketAppStateScope.of(context).loadMyListings();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = OnemarketAppStateScope.of(context);
-    final cs    = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final posts = state.getMyListings();
 
     return Scaffold(
@@ -46,10 +59,7 @@ class MyListingsScreen extends StatelessWidget {
             icon: Icon(Icons.add_rounded, size: 18, color: cs.primary),
             label: Text(
               state.s.profileNewPost,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: cs.primary,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: cs.primary),
             ),
           ),
         ],
@@ -60,10 +70,8 @@ class MyListingsScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
               itemCount: posts.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _MyListingTile(
-                listing: posts[index],
-                state: state,
-              ),
+              itemBuilder: (context, index) =>
+                  _MyListingTile(listing: posts[index], state: state),
             ),
     );
   }

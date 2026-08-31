@@ -9,6 +9,31 @@ class _MyListingTile extends StatelessWidget {
   final OnemarketAppState state;
   const _MyListingTile({required this.listing, required this.state});
 
+  Future<void> _toggleAvailability(BuildContext context) async {
+    final hidden = !listing.isHidden;
+    if (hidden) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(state.s.listingMakeUnavailable),
+          content: Text(state.s.listingUnavailableBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(state.s.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(state.s.listingMakeUnavailable),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    await state.setListingHidden(listing.id, hidden);
+  }
+
   Future<void> _confirmDelete(BuildContext context) async {
     final cs = Theme.of(context).colorScheme;
     final s = state.s;
@@ -43,9 +68,7 @@ class _MyListingTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -123,8 +146,11 @@ class _MyListingTile extends StatelessWidget {
                     // Location
                     Row(
                       children: [
-                        Icon(Icons.location_on_rounded,
-                            size: 12, color: cs.onSurfaceVariant),
+                        Icon(
+                          Icons.location_on_rounded,
+                          size: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
@@ -165,6 +191,21 @@ class _MyListingTile extends StatelessWidget {
                     iconColor: cs.primary,
                     onTap: () =>
                         state.pushScreen(ListingDetailScreenRoute(listing.id)),
+                  ),
+                  const SizedBox(height: 6),
+                  // Availability
+                  _ActionButton(
+                    icon: listing.isHidden
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
+                    label: listing.isHidden
+                        ? state.s.listingRelist
+                        : state.s.listingMakeUnavailable,
+                    color: listing.isHidden
+                        ? cs.primary.withValues(alpha: 0.12)
+                        : cs.tertiary.withValues(alpha: 0.12),
+                    iconColor: listing.isHidden ? cs.primary : cs.tertiary,
+                    onTap: () => _toggleAvailability(context),
                   ),
                   const SizedBox(height: 6),
                   // Delete

@@ -4,7 +4,6 @@ part of '../app_state.dart';
 // ── Data loading, navigation & listings ───────────────────────────────────────
 
 extension AppStateData on OnemarketAppState {
-
   // ── MarketplaceRepository accessor ───────────────────────────────────────────
 
   MarketplaceRepository? _ensureMarketplaceRepo() {
@@ -39,7 +38,8 @@ extension AppStateData on OnemarketAppState {
     }
 
     // ── Step 2: decide loading state ─────────────────────────────────────────
-    final hasLocalData = allListings.isNotEmpty ||
+    final hasLocalData =
+        allListings.isNotEmpty ||
         allServices.isNotEmpty ||
         allHiringPosts.isNotEmpty;
 
@@ -65,11 +65,13 @@ extension AppStateData on OnemarketAppState {
       if (kDebugMode) debugPrint('[loadAllData] offline (SocketException): $e');
       if (!hasLocalData) await _serveListingsFromCache();
     } on HandshakeException catch (e) {
-      if (kDebugMode) debugPrint('[loadAllData] offline (HandshakeException): $e');
+      if (kDebugMode)
+        debugPrint('[loadAllData] offline (HandshakeException): $e');
       if (!hasLocalData) await _serveListingsFromCache();
     } catch (e) {
       final msg = e.toString().toLowerCase();
-      final isNetworkError = msg.contains('network') ||
+      final isNetworkError =
+          msg.contains('network') ||
           msg.contains('socket') ||
           msg.contains('connection') ||
           msg.contains('host lookup') ||
@@ -102,8 +104,8 @@ extension AppStateData on OnemarketAppState {
       currentUserId: userId,
       savedIds: savedIds,
     );
-    final localServices  = await repo.loadServicesFromLocal();
-    final localPosts     = await repo.loadHiringPostsFromLocal();
+    final localServices = await repo.loadServicesFromLocal();
+    final localPosts = await repo.loadHiringPostsFromLocal();
 
     if (localListings.isNotEmpty) allListings = localListings;
     if (localServices.isNotEmpty) allServices = localServices;
@@ -131,8 +133,8 @@ extension AppStateData on OnemarketAppState {
 
     // Prefer cold seed whenever the Hive mirror has no listings — a version
     // cursor alone must never skip the first full fetch.
-    final hasMirrorData = allListings.isNotEmpty &&
-        _marketplaceRepo!.hasListingsMirrorData;
+    final hasMirrorData =
+        allListings.isNotEmpty && _marketplaceRepo!.hasListingsMirrorData;
 
     // Promos are independent of the marketplace seed — fetch in parallel so
     // the carousel can paint images without waiting for listings/Hive.
@@ -149,7 +151,8 @@ extension AppStateData on OnemarketAppState {
         try {
           await _coldSeedPriority1(anonRepo, _marketplaceRepo!);
         } catch (e) {
-          if (kDebugMode) debugPrint('[guestLoadOrSync] fallback coldSeed failed: $e');
+          if (kDebugMode)
+            debugPrint('[guestLoadOrSync] fallback coldSeed failed: $e');
         }
       }
     } else {
@@ -186,7 +189,8 @@ extension AppStateData on OnemarketAppState {
   }) async {
     final repo = _repo!;
     final userId = currentUser?.id;
-    final market = marketRepo ??
+    final market =
+        marketRepo ??
         (_marketplaceRepo = MarketplaceRepository(
           supabaseRepo: repo,
           observability: syncObservability,
@@ -278,12 +282,14 @@ extension AppStateData on OnemarketAppState {
       );
       _applyListingsMerge(mergedListings);
 
-      final mergedServices =
-          await marketRepo.syncServicesDelta(forceRefresh: forceRefresh);
+      final mergedServices = await marketRepo.syncServicesDelta(
+        forceRefresh: forceRefresh,
+      );
       _applyServicesMerge(mergedServices);
 
-      final mergedPosts =
-          await marketRepo.syncHiringPostsDelta(forceRefresh: forceRefresh);
+      final mergedPosts = await marketRepo.syncHiringPostsDelta(
+        forceRefresh: forceRefresh,
+      );
       _applyHiringPostsMerge(mergedPosts);
     }
   }
@@ -347,7 +353,8 @@ extension AppStateData on OnemarketAppState {
     try {
       await HiveSyncStore.instance.setInProgressEntity(listingsEntity);
     } catch (e) {
-      if (kDebugMode) debugPrint('[coldSeed] setInProgressEntity failed (non-fatal): $e');
+      if (kDebugMode)
+        debugPrint('[coldSeed] setInProgressEntity failed (non-fatal): $e');
     }
     final listingsOffset =
         HiveSyncStore.instance.getSeedOffset(listingsEntity) ?? 0;
@@ -369,20 +376,25 @@ extension AppStateData on OnemarketAppState {
           listings.map((l) => l.toJson()).toList(),
         );
       } catch (e) {
-        if (kDebugMode) debugPrint('[coldSeed] saveListingsCache failed (non-fatal): $e');
+        if (kDebugMode)
+          debugPrint('[coldSeed] saveListingsCache failed (non-fatal): $e');
       }
       try {
         await marketRepo.seedListingsMirror(listings);
         await HiveSyncStore.instance.clearSeedOffset(listingsEntity);
       } catch (e) {
-        if (kDebugMode) debugPrint('[coldSeed] seedListingsMirror failed (non-fatal): $e');
+        if (kDebugMode)
+          debugPrint('[coldSeed] seedListingsMirror failed (non-fatal): $e');
       }
     } catch (e) {
       // Network fetch itself failed — save offset for resumable retry but do
       // NOT rethrow so services/hiring can still be attempted.
       if (kDebugMode) debugPrint('[coldSeed] fetchListings failed: $e');
       try {
-        await HiveSyncStore.instance.setSeedOffset(listingsEntity, listingsOffset);
+        await HiveSyncStore.instance.setSeedOffset(
+          listingsEntity,
+          listingsOffset,
+        );
       } catch (_) {}
     }
 
@@ -399,12 +411,14 @@ extension AppStateData on OnemarketAppState {
           services.map((s) => s.toJson()).toList(),
         );
       } catch (e) {
-        if (kDebugMode) debugPrint('[coldSeed] saveServicesCache failed (non-fatal): $e');
+        if (kDebugMode)
+          debugPrint('[coldSeed] saveServicesCache failed (non-fatal): $e');
       }
       try {
         await marketRepo.seedServicesMirror(services);
       } catch (e) {
-        if (kDebugMode) debugPrint('[coldSeed] seedServicesMirror failed (non-fatal): $e');
+        if (kDebugMode)
+          debugPrint('[coldSeed] seedServicesMirror failed (non-fatal): $e');
       }
     } catch (e) {
       if (kDebugMode) debugPrint('[coldSeed] fetchServices failed: $e');
@@ -430,7 +444,8 @@ extension AppStateData on OnemarketAppState {
       try {
         await marketRepo.seedHiringPostsMirror(allHiringPosts);
       } catch (e) {
-        if (kDebugMode) debugPrint('[coldSeed] seedHiringPostsMirror failed (non-fatal): $e');
+        if (kDebugMode)
+          debugPrint('[coldSeed] seedHiringPostsMirror failed (non-fatal): $e');
       }
     } catch (e) {
       if (kDebugMode) debugPrint('[coldSeed] fetchHiringPosts failed: $e');
@@ -506,11 +521,16 @@ extension AppStateData on OnemarketAppState {
     final servicesCached = await app_local.LocalStorage.getServicesCache();
     if (servicesCached != null && servicesCached.isNotEmpty) {
       final userId = currentUser?.id;
-      allServices = SafeParse.mapList(
-        servicesCached,
-        Service.fromJson,
-        context: 'services_cache',
-      ).where((service) => service.ownerId == userId || service.availability).toList();
+      allServices =
+          SafeParse.mapList(
+                servicesCached,
+                Service.fromJson,
+                context: 'services_cache',
+              )
+              .where(
+                (service) => service.ownerId == userId || service.availability,
+              )
+              .toList();
     }
     if (allListings.isNotEmpty || allServices.isNotEmpty) {
       dataError = s.errorOfflineCached;
@@ -709,7 +729,9 @@ extension AppStateData on OnemarketAppState {
   /// back to in-memory substring filtering so the UI is never blank.
   List<Listing> getFilteredListings() {
     // Category filter — always applied in memory.
-    Iterable<Listing> base = allListings;
+    Iterable<Listing> base = allListings.where(
+      (l) => !l.isHidden && l.deletedAt == null,
+    );
     if (selectedCategory != 'ALL') {
       base = base.where((l) => l.category == selectedCategory);
     }
@@ -737,17 +759,48 @@ extension AppStateData on OnemarketAppState {
   List<Listing> getSavedListings() =>
       allListings.where((l) => l.isSaved).toList();
 
-  List<Listing> getMyListings() =>
-      allListings.where((l) => l.isOwnedByCurrentUser).toList();
+  List<Listing> getMyListings() => allListings
+      .where((l) => l.isOwnedByCurrentUser && l.deletedAt == null)
+      .toList();
 
-  /// Optimistically removes [listingId] from [allListings] and deletes it
-  /// from Supabase. No offline-queue path — requires connectivity.
+  Future<void> loadMyListings() async {
+    try {
+      final mine = await _repo?.fetchMyListings();
+      if (mine == null) return;
+      final byId = {for (final listing in allListings) listing.id: listing};
+      for (final listing in mine) {
+        byId[listing.id] = listing;
+      }
+      allListings = byId.values.toList();
+      notifyListeners();
+    } catch (e) {
+      reportDataError(e);
+    }
+  }
+
+  /// Soft-deletes [listingId] so all clients learn about its removal.
+  /// No offline-queue path — requires connectivity.
   Future<void> deleteListing(String listingId) async {
     allListings.removeWhere((l) => l.id == listingId);
     notifyListeners();
     try {
       await _repo?.deleteListing(listingId);
     } catch (e) {
+      reportDataError(e);
+      notifyListeners();
+    }
+  }
+
+  Future<void> setListingHidden(String listingId, bool hidden) async {
+    final index = allListings.indexWhere((l) => l.id == listingId);
+    if (index == -1) return;
+    final listing = allListings[index];
+    allListings[index] = listing.copyWith(isHidden: hidden);
+    notifyListeners();
+    try {
+      await _repo?.setListingHidden(listingId, hidden);
+    } catch (e) {
+      allListings[index] = listing;
       reportDataError(e);
       notifyListeners();
     }
@@ -792,13 +845,13 @@ extension AppStateData on OnemarketAppState {
     }
 
     final mergedUrls = [...existingImageUrls, ...uploadedUrls];
-    final primaryImageUrl =
-        mergedUrls.isNotEmpty ? mergedUrls.first : listing.imageUrl;
+    final primaryImageUrl = mergedUrls.isNotEmpty
+        ? mergedUrls.first
+        : listing.imageUrl;
 
-    final priceStr =
-        (price.startsWith('ETB') || price.startsWith(r'$'))
-            ? price.trim()
-            : 'ETB ${price.trim()}';
+    final priceStr = (price.startsWith('ETB') || price.startsWith(r'$'))
+        ? price.trim()
+        : 'ETB ${price.trim()}';
 
     final resolvedCategory = (category != null && category.isNotEmpty)
         ? category

@@ -132,6 +132,10 @@ class AppStrings {
   String get listingMyAd => _t('My Ad', 'የኔ ማስታወቂያ', 'Xayaysiiskayga');
   String get editListingTitle =>
       _t('Edit Listing', 'ዝርዝር አርትዕ', 'Tafatir Xayaysiis');
+  String get listingUnavailable => _t('Unavailable', 'አይገኝም', 'Aan la heli karin');
+  String get listingMakeUnavailable => _t('Make unavailable', 'እንዳይገኝ አድርግ', 'Ka dhig mid aan la heli karin');
+  String get listingRelist => _t('Relist', 'እንደገና ለጥፍ', 'Dib u daabac');
+  String get listingUnavailableBody => _t('This hides the listing from buyers. You can relist it later.', 'ይህ ማስታወቂያውን ከገዢዎች ይደብቃል። በኋላ እንደገና ማሳየት ይችላሉ።', 'Tani waxay ka qarinaysaa iibsadayaasha. Mar dambe waad dib u daabici kartaa.');
   String get deleteListingTitle =>
       _t('Delete listing?', 'ዝርዝር ይሰረዝ?', 'Tirtir xayaysiiska?');
   String deleteListingBody(String title) => _t(
