@@ -4,87 +4,51 @@ part of '../profile_screen.dart';
 
 class _ProfileAboutSection extends StatelessWidget {
   final String? bio;
-  final String? preferredCategory;
   final VoidCallback onEdit;
 
   const _ProfileAboutSection({
     required this.bio,
-    required this.preferredCategory,
     required this.onEdit,
   });
-
-  String? _categoryLabel(dynamic s, String? code) {
-    if (code == null || code.isEmpty) return null;
-    return switch (code) {
-      'CARS' => s.homeCategoryCars,
-      'HOUSES' => s.homeCategoryHouses,
-      'LAND' => s.homeCategoryLand,
-      'SKILLS' => s.homeCategorySkills,
-      'OTHERS' => s.homeCategoryOthers,
-      _ => null,
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final s = OnemarketAppStateScope.of(context).s;
     final hasBio = bio != null && bio!.trim().isNotEmpty;
-    final categoryLabel = _categoryLabel(s, preferredCategory);
-
-    final tags = <String>[
-      ?categoryLabel,
-      s.profileVerifiedBadge,
-    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        InkWell(
-          onTap: onEdit,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Text(
-              hasBio ? bio!.trim() : s.profileAddBio,
-              textAlign: TextAlign.center,
+        if (hasBio)
+          Text(
+            bio!.trim(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: cs.onSurfaceVariant,
+            ),
+          )
+        else
+          TextButton.icon(
+            onPressed: onEdit,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: Icon(Icons.add, size: 16, color: cs.primary),
+            label: Text(
+              s.profileAddBio,
               style: TextStyle(
                 fontSize: 13,
-                height: 1.45,
-                color: hasBio
-                    ? cs.onSurfaceVariant
-                    : cs.onSurfaceVariant.withValues(alpha: 0.65),
-                fontStyle: hasBio ? FontStyle.normal : FontStyle.italic,
+                fontWeight: FontWeight.w600,
+                color: cs.primary,
               ),
             ),
           ),
-        ),
-        if (tags.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
-            children: tags.map((tag) {
-              return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  tag,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                    fontSize: 11,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
         const SizedBox(height: 8),
         TextButton.icon(
           onPressed: onEdit,

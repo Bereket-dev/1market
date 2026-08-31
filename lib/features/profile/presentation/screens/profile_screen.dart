@@ -148,7 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     _ProfileAboutSection(
                       bio: profile?.bio,
-                      preferredCategory: profile?.preferredCategory,
                       onEdit: openEdit,
                     ),
                     const SizedBox(height: 16),
