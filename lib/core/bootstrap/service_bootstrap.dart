@@ -134,4 +134,24 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kDebugMode) {
     debugPrint('[FCM] Background message: ${message.messageId}');
   }
+
+  // The FCM payload includes a notification block so Android displays it
+  // automatically when the app is in the background / killed. However we
+  // still need to show a local notification for the foreground case and to
+  // ensure the correct high-priority channel is used on every Android version.
+  // Prefer the FCM notification fields; fall back to data fields (data-only
+  // messages sent directly via the Edge Function curl tests).
+  final title = message.notification?.title ?? message.data['title'];
+  final body  = message.notification?.body  ?? message.data['body'];
+  if (title == null && body == null) return;
+
+  try {
+    await PermissionService.initLocalNotifications();
+    await PermissionService.showForegroundNotification(
+      message,
+      messagesEnabled: true, // background handler has no app state; allow all
+    );
+  } catch (e) {
+    if (kDebugMode) debugPrint('[FCM] Background show notification error: $e');
+  }
 }

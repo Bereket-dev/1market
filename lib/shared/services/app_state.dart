@@ -269,6 +269,7 @@ class OnemarketAppState extends ChangeNotifier {
   bool notifMessagesEnabled = true;
   bool notifPriceAlerts    = false;
   bool _fcmListenersAttached = false;
+  bool _pushInitInProgress = false;
   StreamSubscription<String>? _fcmTokenRefreshSub;
 
   // ── Data Saver (Phase 3) ──────────────────────────────────────────────────────

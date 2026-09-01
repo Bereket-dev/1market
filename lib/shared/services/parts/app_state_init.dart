@@ -719,6 +719,11 @@ extension AppStateInit on OnemarketAppState {
   }
 
   Future<void> _initPushNotifications() async {
+    if (_pushInitInProgress) {
+      if (kDebugMode) debugPrint('[FCM] _initPushNotifications already in progress — skipping');
+      return;
+    }
+    _pushInitInProgress = true;
     try {
       _attachFcmListeners();
 
@@ -750,6 +755,8 @@ extension AppStateInit on OnemarketAppState {
       }
     } catch (e) {
       if (kDebugMode) debugPrint('[FCM] _initPushNotifications error: $e');
+    } finally {
+      _pushInitInProgress = false;
     }
   }
 

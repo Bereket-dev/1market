@@ -19,10 +19,10 @@ class PermissionService {
 
   // ── Notification channel definition (Android 8+) ───────────────────────────
 
-  static const _kChannelId = 'onemarket_channel';
+  static const _kChannelId = 'onemarket_channel_v2';
   static const _kChannelName = '1market Notifications';
   static const _kChannelDesc = 'Marketplace updates, messages, and alerts';
-  static const _kMessagesChannelId = 'onemarket_messages_channel';
+  static const _kMessagesChannelId = 'onemarket_messages_channel_v2';
   static const _kMessagesChannelName = 'New Messages';
   static const _kMessagesChannelDesc = 'Chat and direct message alerts';
 
@@ -55,19 +55,33 @@ class PermissionService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
+    // Ensure FCM shows notifications when the app is in the foreground.
+    // This must be called on every launch — it is not persisted across restarts.
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
     // Create the Android notification channels.
+    // forceRecreate=true on first launch after the channel-importance bug fix:
+    // the old channels were cached with mImportance=0 (NONE) by Android.
+    // Deleting and recreating them once resets them to Importance.high.
+    // After this single forced recreate the channels stay correct permanently.
     if (Platform.isAndroid) {
       await _ensureAndroidChannel(
         id: _kChannelId,
         name: _kChannelName,
         description: _kChannelDesc,
         enabled: true,
+        forceRecreate: true,
       );
       await _ensureAndroidChannel(
         id: _kMessagesChannelId,
         name: _kMessagesChannelName,
         description: _kMessagesChannelDesc,
         enabled: true,
+        forceRecreate: true,
       );
     }
   }
@@ -77,12 +91,17 @@ class PermissionService {
     required String name,
     required String description,
     required bool enabled,
+    bool forceRecreate = false,
   }) async {
     final plugin = _androidPlugin;
     if (plugin == null) return;
 
-    // Channels are immutable for importance — delete and recreate to toggle.
-    await plugin.deleteNotificationChannel(id);
+    // Only delete + recreate when explicitly toggling (forceRecreate = true).
+    // On normal app launch we just create — Android ignores duplicate creates
+    // for existing channels, preserving the user's OS-level settings.
+    if (forceRecreate) {
+      await plugin.deleteNotificationChannel(id);
+    }
     await plugin.createNotificationChannel(
       AndroidNotificationChannel(
         id,
@@ -169,6 +188,8 @@ class PermissionService {
   }
 
   /// Enables or disables Android delivery channels (master + messages).
+  /// Uses forceRecreate so importance changes take effect when the user
+  /// explicitly toggles notifications in settings.
   static Future<void> setAndroidChannelsEnabled({
     required bool pushEnabled,
     required bool messagesEnabled,
@@ -179,12 +200,14 @@ class PermissionService {
       name: _kChannelName,
       description: _kChannelDesc,
       enabled: pushEnabled,
+      forceRecreate: true,
     );
     await _ensureAndroidChannel(
       id: _kMessagesChannelId,
       name: _kMessagesChannelName,
       description: _kMessagesChannelDesc,
       enabled: pushEnabled && messagesEnabled,
+      forceRecreate: true,
     );
   }
 
@@ -256,6 +279,7 @@ class PermissionService {
       name: _kMessagesChannelName,
       description: _kMessagesChannelDesc,
       enabled: pushGranted && enabled,
+      forceRecreate: true,
     );
   }
 

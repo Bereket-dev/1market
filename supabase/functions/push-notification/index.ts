@@ -14,25 +14,31 @@ import { SignJWT, importPKCS8 } from 'npm:jose@5';
 
 // ── Environment ───────────────────────────────────────────────────────────────
 
-const SUPABASE_URL       = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const PROJECT_ID         = Deno.env.get('FIREBASE_PROJECT_ID')!;
-const CLIENT_EMAIL       = Deno.env.get('FIREBASE_CLIENT_EMAIL')!;
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const PUSH_WEBHOOK_SECRET = Deno.env.get("PUSH_WEBHOOK_SECRET");
+const PROJECT_ID = Deno.env.get('FIREBASE_PROJECT_ID');
+const CLIENT_EMAIL = Deno.env.get('FIREBASE_CLIENT_EMAIL');
 // Stored with literal \n — replace them so the PEM is valid.
-const PRIVATE_KEY        = Deno.env.get('FIREBASE_PRIVATE_KEY')!.replace(/\\n/g, '\n');
+const PRIVATE_KEY = Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+
+const requireEnv = (name: string, value: string | undefined): string => {
+  if (!value?.trim()) throw new Error('Missing required function secret: ' + name);
+  return value;
+};
 
 const FCM_ENDPOINT = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`;
 
 // ── JWT helper (Google OAuth2 access token) ───────────────────────────────────
 
 async function getAccessToken(): Promise<string> {
-  const privateKey = await importPKCS8(PRIVATE_KEY, 'RS256');
+  const privateKey = await importPKCS8(requireEnv('FIREBASE_PRIVATE_KEY', PRIVATE_KEY), 'RS256');
 
   const jwt = await new SignJWT({
     scope: 'https://www.googleapis.com/auth/firebase.messaging',
   })
     .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
-    .setIssuer(CLIENT_EMAIL)
+    .setIssuer(requireEnv('FIREBASE_CLIENT_EMAIL', CLIENT_EMAIL))
     .setAudience('https://oauth2.googleapis.com/token')
     .setIssuedAt()
     .setExpirationTime('1h')
@@ -67,8 +73,8 @@ async function sendPush(
 ): Promise<SendResult> {
   const channelId =
     notificationType === 'new_message'
-      ? 'onemarket_messages_channel'
-      : 'onemarket_channel';
+      ? 'onemarket_messages_channel_v2'
+      : 'onemarket_channel_v2';
 
   const payload = {
     message: {
@@ -134,6 +140,11 @@ async function sendPush(
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
+  const expectedAuth = "Bearer " + (PUSH_WEBHOOK_SECRET ?? "");
+  if (req.headers.get("authorization") !== expectedAuth || !PUSH_WEBHOOK_SECRET) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   try {
     // Supabase sends the row as { type, table, record, old_record }.
     const { record } = await req.json() as {
@@ -152,7 +163,10 @@ Deno.serve(async (req) => {
     }
 
     // Look up the recipient's FCM token.
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const supabase = createClient(
+      requireEnv('SUPABASE_URL', SUPABASE_URL),
+      requireEnv('SUPABASE_SERVICE_ROLE_KEY', SUPABASE_SERVICE_KEY),
+    );
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('fcm_token, notif_push_enabled, notif_messages_enabled')
@@ -194,6 +208,7 @@ Deno.serve(async (req) => {
         ? rawImage
         : undefined;
 
+    requireEnv('FIREBASE_PROJECT_ID', PROJECT_ID);
     const accessToken = await getAccessToken();
     const result = await sendPush(
       profile.fcm_token,
