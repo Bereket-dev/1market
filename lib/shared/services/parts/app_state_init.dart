@@ -42,7 +42,9 @@ extension AppStateInit on OnemarketAppState {
         await _repo!.updateProfile({'onboarding_complete': true});
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('[Onboarding] remote onboarding_complete write failed: $e');
+          debugPrint(
+            '[Onboarding] remote onboarding_complete write failed: $e',
+          );
         }
       }
     }
@@ -89,9 +91,10 @@ extension AppStateInit on OnemarketAppState {
       if (savedCategory != null) onboardingGoal = savedCategory;
 
       // Restore notification preferences.
-      notifPushEnabled     = await app_local.LocalStorage.getNotifPushEnabled();
-      notifMessagesEnabled = await app_local.LocalStorage.getNotifMessagesEnabled();
-      notifPriceAlerts     = await app_local.LocalStorage.getNotifPriceAlerts();
+      notifPushEnabled = await app_local.LocalStorage.getNotifPushEnabled();
+      notifMessagesEnabled =
+          await app_local.LocalStorage.getNotifMessagesEnabled();
+      notifPriceAlerts = await app_local.LocalStorage.getNotifPriceAlerts();
 
       // Restore Data Saver preference and propagate to ImagePrefetchService.
       dataSaverEnabled = await app_local.LocalStorage.getDataSaverEnabled();
@@ -105,10 +108,8 @@ extension AppStateInit on OnemarketAppState {
       // Start NetworkMonitor early — needed for offline detection below.
       await NetworkMonitor.instance.initialize();
 
-      final locallyDone =
-          await app_local.LocalStorage.isOnboardingComplete();
-      final cachedProfileJson =
-          await app_local.LocalStorage.getProfileCache();
+      final locallyDone = await app_local.LocalStorage.isOnboardingComplete();
+      final cachedProfileJson = await app_local.LocalStorage.getProfileCache();
       UserProfile? cachedProfile;
       if (cachedProfileJson != null) {
         try {
@@ -153,7 +154,9 @@ extension AppStateInit on OnemarketAppState {
           await syncService.init();
         } catch (e) {
           if (kDebugMode) {
-            debugPrint('[init] syncService.init() failed in cache-first guest path: $e');
+            debugPrint(
+              '[init] syncService.init() failed in cache-first guest path: $e',
+            );
           }
         }
         unawaited(loadAllData());
@@ -169,8 +172,8 @@ extension AppStateInit on OnemarketAppState {
           onTimeout: () {
             if (kDebugMode) {
               debugPrint(
-              '[AUTH] initialSession timed out after '
-              '${DateTime.now().millisecondsSinceEpoch - t0}ms — proceeding with current state',
+                '[AUTH] initialSession timed out after '
+                '${DateTime.now().millisecondsSinceEpoch - t0}ms — proceeding with current state',
               );
             }
             return null;
@@ -178,14 +181,14 @@ extension AppStateInit on OnemarketAppState {
         );
         if (kDebugMode) {
           debugPrint(
-          '[AUTH] session ready after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+            '[AUTH] session ready after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
           );
         }
       } else {
         if (kDebugMode) {
           debugPrint(
-          '[AUTH] offline — skipping initialSession wait, '
-          'using cached state after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+            '[AUTH] offline — skipping initialSession wait, '
+            'using cached state after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
           );
         }
         // Complete the completer so any future waiter doesn't hang.
@@ -213,7 +216,8 @@ extension AppStateInit on OnemarketAppState {
         try {
           await syncService.init();
         } catch (e) {
-          if (kDebugMode) debugPrint('[init] syncService.init() failed in guest path: $e');
+          if (kDebugMode)
+            debugPrint('[init] syncService.init() failed in guest path: $e');
         }
         unawaited(loadAllData());
         return;
@@ -225,7 +229,8 @@ extension AppStateInit on OnemarketAppState {
         resolvedProfile = await _repo!.ensureProfile();
         await app_local.LocalStorage.saveProfileCache(resolvedProfile.toJson());
       } catch (networkError) {
-        if (kDebugMode) debugPrint('Profile fetch failed (likely offline): $networkError');
+        if (kDebugMode)
+          debugPrint('Profile fetch failed (likely offline): $networkError');
         final cached = await app_local.LocalStorage.getProfileCache();
         if (cached != null) {
           resolvedProfile = UserProfile.fromJson(cached);
@@ -262,14 +267,18 @@ extension AppStateInit on OnemarketAppState {
             _repo != null) {
           try {
             await _repo!.updateProfile({'onboarding_complete': true});
-            resolvedProfile = resolvedProfile.copyWith(onboardingComplete: true);
+            resolvedProfile = resolvedProfile.copyWith(
+              onboardingComplete: true,
+            );
             profile = resolvedProfile;
             await app_local.LocalStorage.saveProfileCache(
               resolvedProfile.toJson(),
             );
           } catch (e) {
             if (kDebugMode) {
-              debugPrint('[Onboarding] backfill onboarding_complete failed: $e');
+              debugPrint(
+                '[Onboarding] backfill onboarding_complete failed: $e',
+              );
             }
           }
         }
@@ -310,7 +319,7 @@ extension AppStateInit on OnemarketAppState {
     } finally {
       if (kDebugMode) {
         debugPrint(
-        '[AUTH] _initialize finished after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
+          '[AUTH] _initialize finished after ${DateTime.now().millisecondsSinceEpoch - t0}ms',
         );
       }
     }
@@ -452,7 +461,8 @@ extension AppStateInit on OnemarketAppState {
         await app_local.LocalStorage.saveProfileCache(profile!.toJson());
       }
     } catch (e) {
-      if (kDebugMode) debugPrint('[ProfileSetup] profile update failed (non-fatal): $e');
+      if (kDebugMode)
+        debugPrint('[ProfileSetup] profile update failed (non-fatal): $e');
     }
     await app_local.LocalStorage.saveOnboardingPhase('location');
     onboardingPhase = OnboardingPhase.location;
@@ -494,7 +504,9 @@ extension AppStateInit on OnemarketAppState {
           }
         } catch (e) {
           if (kDebugMode) {
-            debugPrint('[LocationOnboarding] notification prefs save failed: $e');
+            debugPrint(
+              '[LocationOnboarding] notification prefs save failed: $e',
+            );
           }
         }
       }
@@ -605,15 +617,24 @@ extension AppStateInit on OnemarketAppState {
     await PermissionService.disablePushOnDevice(
       messagesEnabled: notifMessagesEnabled,
     );
+    await _detachPushTokenFromAccount();
+  }
+
+  /// Removes the current device token from the signed-in account without
+  /// changing device-level FCM registration. Used during logout so the next
+  /// account can safely claim the current token.
+  Future<void> _detachPushTokenFromAccount() async {
     if (_repo != null) {
       try {
         await _repo!.updateProfile({
           'fcm_token': null,
           'notif_push_enabled': false,
         });
-        if (kDebugMode) debugPrint('[FCM] Token cleared from Supabase profile');
+        if (kDebugMode) {
+          debugPrint('[FCM] Token detached from Supabase profile');
+        }
       } catch (e) {
-        if (kDebugMode) debugPrint('[FCM] clear token failed: $e');
+        if (kDebugMode) debugPrint('[FCM] detach token failed: $e');
       }
     }
   }
@@ -622,7 +643,8 @@ extension AppStateInit on OnemarketAppState {
     if (!notifPushEnabled) return;
 
     // Don't prompt the OS dialog if permission was already granted.
-    final alreadyGranted = await PermissionService.isNotificationPermissionGranted();
+    final alreadyGranted =
+        await PermissionService.isNotificationPermissionGranted();
     final token = alreadyGranted
         ? await PermissionService.enablePushOnDevice(
             messagesEnabled: notifMessagesEnabled,
@@ -656,8 +678,9 @@ extension AppStateInit on OnemarketAppState {
     _fcmListenersAttached = true;
 
     _fcmTokenRefreshSub?.cancel();
-    _fcmTokenRefreshSub =
-        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+    _fcmTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((
+      newToken,
+    ) async {
       if (kDebugMode) debugPrint('[FCM] Token refreshed: $newToken');
       if (!notifPushEnabled || _repo == null) return;
       try {
@@ -687,16 +710,19 @@ extension AppStateInit on OnemarketAppState {
         unawaited(refreshChatSessions());
       }
       if (_repo != null) {
-        _repo!.fetchNotifications().then((list) {
-          notifications = list;
-          notifyListeners();
-        }).catchError((e) {
-          if (kDebugMode) {
-            debugPrint(
-              '[FCM] fetchNotifications on foreground message failed: $e',
-            );
-          }
-        });
+        _repo!
+            .fetchNotifications()
+            .then((list) {
+              notifications = list;
+              notifyListeners();
+            })
+            .catchError((e) {
+              if (kDebugMode) {
+                debugPrint(
+                  '[FCM] fetchNotifications on foreground message failed: $e',
+                );
+              }
+            });
       }
     });
 
@@ -706,21 +732,27 @@ extension AppStateInit on OnemarketAppState {
       }
       _navigateFromPushPayload(message.data);
       if (_repo != null) {
-        _repo!.fetchNotifications().then((list) {
-          notifications = list;
-          notifyListeners();
-        }).catchError((e) {
-          if (kDebugMode) {
-            debugPrint('[FCM] fetchNotifications after tap failed: $e');
-          }
-        });
+        _repo!
+            .fetchNotifications()
+            .then((list) {
+              notifications = list;
+              notifyListeners();
+            })
+            .catchError((e) {
+              if (kDebugMode) {
+                debugPrint('[FCM] fetchNotifications after tap failed: $e');
+              }
+            });
       }
     });
   }
 
   Future<void> _initPushNotifications() async {
     if (_pushInitInProgress) {
-      if (kDebugMode) debugPrint('[FCM] _initPushNotifications already in progress — skipping');
+      if (kDebugMode)
+        debugPrint(
+          '[FCM] _initPushNotifications already in progress — skipping',
+        );
       return;
     }
     _pushInitInProgress = true;
@@ -739,7 +771,9 @@ extension AppStateInit on OnemarketAppState {
       final initial = await FirebaseMessaging.instance.getInitialMessage();
       if (initial != null) {
         if (kDebugMode) {
-          debugPrint('[FCM] App launched from notification: ${initial.messageId}');
+          debugPrint(
+            '[FCM] App launched from notification: ${initial.messageId}',
+          );
         }
         _navigateFromPushPayload(initial.data);
         if (_repo != null) {
@@ -775,24 +809,30 @@ extension AppStateInit on OnemarketAppState {
       case 'chat':
         final threadId = data['threadId'] as String?;
         if (threadId != null && threadId.isNotEmpty) {
-          final index =
-              chatSessions.indexWhere((s) => s.id == threadId);
+          final index = chatSessions.indexWhere((s) => s.id == threadId);
           if (index != -1) {
             pushScreen(ActiveChatScreenRoute(index));
           } else {
             // Session not loaded yet — refresh then navigate.
             if (_repo != null) {
-              _repo!.fetchChatSessions().then((sessions) async {
-                chatSessions = await _enrichChatSessions(sessions);
-                notifyListeners();
-                final newIndex =
-                    chatSessions.indexWhere((s) => s.id == threadId);
-                if (newIndex != -1) {
-                  pushScreen(ActiveChatScreenRoute(newIndex));
-                }
-              }).catchError((e) {
-                if (kDebugMode) debugPrint('[FCM] fetchChatSessions for deep-link failed: $e');
-              });
+              _repo!
+                  .fetchChatSessions()
+                  .then((sessions) async {
+                    chatSessions = await _enrichChatSessions(sessions);
+                    notifyListeners();
+                    final newIndex = chatSessions.indexWhere(
+                      (s) => s.id == threadId,
+                    );
+                    if (newIndex != -1) {
+                      pushScreen(ActiveChatScreenRoute(newIndex));
+                    }
+                  })
+                  .catchError((e) {
+                    if (kDebugMode)
+                      debugPrint(
+                        '[FCM] fetchChatSessions for deep-link failed: $e',
+                      );
+                  });
             }
           }
         }

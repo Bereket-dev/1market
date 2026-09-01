@@ -52,6 +52,11 @@ extension AppStateAuth on OnemarketAppState {
   Future<void> signOut() async {
     final client = AppSupabaseConfig.clientOrNull();
     try {
+      // Detach the device from the current account before signing out. Keep
+      // the local FCM registration so the next account can claim the current
+      // token without unnecessary token rotation.
+      await _detachPushTokenFromAccount();
+
       if (client != null) {
         await client.auth.signOut();
         // signOut() will emit AuthChangeEvent.signedOut which calls
@@ -132,11 +137,10 @@ extension AppStateAuth on OnemarketAppState {
       return;
     }
     _pendingOAuthCompletion = false;
-    final text = error is AuthException
-        ? error.message
-        : error.toString();
+    final text = error is AuthException ? error.message : error.toString();
     final lower = text.toLowerCase();
-    final isEmailIssue = lower.contains('email') ||
+    final isEmailIssue =
+        lower.contains('email') ||
         lower.contains('external provider') ||
         lower.contains('user_email');
     final friendly = isEmailIssue
