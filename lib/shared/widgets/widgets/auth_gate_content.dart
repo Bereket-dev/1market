@@ -38,11 +38,14 @@ class _AuthGateSheetContentState extends State<_AuthGateSheetContent> {
     }
 
     try {
+      // On Android the client ID comes from google-services.json (compiled in
+      // by the Google Services Gradle plugin) — passing clientId here is
+      // ignored by the Android plugin and can cause sign-in failures.
+      // serverClientId must be the *web* OAuth client ID so the ID token
+      // audience matches what Supabase expects.
       final googleSignIn = GoogleSignIn(
         serverClientId: AppSupabaseConfig.googleWebClientId,
-        clientId: Platform.isAndroid
-            ? AppSupabaseConfig.googleAndroidClientId
-            : AppSupabaseConfig.googleIosClientId,
+        clientId: Platform.isAndroid ? null : AppSupabaseConfig.googleIosClientId,
         scopes: const ['email', 'profile'],
       );
       await googleSignIn.signOut();

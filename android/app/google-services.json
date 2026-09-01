@@ -12,7 +12,20 @@
           "package_name": "com.onemarket.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "186114511103-t2uqj79kpgnjf6chktdf1fbg43l8o18b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.onemarket.app",
+            "certificate_hash": "958D56EAABE1EB98BD11B559D81F3ADA2C7D4A19"
+          }
+        },
+        {
+          "client_id": "186114511103-68nsruseh4p4e12gtin972fig8r1qg2l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAFF2Pe9_bPQ7WTLgZ2P17S-RpovFfs0xM"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "186114511103-68nsruseh4p4e12gtin972fig8r1qg2l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
