@@ -23,6 +23,12 @@ val keyProperties = Properties()
 if (keyPropertiesFile.exists()) {
     keyProperties.load(FileInputStream(keyPropertiesFile))
 }
+val releaseStoreFile = keyProperties.getProperty("storeFile")?.let(::file)
+val releaseSigningConfigured = keyPropertiesFile.exists() &&
+    keyProperties.getProperty("storePassword").isNullOrBlank().not() &&
+    keyProperties.getProperty("keyAlias").isNullOrBlank().not() &&
+    keyProperties.getProperty("keyPassword").isNullOrBlank().not() &&
+    releaseStoreFile?.exists() == true
 
 android {
     namespace = "com.onemarket.app"
@@ -61,12 +67,15 @@ android {
 
     buildTypes {
         release {
-            // Use upload key when key.properties exists; fall back to debug
-            // so `flutter run --release` still works without a keystore.
-            signingConfig = if (keyPropertiesFile.exists())
-                signingConfigs.getByName("release")
-            else
-                signingConfigs.getByName("debug")
+            // A release build must never silently fall back to the debug key.
+            // Fail early with an actionable message instead.
+            if (!releaseSigningConfigured) {
+                throw GradleException(
+                    "Release signing is not configured. Provide android/key.properties " +
+                        "and a valid upload keystore before building for release."
+                )
+            }
+            signingConfig = signingConfigs.getByName("release")
 
             // ── R8 / shrinking ───────────────────────────────────────────────
             isMinifyEnabled = true
