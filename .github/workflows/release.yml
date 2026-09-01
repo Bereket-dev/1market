@@ -1,0 +1,94 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build & Publish APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Java 17 ─────────────────────────────────────────────────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # ── Flutter ─────────────────────────────────────────────────────────────
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      # ── Env / local.env ─────────────────────────────────────────────────────
+      # Write .env from GitHub Secrets so sync_local_env.dart can read it.
+      - name: Write .env from secrets
+        run: |
+          cat > .env <<'EOF'
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_REDIRECT_URL=${{ secrets.SUPABASE_REDIRECT_URL }}
+          SUPABASE_EMAIL_REDIRECT_URL=${{ secrets.SUPABASE_EMAIL_REDIRECT_URL }}
+          SUPABASE_GOOGLE_CALLBACK=${{ secrets.SUPABASE_GOOGLE_CALLBACK }}
+          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_ANDROID_CLIENT_ID=${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}
+          CLOUD_NAME=${{ secrets.CLOUD_NAME }}
+          EOF
+
+      - name: Sync local.env
+        run: dart run tool/sync_local_env.dart
+
+      # ── Keystore ─────────────────────────────────────────────────────────────
+      # Decode the base64-encoded keystore stored in secrets.
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/onemarket-upload.jks
+
+      - name: Write key.properties
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=../app/onemarket-upload.jks
+          EOF
+
+      # ── Build APK ────────────────────────────────────────────────────────────
+      - name: Build release APK
+        run: flutter build apk --release
+
+      # ── Rename APK with version tag ──────────────────────────────────────────
+      - name: Rename APK
+        run: |
+          VERSION="${{ github.ref_name }}"
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             build/app/outputs/flutter-apk/1market-${VERSION}.apk
+
+      # ── Create GitHub Release ─────────────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "1market ${{ github.ref_name }}"
+          body: |
+            ## Download
+
+            👉 [**Download 1market ${{ github.ref_name }} APK**](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/1market-${{ github.ref_name }}.apk)
+
+            **Install:** Enable *Install from unknown sources* in Android settings, then open the APK.
+          files: build/app/outputs/flutter-apk/1market-${{ github.ref_name }}.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
