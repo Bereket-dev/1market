@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "587515773497",
-    "project_id": "koolan-66154",
-    "storage_bucket": "koolan-66154.firebasestorage.app"
+    "project_number": "58357872748",
+    "project_id": "onemarket-d9c60",
+    "storage_bucket": "onemarket-d9c60.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:587515773497:android:88cab8cd561c60ebe283e8",
+        "mobilesdk_app_id": "1:58357872748:android:b54ba10fec5d2efad08049",
         "android_client_info": {
           "package_name": "com.onemarket.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAq5WAVjLSu6ydyOdfoxSV8JoCk-StpxSQ"
+          "current_key": "AIzaSyAFF2Pe9_bPQ7WTLgZ2P17S-RpovFfs0xM"
         }
       ],
       "services": {

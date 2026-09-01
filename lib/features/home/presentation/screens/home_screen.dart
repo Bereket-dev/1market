@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../shared/models/app_strings.dart';
 import '../../../../shared/models/hiring_post.dart';
@@ -13,7 +12,6 @@ import '../../../../shared/services/scorable_adapters.dart';
 import '../../../../shared/widgets/auth_gate_sheet.dart';
 import '../../../../shared/widgets/brand_logo.dart';
 import '../../../../shared/widgets/cached_image_widget.dart';
-import '../../../../shared/widgets/sync_status_banner.dart';
 import '../widgets/category_card.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/recent_listing_card.dart';
@@ -38,8 +36,6 @@ class HomeScreen extends StatelessWidget {
         children: [
           // ── Header ─────────────────────────────────────────────────────────
           _HomeHeader(),
-
-          const SyncStatusBanner(),
 
           // ── Scrollable body ─────────────────────────────────────────────────
           Expanded(
