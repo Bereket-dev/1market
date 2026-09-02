@@ -51,8 +51,22 @@ jobs:
           printf 'GOOGLE_ANDROID_CLIENT_ID=%s\n' '${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}' >> .env
           printf 'CLOUD_NAME=%s\n' '${{ secrets.CLOUD_NAME }}' >> .env
 
+      - name: Verify .env was written
+        run: |
+          echo "=== .env line count ==="
+          wc -l .env
+          echo "=== .env keys (no values) ==="
+          grep -o '^[^=]*' .env
+
       - name: Sync local.env
         run: dart run tool/sync_local_env.dart
+
+      - name: Verify local.env was generated
+        run: |
+          echo "=== assets/config/local.env line count ==="
+          wc -l assets/config/local.env
+          echo "=== local.env keys (no values) ==="
+          grep -o '^[^=]*' assets/config/local.env
 
       # ── Keystore ─────────────────────────────────────────────────────────────
       # Decode the base64-encoded keystore stored in secrets.
@@ -70,6 +84,11 @@ jobs:
       # ── Build APK ────────────────────────────────────────────────────────────
       - name: Build release APK
         run: flutter build apk --release
+
+      - name: Verify local.env is bundled in APK
+        run: |
+          echo "=== local.env inside APK ==="
+          unzip -p build/app/outputs/flutter-apk/app-release.apk assets/flutter_assets/assets/config/local.env || echo "FILE NOT FOUND IN APK"
 
       # ── Rename APK with version tag ──────────────────────────────────────────
       - name: Rename APK
