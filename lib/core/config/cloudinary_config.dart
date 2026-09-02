@@ -22,7 +22,9 @@ class CloudinaryConfig {
       String.fromEnvironment('CLOUD_API_SECRET');
 
   static String _env(String define, String dotenvKey) {
+    // dart-define values work in both debug and release.
     if (define.isNotEmpty) return define;
+    // dotenv fallback is debug-only (local .env file).
     if (!kDebugMode) return '';
     try {
       return dotenv.env[dotenvKey] ?? '';
