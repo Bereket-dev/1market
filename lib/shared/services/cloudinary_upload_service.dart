@@ -111,8 +111,21 @@ class CloudinaryUploadService {
     Map<String, String> paramsToSign,
   ) async {
     final client = AppSupabaseConfig.clientOrNull();
-    final session = client?.auth.currentSession;
-    if (client != null && session != null) {
+    if (client == null) return null;
+
+    // Refresh session if expired so the Edge Function receives a valid JWT.
+    var session = client.auth.currentSession;
+    if (session != null && session.isExpired) {
+      try {
+        final refreshed = await client.auth.refreshSession();
+        session = refreshed.session;
+      } catch (e, st) {
+        await ErrorReporter.recordError(e, st, reason: 'cloudinary_session_refresh');
+        session = null;
+      }
+    }
+
+    if (session != null) {
       try {
         final response = await client.functions
             .invoke(
