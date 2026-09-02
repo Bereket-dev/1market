@@ -87,6 +87,7 @@ jobs:
       - name: Build release APK
         run: |
           flutter build apk --release \
+            --dart-define=CLOUD_NAME=${{ secrets.CLOUD_NAME }} \
             --dart-define=CLOUD_API_KEY=${{ secrets.CLOUD_API_KEY }} \
             --dart-define=CLOUD_API_SECRET=${{ secrets.CLOUD_API_SECRET }}
 
