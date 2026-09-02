@@ -42,16 +42,14 @@ jobs:
       # Write .env from GitHub Secrets so sync_local_env.dart can read it.
       - name: Write .env from secrets
         run: |
-          cat > .env <<'EOF'
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_REDIRECT_URL=${{ secrets.SUPABASE_REDIRECT_URL }}
-          SUPABASE_EMAIL_REDIRECT_URL=${{ secrets.SUPABASE_EMAIL_REDIRECT_URL }}
-          SUPABASE_GOOGLE_CALLBACK=${{ secrets.SUPABASE_GOOGLE_CALLBACK }}
-          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-          GOOGLE_ANDROID_CLIENT_ID=${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}
-          CLOUD_NAME=${{ secrets.CLOUD_NAME }}
-          EOF
+          printf 'SUPABASE_URL=%s\n' '${{ secrets.SUPABASE_URL }}' > .env
+          printf 'SUPABASE_ANON_KEY=%s\n' '${{ secrets.SUPABASE_ANON_KEY }}' >> .env
+          printf 'SUPABASE_REDIRECT_URL=%s\n' '${{ secrets.SUPABASE_REDIRECT_URL }}' >> .env
+          printf 'SUPABASE_EMAIL_REDIRECT_URL=%s\n' '${{ secrets.SUPABASE_EMAIL_REDIRECT_URL }}' >> .env
+          printf 'SUPABASE_GOOGLE_CALLBACK=%s\n' '${{ secrets.SUPABASE_GOOGLE_CALLBACK }}' >> .env
+          printf 'GOOGLE_WEB_CLIENT_ID=%s\n' '${{ secrets.GOOGLE_WEB_CLIENT_ID }}' >> .env
+          printf 'GOOGLE_ANDROID_CLIENT_ID=%s\n' '${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}' >> .env
+          printf 'CLOUD_NAME=%s\n' '${{ secrets.CLOUD_NAME }}' >> .env
 
       - name: Sync local.env
         run: dart run tool/sync_local_env.dart
@@ -64,12 +62,10 @@ jobs:
 
       - name: Write key.properties
         run: |
-          cat > android/key.properties <<EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=../app/onemarket-upload.jks
-          EOF
+          printf 'storePassword=%s\n' '${{ secrets.KEYSTORE_PASSWORD }}' > android/key.properties
+          printf 'keyPassword=%s\n' '${{ secrets.KEY_PASSWORD }}' >> android/key.properties
+          printf 'keyAlias=%s\n' '${{ secrets.KEY_ALIAS }}' >> android/key.properties
+          printf 'storeFile=%s\n' '../app/onemarket-upload.jks' >> android/key.properties
 
       # ── Build APK ────────────────────────────────────────────────────────────
       - name: Build release APK
