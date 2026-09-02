@@ -49,3 +49,6 @@ docs/release_prep_plan.md
 
 # Android secrets (contains Facebook App ID and Client Token)
 android/app/src/main/res/values/strings.xml
+
+# Supabase local temp files
+supabase/.temp/
