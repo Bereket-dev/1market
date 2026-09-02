@@ -83,7 +83,10 @@ jobs:
 
       # ── Build APK ────────────────────────────────────────────────────────────
       - name: Build release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            --dart-define=CLOUD_API_KEY=${{ secrets.CLOUD_API_KEY }} \
+            --dart-define=CLOUD_API_SECRET=${{ secrets.CLOUD_API_SECRET }}
 
       - name: Verify local.env is bundled in APK
         run: |
