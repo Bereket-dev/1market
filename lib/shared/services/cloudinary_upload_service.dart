@@ -125,6 +125,10 @@ class CloudinaryUploadService {
       }
     }
 
+    if (kDebugMode) {
+      debugPrint('[Cloudinary] session=${session == null ? 'null' : 'present'}, hasLocalSigningCredentials=${CloudinaryConfig.hasLocalSigningCredentials}');
+    }
+
     if (session != null) {
       try {
         final response = await client.functions
@@ -155,7 +159,12 @@ class CloudinaryUploadService {
         }
       } on FunctionException catch (e, st) {
         await ErrorReporter.recordError(e, st, reason: 'cloudinary_sign');
-        if (e.status == 401) return null;
+        if (e.status == 401 || e.status == 503) {
+          if (!CloudinaryConfig.hasLocalSigningCredentials) return null;
+          if (kDebugMode) {
+            debugPrint('[Cloudinary] edge sign returned ${e.status}; falling back to local signing');
+          }
+        }
       } catch (e, st) {
         await ErrorReporter.recordError(e, st, reason: 'cloudinary_sign');
       }

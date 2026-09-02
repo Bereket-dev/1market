@@ -82,6 +82,8 @@ jobs:
           printf 'storeFile=%s\n' '../app/onemarket-upload.jks' >> android/key.properties
 
       # ── Build APK ────────────────────────────────────────────────────────────
+      # Cloudinary local signing credentials are intentionally supplied only
+      # through dart-define so they are available to the release build.
       - name: Build release APK
         run: |
           flutter build apk --release \

@@ -9,6 +9,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 ///
 /// Local debug may still supply key/secret via dart-define / dotenv as a
 /// fallback when the Edge Function is unavailable.
+/// Release builds can use local signing only when the credentials are explicitly
+/// passed via `--dart-define` in CI.
 class CloudinaryConfig {
   CloudinaryConfig._();
 
@@ -31,10 +33,10 @@ class CloudinaryConfig {
 
   static String get cloudName => _env(_defineCloudName, 'CLOUD_NAME');
 
-  /// Local-only fallback — empty in release unless mistakenly passed via define.
+  /// Available in release only when explicitly passed via --dart-define in CI.
   static String get apiKey => _env(_defineApiKey, 'CLOUD_API_KEY');
 
-  /// Local-only fallback — must not be present in release APKs.
+  /// Available in release only when explicitly passed via --dart-define in CI.
   static String get apiSecret => _env(_defineApiSecret, 'CLOUD_API_SECRET');
 
   /// Base URL for the Cloudinary upload API (signed uploads, images).
@@ -48,7 +50,7 @@ class CloudinaryConfig {
   /// Client only needs the public cloud name; signing is server-side.
   static bool get isConfigured => cloudName.isNotEmpty;
 
-  /// True when a local secret is available (debug / legacy fallback).
+  /// True when a local signing credential pair is available.
   static bool get hasLocalSigningCredentials =>
       apiKey.isNotEmpty && apiSecret.isNotEmpty;
 }
